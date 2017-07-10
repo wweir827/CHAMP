@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+import matplotlib.patches as patch
+from matplotlib.path import Path
 
 
 def plot_2d_domains(plane_dict, ax=None, col=None, close=False, widths=None, label=False):
@@ -10,7 +13,7 @@ def plot_2d_domains(plane_dict, ax=None, col=None, close=False, widths=None, lab
     if widths==None:
         widths = np.random.sample(len(plane_dict))*3 + 1
     if col==None:
-        cnorm=mc.Normalize(vmin=0,vmax=len(plane_dict.keys()))
+        cnorm=mcolors.Normalize(vmin=0,vmax=len(plane_dict.keys()))
         cmap=cm.get_cmap("Set1")
         colors=map(lambda(i): cmap(cnorm(i)),range(len(plane_dict)))
     i=0
