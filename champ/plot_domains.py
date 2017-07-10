@@ -6,7 +6,7 @@ import matplotlib.patches as patch
 from matplotlib.path import Path
 
 
-def plot_2d_domains(plane_dict, ax=None, col=None, close=False, widths=None, label=False):
+def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, label=False):
     if ax==None:
         f=plt.figure()
         ax=f.add_subplot(111)
@@ -17,9 +17,9 @@ def plot_2d_domains(plane_dict, ax=None, col=None, close=False, widths=None, lab
         cmap=cm.get_cmap("Set1")
         colors=map(lambda(i): cmap(cnorm(i)),range(len(plane_dict)))
     i=0
-    for plane,pts in plane_dict.items():
+    for i,pts in ind_2_domains.items():
         if hasattr(col,"__iter__" ):
-            assert len(col) == len(plane_dict)
+            assert len(col) == len(ind_2_domains)
             c=col[i] #must match length
         else:
             c=colors[i] if col==None else col

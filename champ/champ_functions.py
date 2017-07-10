@@ -156,19 +156,12 @@ def _random_plane():
                      0.25 * min_offset + 0.75 * max_offset)
     return hs.Halfspace(normal, offset)
 
-def main():
-
-    #create random planes
+def get_random_halfspaces(n=100):
+    '''Generate random halfspaces for testing
+    :param n: number of halfspaces to return (default=100)
+    '''
     test_hs=[]
-    np.random.seed(0)
-
-    for _ in range(30):
+    for _ in range(n):
         test_hs.append(_random_plane())
-    test_int_dict=find_intersection(test_hs)
-    print test_hs
-    print test_int_dict
-    return 1
 
-if __name__=='__main__':
-
-    exit(main())
+    return test_hs
