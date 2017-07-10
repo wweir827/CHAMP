@@ -76,7 +76,13 @@ def get_interior_point(hs_list):
              np.abs(hs.normal[-1]-0)>np.power(10.0,-15)]
 
     #take a small step into interior from 1st plane.
-    return np.array([0,0,np.max(z_vals)]) + np.array([.001,.001,.001])
+    dim = hs_list[0].normal.shape[0]
+    intpt=np.array([0 for _ in range(dim-1)]+[np.max(z_vals)])
+    internal_step=np.array([0]+[.000001 for _ in range(dim-1)])
+    return intpt+internal_step
+
+
+
 
 def calculate_coefficient(com_vec,adj_matrix):
     '''
@@ -215,12 +221,35 @@ def _random_plane():
     return np.array([normal[0],normal[1],-1*offset/normal[2]])
     # return hs.Halfspace(normal, offset)
 
-def get_random_halfspaces(n=100):
+def _random_line():
+    '''
+    generate a random line in gamma,Q plane
+    :return:
+    '''
+    # normal = np.array([uniform(.5, 2),-1])
+    # normal /= np.linalg.norm(normal)
+
+    #just sample slope and intercept directly
+    slope=uniform(-5,-1/5.0)
+    inter=uniform(0,2)
+
+    # offset=-1.0*normal.dot(pt)
+
+    # the 0.25 and 0.75 factors here just force more intersections
+    # Return a coefficient representation instead
+    return np.array([inter, slope])
+
+def get_random_halfspaces(n=100,dim=3):
     '''Generate random halfspaces for testing
     :param n: number of halfspaces to return (default=100)
     '''
     test_hs=[]
     for _ in range(n):
-        test_hs.append(_random_plane())
+        if dim==3:
+            test_hs.append(_random_plane())
+        elif dim==2:
+            test_hs.append(_random_line())
+        else:
+            raise NotImplementedError("Only 2D or 3D Random Halfspaces implemented")
     return np.array(test_hs)
     # return test_hs
