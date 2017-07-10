@@ -38,6 +38,7 @@ def create_halfspaces_from_array(coeff_array):
         if singlelayer:
             nv=np.array([cgamma, 1.0])
             pt = np.array([0 , cconst])
+
         else:
             nv=np.array([cgamma, -1 * comega, 1.0])
             pt = np.array([0, 0, cconst])
@@ -76,7 +77,13 @@ def get_interior_point(hs_list):
              np.abs(hs.normal[-1]-0)>np.power(10.0,-15)]
 
     #take a small step into interior from 1st plane.
-    return np.array([0,0,np.max(z_vals)]) + np.array([.001,.001,.001])
+    dim = hs_list[0].normal.shape[0]
+    intpt=np.array([0 for _ in range(dim-1)]+[np.max(z_vals)])
+    internal_step=np.array([.000001 for _ in range(dim)])
+    return intpt+internal_step
+
+
+
 
 def calculate_coefficient(com_vec,adj_matrix):
     '''
@@ -139,7 +146,7 @@ def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
     '''
     interior_pt=get_interior_point(halfspaces)
     singlelayer=False
-    if halfspaces[0].normal.shape==2:
+    if halfspaces[0].normal.shape[0]==2:
         singlelayer=True
 
 
@@ -162,12 +169,12 @@ def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
             num2rm+=1
 
 
+
     hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
     ind_2_domain = {}
 
     non_inf_vert = np.array([v for v in hs_inter.vertices if v[0] != np.inf])
     mx = np.max(non_inf_vert,axis=0)
-    # mx = multipartition_prune_rays.get_max_point(non_inf_vert).array + np.array([5, 5, 0])
     rep_verts = [v if v[0] != np.inf else mx for v in hs_inter.vertices]
 
     for i, vlist in enumerate(hs_inter.facets_by_halfspace):
@@ -187,7 +194,7 @@ def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
         pt2rm.reverse()
         for j in pt2rm:
             pts.pop(j)
-        if len(pts)>2:
+        if len(pts)>=len(rep_verts[0]): #must be at least 2 pts in 2D , 3 pt in 3D, etc.
             ind_2_domain[i]=pts
 
         #use non-inf vertices to return
@@ -215,12 +222,35 @@ def _random_plane():
     return np.array([normal[0],normal[1],-1*offset/normal[2]])
     # return hs.Halfspace(normal, offset)
 
-def get_random_halfspaces(n=100):
+def _random_line():
+    '''
+    generate a random line in gamma,Q plane
+    :return:
+    '''
+    # normal = np.array([uniform(.5, 2),-1])
+    # normal /= np.linalg.norm(normal)
+
+    #just sample slope and intercept directly
+    slope=uniform(1/5.0,5)
+    inter=uniform(0,2)
+
+    # offset=-1.0*normal.dot(pt)
+
+    # the 0.25 and 0.75 factors here just force more intersections
+    # Return a coefficient representation instead
+    return np.array([inter, slope])
+
+def get_random_halfspaces(n=100,dim=3):
     '''Generate random halfspaces for testing
     :param n: number of halfspaces to return (default=100)
     '''
     test_hs=[]
     for _ in range(n):
-        test_hs.append(_random_plane())
+        if dim==3:
+            test_hs.append(_random_plane())
+        elif dim==2:
+            test_hs.append(_random_line())
+        else:
+            raise NotImplementedError("Only 2D or 3D Random Halfspaces implemented")
     return np.array(test_hs)
     # return test_hs
