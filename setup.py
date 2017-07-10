@@ -8,5 +8,5 @@ setup(
     license='',
     author='William Weir',
     author_email='wweir@med.unc.edu',
-    description='Convex Hull of Admissible Modularity Partitions'
+    description='Modularity based networks partition selection tool'
 )
