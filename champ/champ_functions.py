@@ -11,7 +11,7 @@ def create_half_space_from_partitions():
     #TODO
     return
 
-def create_halfspaces_from_array(coeff_array,max_pt=None,min_pt=(0,0,0)):
+def create_halfspaces_from_array(coeff_array):
     '''
     :param coeff_array: list of coefficients for each partition to be considered.  Should be an array
         [ [ A_0 , P_0 , C_0 ],
@@ -21,14 +21,12 @@ def create_halfspaces_from_array(coeff_array,max_pt=None,min_pt=(0,0,0)):
 
     Where each row represents the coefficients for a particular partition.
     If Single Layer network, omit C_i's.
-    :param max_pt: Upper bound for the domains (in the xy plane).  This will restrict the
-    convex hull to be within a reasonable range of gamma/omega (such as the range of parameters
-    originally searched using Louvain).
-    :param min_pt: Lower bound for interesections (origin)
     :return list of halfspaces with 4 boundary halfspaces appended to the end.
     '''
+    singlelayer=False
     if coeff_array.shape[1]==2:
         singlelayer=True
+
 
     halfspaces=[]
     for i in np.arange(coeff_array.shape[0]):
@@ -51,15 +49,19 @@ def create_halfspaces_from_array(coeff_array,max_pt=None,min_pt=(0,0,0)):
         halfspaces.append(halfspace)
 
 
-    #Create Boundary Halfspaces - These will always be included in the convex hull and need to be removed
-    if singlelayer:
-        #origin boundaries
-        halfspaces.extend([hs.Halfspace(normal=(0, -1.0, 0), offset=0), hs.Halfspace(normal=(-1.0, 0, 0), offset=0)])
-        #max boundaries
-    else:
-        halfspaces.extend([hs.Halfspace(normal=(0, -1.0, 0), offset=0), hs.Halfspace(normal=(-1.0, 0, 0), offset=0)])
 
     return halfspaces
+
+def sort_points(points):
+    #find centroid
+    if len(points[0])>2:
+        cent = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
+        points.sort(key=lambda (x): np.arctan2(x[1] - cent[1], x[0] - cent[0]))
+    else:
+       points.sort(key=lambda (x): x[0]) #just sort along x-axis
+
+
+    return points
 
 def get_interior_point(hs_list):
     '''
@@ -70,9 +72,11 @@ def get_interior_point(hs_list):
     interior intersection.
     '''
 
-    z_vals=[ -1.0*hs.offset/hs.normal[-1] for hs in hs_list]
+    z_vals=[ -1.0*hs.offset/hs.normal[-1] for hs in hs_list if
+             np.abs(hs.normal[-1]-0)>np.power(10.0,-15)]
+
     #take a small step into interior from 1st plane.
-    return np.array([0,0,np.max(z_vals)]) + np.array([.0001,.0001,.0001])
+    return np.array([0,0,np.max(z_vals)]) + np.array([.001,.001,.001])
 
 def calculate_coefficient(com_vec,adj_matrix):
     '''
@@ -109,17 +113,55 @@ def calculate_coefficient(com_vec,adj_matrix):
 
     return sumA
 
+def comp_points(pt1,pt2):
+    '''
+    check for equality within certain tolerance
+    :param pt1:
+    :param pt2:
+    :return:
+    '''
+    for i in range(len(pt1)):
+        if np.abs(pt1[i]-pt2[i])>np.power(10.0,-15):
+            return False
+
+    return True
 
 
-def find_intersection(halfspaces,maxpt=None,minpt=(0,0)):
+def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
     '''
 
     :param halfspaces:
-    :param maxpt:
-    :param minpt:
+    :param max_pt: Upper bound for the domains (in the xy plane).  This will restrict the
+    convex hull to be within a reasonable range of gamma/omega (such as the range of parameters
+    originally searched using Louvain).
+    :param min_pt: Lower bound for interesections (origin)
     :return:
     '''
     interior_pt=get_interior_point(halfspaces)
+    singlelayer=False
+    if halfspaces[0].normal.shape==2:
+        singlelayer=True
+
+
+    # Create Boundary Halfspaces - These will always be included in the convex hull and need to be removed
+    num2rm=0
+    if not singlelayer:
+        # origin boundaries
+        halfspaces.extend([hs.Halfspace(normal=(0, -1.0, 0), offset=0), hs.Halfspace(normal=(-1.0, 0, 0), offset=0)])
+        num2rm +=2
+        if max_pt is not None:
+            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * max_pt[0]),
+                           hs.Halfspace(normal=(1.0, 0, 0), offset=-1 * max_pt[1])])
+            num2rm +=2
+
+    else:
+        halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0))
+        num2rm +=1
+        if max_pt is not None:
+            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt[0]))
+            num2rm+=1
+
+
     hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
     ind_2_domain = {}
 
@@ -127,20 +169,34 @@ def find_intersection(halfspaces,maxpt=None,minpt=(0,0)):
     mx = np.max(non_inf_vert,axis=0)
     # mx = multipartition_prune_rays.get_max_point(non_inf_vert).array + np.array([5, 5, 0])
     rep_verts = [v if v[0] != np.inf else mx for v in hs_inter.vertices]
+
     for i, vlist in enumerate(hs_inter.facets_by_halfspace):
-        chs = hs_inter.halfspaces[i]
+        #Empty domains
         if len(vlist) == 0:
             continue
 
         # these are the boundary planes appended on end
-        if not i < len(hs_inter.facets_by_halfspace) - 4 :
+        if not i < len(hs_inter.facets_by_halfspace) - num2rm :
             continue
 
+        pts=sort_points([rep_verts[v] for v in vlist])
+        pt2rm=[]
+        for j in range(len(pts)-1):
+            if comp_points(pts[j],pts[j+1]):
+                pt2rm.append(j)
+        pt2rm.reverse()
+        for j in pt2rm:
+            pts.pop(j)
+        if len(pts)>2:
+            ind_2_domain[i]=pts
+
         #use non-inf vertices to return
-        ind_2_domain[i] = [rep_verts[i] for v in vlist]
     return ind_2_domain
 
+
+
 def _random_plane():
+
     normal = np.array([uniform(-0.5, 0.5), uniform(-0.5, 0.5), -1])
     normal /= np.linalg.norm(normal)
     min_offset = -min(0,
@@ -154,7 +210,10 @@ def _random_plane():
     # the 0.25 and 0.75 factors here just force more intersections
     offset = uniform(0.75 * min_offset + 0.25 * max_offset,
                      0.25 * min_offset + 0.75 * max_offset)
-    return hs.Halfspace(normal, offset)
+
+    #Return a coefficient representation instead
+    return np.array([normal[0],normal[1],-1*offset/normal[2]])
+    # return hs.Halfspace(normal, offset)
 
 def get_random_halfspaces(n=100):
     '''Generate random halfspaces for testing
@@ -163,5 +222,5 @@ def get_random_halfspaces(n=100):
     test_hs=[]
     for _ in range(n):
         test_hs.append(_random_plane())
-
-    return test_hs
+    return np.array(test_hs)
+    # return test_hs
