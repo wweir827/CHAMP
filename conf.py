@@ -23,8 +23,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 #Mock Modules Needed for Sphynx
 import mock
-
-MOCK_MODULES = ['numpy', 'matplotlib', 'matplotlib.pyplot',
+MOCK_MODULES = ['numpy','numpy.random', 'matplotlib', 'matplotlib.pyplot',
                 'matplotlib.cm',
                 'matplotlib.colors',
                 'matplotlib.patches',
