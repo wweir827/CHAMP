@@ -1,13 +1,17 @@
 from pyhull import halfspace as hs
 import numpy as np
 from numpy.random import uniform
+from collections import Hashable
 
 
-def create_half_space_from_partitions():
+def create_half_space_from_partitions(partition_array,adj_mats ):
+    '''
+    :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels
+    must be hashable.
+    :param adj_mats: List of matrices defining the connectiviy i.e [A_ij,P_ij] for single layer or [A_ij,P_ij,C_ij]
+    :return: size M list of halfspaces
     '''
 
-    :return:
-    '''
     #TODO
     return
 
@@ -21,7 +25,7 @@ def create_halfspaces_from_array(coeff_array):
 
     Where each row represents the coefficients for a particular partition.
     If Single Layer network, omit C_i's.
-    :return list of halfspaces with 4 boundary halfspaces appended to the end.
+    :return: list of halfspaces with 4 boundary halfspaces appended to the end.
     '''
     singlelayer=False
     if coeff_array.shape[1]==2:
@@ -54,7 +58,11 @@ def create_halfspaces_from_array(coeff_array):
     return halfspaces
 
 def sort_points(points):
-    #find centroid
+    '''
+
+    :param points:
+    :return:
+    '''
     if len(points[0])>2:
         cent = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
         points.sort(key=lambda (x): np.arctan2(x[1] - cent[1], x[0] - cent[0]))
@@ -71,6 +79,7 @@ def get_interior_point(hs_list):
     :return: interior point of intersections at (0+.001,0+.001,max(A_ij)) the
     maximum modularity value of any of the partitions at 0,0 needed to calculate
     interior intersection.
+
     '''
 
     z_vals=[ -1.0*hs.offset/hs.normal[-1] for hs in hs_list if
@@ -95,6 +104,7 @@ def calculate_coefficient(com_vec,adj_matrix):
     :param adj_matrix: adjacency matrix for connections to calculate coefficients for
     (i.e. A_ij, P_ij, C_ij, etc..) ordered the same as com_vec
     :return:
+
     '''
 
     com_inddict = {}
@@ -105,7 +115,11 @@ def calculate_coefficient(com_vec,adj_matrix):
 
     # store indices for each community together in dict
     for i, val in enumerate(com_vec):
-        com_inddict[val] = com_inddict.get(val, []) + [i]
+        try:
+            com_inddict[val] = com_inddict.get(val, []) + [i]
+        except TypeError:
+            raise TypeError ("Community labels must be hashable- isinstance(%s,Hashable): " %(str(val)),\
+                             isinstance(val,Hashable))
 
     # convert indices to np_array
     for k, val in com_inddict.items():
@@ -126,6 +140,7 @@ def comp_points(pt1,pt2):
     :param pt1:
     :param pt2:
     :return:
+
     '''
     for i in range(len(pt1)):
         if np.abs(pt1[i]-pt2[i])>np.power(10.0,-15):
@@ -136,13 +151,14 @@ def comp_points(pt1,pt2):
 
 def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
     '''
-
+    Calculate the intersection of the halfspaces (planes) that form the convex hull
     :param halfspaces:
-    :param max_pt: Upper bound for the domains (in the xy plane).  This will restrict the
-    convex hull to be within a reasonable range of gamma/omega (such as the range of parameters
-    originally searched using Louvain).
-    :param min_pt: Lower bound for interesections (origin)
-    :return:
+    :type halfspaces: list
+    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
+    to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).
+    :param min_pt: Lower bound for the domains origin
+    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
+    of the domain
     '''
     interior_pt=get_interior_point(halfspaces)
     singlelayer=False
@@ -167,7 +183,6 @@ def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
         if max_pt is not None:
             halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt[0]))
             num2rm+=1
-
 
 
     hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
@@ -199,7 +214,6 @@ def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
 
         #use non-inf vertices to return
     return ind_2_domain
-
 
 
 def _random_plane():
