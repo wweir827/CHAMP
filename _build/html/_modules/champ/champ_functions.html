@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>champ.champ_functions &mdash; CHAMP 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="CHAMP 1 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CHAMP
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../_static/intro.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_static/running.html">Running CHAMP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_static/plotting.html">Visualizing Results</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CHAMP</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>champ.champ_functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for champ.champ_functions</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">pyhull</span> <span class="k">import</span> <span class="n">halfspace</span> <span class="k">as</span> <span class="n">hs</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="k">import</span> <span class="n">uniform</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Hashable</span>
+
+
+<span class="k">def</span> <span class="nf">create_half_space_from_partitions</span><span class="p">(</span><span class="n">partition_array</span><span class="p">,</span><span class="n">A_mat</span><span class="p">,</span><span class="n">P_mat</span><span class="p">,</span><span class="n">C_mat</span><span class="o">=</span><span class="kc">None</span> <span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels</span>
+<span class="sd">    must be hashable.</span>
+<span class="sd">    :param A_mat:</span>
+<span class="sd">    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\frac{k_ik_j}{2m}`</span>
+<span class="sd">    :param C_mat: Optional matrix representing interlayer connectivity</span>
+<span class="sd">    :return: size M list of halfspaces</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1">#TODO</span>
+    <span class="k">return</span>
+
+<span class="k">def</span> <span class="nf">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    :param coef_array: list of coefficients for each partition to be considered.  Should be an array</span>
+<span class="sd">        [ [ A_0 , P_0 , C_0 ],</span>
+<span class="sd">           ... ,</span>
+<span class="sd">          [ A_n , P_n , C_n ]</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Where each row represents the coefficients for a particular partition.</span>
+<span class="sd">    If Single Layer network, omit C_i&#39;s.</span>
+<span class="sd">    :return: list of halfspaces with 4 boundary halfspaces appended to the end.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">singlelayer</span><span class="o">=</span><span class="kc">False</span>
+    <span class="k">if</span> <span class="n">coef_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">singlelayer</span><span class="o">=</span><span class="kc">True</span>
+
+
+    <span class="n">halfspaces</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">coef_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">cconst</span> <span class="o">=</span> <span class="n">coef_array</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">cgamma</span> <span class="o">=</span> <span class="n">coef_array</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">singlelayer</span><span class="p">:</span>
+            <span class="n">comega</span> <span class="o">=</span> <span class="n">coef_array</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">singlelayer</span><span class="p">:</span>
+            <span class="n">nv</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cgamma</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+            <span class="n">pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span> <span class="p">,</span> <span class="n">cconst</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nv</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cgamma</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">comega</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+            <span class="n">pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cconst</span><span class="p">])</span>
+
+        <span class="n">nv</span> <span class="o">=</span> <span class="n">nv</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">nv</span><span class="p">)</span>
+        <span class="n">off</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">nv</span><span class="p">,</span> <span class="n">pt</span><span class="p">)</span>
+
+        <span class="n">halfspace</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">nv</span><span class="p">,</span> <span class="n">off</span><span class="p">)</span>
+        <span class="n">halfspaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">halfspace</span><span class="p">)</span>
+
+
+
+    <span class="k">return</span> <span class="n">halfspaces</span>
+
+<span class="k">def</span> <span class="nf">sort_points</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    :param points:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">cent</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">points</span><span class="p">])</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">))</span>
+        <span class="n">points</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">cent</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">cent</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">else</span><span class="p">:</span>
+       <span class="n">points</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1">#just sort along x-axis</span>
+
+
+    <span class="k">return</span> <span class="n">points</span>
+
+<span class="k">def</span> <span class="nf">get_interior_point</span><span class="p">(</span><span class="n">hs_list</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find interior point to calculate intersections</span>
+<span class="sd">    :param hs_list: list of halfspaces</span>
+<span class="sd">    :return: interior point of intersections at (0+.001,0+.001,max(A_ij)) the</span>
+<span class="sd">    maximum modularity value of any of the partitions at 0,0 needed to calculate</span>
+<span class="sd">    interior intersection.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">z_vals</span><span class="o">=</span><span class="p">[</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">*</span><span class="n">hs</span><span class="o">.</span><span class="n">offset</span><span class="o">/</span><span class="n">hs</span><span class="o">.</span><span class="n">normal</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">hs</span> <span class="ow">in</span> <span class="n">hs_list</span> <span class="k">if</span>
+             <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">normal</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">0</span><span class="p">)</span><span class="o">&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span><span class="o">-</span><span class="mi">15</span><span class="p">)]</span>
+
+    <span class="c1">#take a small step into interior from 1st plane.</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="n">hs_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">intpt</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span><span class="o">+</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">z_vals</span><span class="p">)])</span>
+    <span class="n">internal_step</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">.</span><span class="mi">000001</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">intpt</span><span class="o">+</span><span class="n">internal_step</span>
+
+
+
+
+<span class="k">def</span> <span class="nf">calculate_coefficient</span><span class="p">(</span><span class="n">com_vec</span><span class="p">,</span><span class="n">adj_matrix</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    For a given connection matrix and set of community labels, calculate the coeffcient</span>
+<span class="sd">    for plane/line associated with that connectivity matrix</span>
+
+<span class="sd">    :param com_vec: list or vector with community membership for each element of network</span>
+<span class="sd">    ordered the same as the rows/col of adj_matrix</span>
+<span class="sd">    :param adj_matrix: adjacency matrix for connections to calculate coefficients for</span>
+<span class="sd">    (i.e. A_ij, P_ij, C_ij, etc..) ordered the same as com_vec</span>
+<span class="sd">    :return:</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">com_inddict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">allcoms</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">com_vec</span><span class="p">)))</span>
+    <span class="k">assert</span> <span class="n">com_vec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">adj_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">sumA</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># store indices for each community together in dict</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">com_vec</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">com_inddict</span><span class="p">[</span><span class="n">val</span><span class="p">]</span> <span class="o">=</span> <span class="n">com_inddict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span> <span class="p">(</span><span class="s2">&quot;Community labels must be hashable- isinstance(</span><span class="si">%s</span><span class="s2">,Hashable): &quot;</span> <span class="o">%</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)),</span>\
+                             <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span><span class="n">Hashable</span><span class="p">))</span>
+
+    <span class="c1"># convert indices to np_array</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">com_inddict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">com_inddict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">com</span> <span class="ow">in</span> <span class="n">allcoms</span><span class="p">:</span>
+        <span class="n">cind</span> <span class="o">=</span> <span class="n">com_inddict</span><span class="p">[</span><span class="n">com</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">cind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># throws type error if try to index with scalar</span>
+            <span class="n">sumA</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">adj_matrix</span><span class="p">[</span><span class="n">cind</span><span class="p">,</span> <span class="n">cind</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sumA</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">adj_matrix</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">cind</span><span class="p">,</span> <span class="n">cind</span><span class="p">)])</span>
+
+    <span class="k">return</span> <span class="n">sumA</span>
+
+<span class="k">def</span> <span class="nf">comp_points</span><span class="p">(</span><span class="n">pt1</span><span class="p">,</span><span class="n">pt2</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    check for equality within certain tolerance</span>
+<span class="sd">    :param pt1:</span>
+<span class="sd">    :param pt2:</span>
+<span class="sd">    :return:</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pt1</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pt1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">pt2</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span><span class="o">-</span><span class="mi">15</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<div class="viewcode-block" id="get_intersection"><a class="viewcode-back" href="../../_static/plotting.html#champ.champ_functions.get_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_intersection</span><span class="p">(</span><span class="n">coef_array</span><span class="p">,</span> <span class="n">max_pt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">minpt</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Calculate the intersection of the halfspaces (planes) that form the convex hull</span>
+
+<span class="sd">   :param coef_array: NxM array of M coefficients across each row representing N partitions</span>
+<span class="sd">   :type coef_array: array</span>
+<span class="sd">   :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \</span>
+<span class="sd">    to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).</span>
+<span class="sd">   :param min_pt: Lower bound for the domains origin</span>
+<span class="sd">   :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary</span>
+<span class="sd">    of the domain</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">halfspaces</span><span class="o">=</span><span class="n">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">)</span>
+
+    <span class="n">interior_pt</span><span class="o">=</span><span class="n">get_interior_point</span><span class="p">(</span><span class="n">halfspaces</span><span class="p">)</span>
+    <span class="n">singlelayer</span><span class="o">=</span><span class="kc">False</span>
+    <span class="k">if</span> <span class="n">halfspaces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">singlelayer</span><span class="o">=</span><span class="kc">True</span>
+
+
+    <span class="c1"># Create Boundary Halfspaces - These will always be included in the convex hull and need to be removed</span>
+    <span class="n">num2rm</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">singlelayer</span><span class="p">:</span>
+        <span class="c1"># origin boundaries</span>
+        <span class="n">halfspaces</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">)])</span>
+        <span class="n">num2rm</span> <span class="o">+=</span><span class="mi">2</span>
+        <span class="k">if</span> <span class="n">max_pt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">halfspaces</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">max_pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                           <span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">max_pt</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+            <span class="n">num2rm</span> <span class="o">+=</span><span class="mi">2</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">halfspaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">num2rm</span> <span class="o">+=</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">max_pt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">halfspaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">max_pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">num2rm</span><span class="o">+=</span><span class="mi">1</span>
+
+
+    <span class="n">hs_inter</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">HalfspaceIntersection</span><span class="p">(</span><span class="n">halfspaces</span><span class="p">,</span> <span class="n">interior_pt</span><span class="p">)</span>  <span class="c1"># Find boundary intersection of half spaces</span>
+    <span class="n">ind_2_domain</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">non_inf_vert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hs_inter</span><span class="o">.</span><span class="n">vertices</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
+    <span class="n">mx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">non_inf_vert</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">rep_verts</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="k">else</span> <span class="n">mx</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hs_inter</span><span class="o">.</span><span class="n">vertices</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vlist</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hs_inter</span><span class="o">.</span><span class="n">facets_by_halfspace</span><span class="p">):</span>
+        <span class="c1">#Empty domains</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vlist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># these are the boundary planes appended on end</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs_inter</span><span class="o">.</span><span class="n">facets_by_halfspace</span><span class="p">)</span> <span class="o">-</span> <span class="n">num2rm</span> <span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">pts</span><span class="o">=</span><span class="n">sort_points</span><span class="p">([</span><span class="n">rep_verts</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vlist</span><span class="p">])</span>
+        <span class="n">pt2rm</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">comp_points</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="p">],</span><span class="n">pts</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">pt2rm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+        <span class="n">pt2rm</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pt2rm</span><span class="p">:</span>
+            <span class="n">pts</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span><span class="o">&gt;=</span><span class="nb">len</span><span class="p">(</span><span class="n">rep_verts</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span> <span class="c1">#must be at least 2 pts in 2D , 3 pt in 3D, etc.</span>
+            <span class="n">ind_2_domain</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">pts</span>
+
+        <span class="c1">#use non-inf vertices to return</span>
+    <span class="k">return</span> <span class="n">ind_2_domain</span></div>
+
+
+<span class="k">def</span> <span class="nf">_random_plane</span><span class="p">():</span>
+
+    <span class="n">normal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">normal</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">normal</span><span class="p">)</span>
+    <span class="n">min_offset</span> <span class="o">=</span> <span class="o">-</span><span class="nb">min</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">max_offset</span> <span class="o">=</span> <span class="o">-</span><span class="nb">max</span><span class="p">(</span><span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                      <span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># the 0.25 and 0.75 factors here just force more intersections</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">uniform</span><span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">min_offset</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">max_offset</span><span class="p">,</span>
+                     <span class="mf">0.25</span> <span class="o">*</span> <span class="n">min_offset</span> <span class="o">+</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="n">max_offset</span><span class="p">)</span>
+
+    <span class="c1">#Return a coefficient representation instead</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">normal</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">normal</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">offset</span><span class="o">/</span><span class="n">normal</span><span class="p">[</span><span class="mi">2</span><span class="p">]])</span>
+    <span class="c1"># return hs.Halfspace(normal, offset)</span>
+
+<span class="k">def</span> <span class="nf">_random_line</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    generate a random line in gamma,Q plane</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># normal = np.array([uniform(.5, 2),-1])</span>
+    <span class="c1"># normal /= np.linalg.norm(normal)</span>
+
+    <span class="c1">#just sample slope and intercept directly</span>
+    <span class="n">slope</span><span class="o">=</span><span class="n">uniform</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mf">5.0</span><span class="p">,</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">inter</span><span class="o">=</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># offset=-1.0*normal.dot(pt)</span>
+
+    <span class="c1"># the 0.25 and 0.75 factors here just force more intersections</span>
+    <span class="c1"># Return a coefficient representation instead</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inter</span><span class="p">,</span> <span class="n">slope</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">get_random_halfspaces</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Generate random halfspaces for testing</span>
+<span class="sd">    :param n: number of halfspaces to return (default=100)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">test_hs</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dim</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+            <span class="n">test_hs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_random_plane</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="n">dim</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">test_hs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_random_line</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Only 2D or 3D Random Halfspaces implemented&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_hs</span><span class="p">)</span>
+    <span class="c1"># return test_hs</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, William Weir.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

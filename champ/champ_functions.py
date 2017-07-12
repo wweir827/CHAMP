@@ -4,20 +4,22 @@ from numpy.random import uniform
 from collections import Hashable
 
 
-def create_half_space_from_partitions(partition_array,adj_mats ):
+def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None):
     '''
     :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels
     must be hashable.
-    :param adj_mats: List of matrices defining the connectiviy i.e [A_ij,P_ij] for single layer or [A_ij,P_ij,C_ij]
-    :return: size M list of halfspaces
+    :param A_mat:
+    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\frac{k_ik_j}{2m}`
+    :param C_mat: Optional matrix representing interlayer connectivity
+    :return: size Mx[2/3] array of coefficients for each partition
     '''
 
     #TODO
     return
 
-def create_halfspaces_from_array(coeff_array):
+def create_halfspaces_from_array(coef_array):
     '''
-    :param coeff_array: list of coefficients for each partition to be considered.  Should be an array
+    :param coef_array: list of coefficients for each partition to be considered.  Should be an array
         [ [ A_0 , P_0 , C_0 ],
            ... ,
           [ A_n , P_n , C_n ]
@@ -28,16 +30,16 @@ def create_halfspaces_from_array(coeff_array):
     :return: list of halfspaces with 4 boundary halfspaces appended to the end.
     '''
     singlelayer=False
-    if coeff_array.shape[1]==2:
+    if coef_array.shape[1]==2:
         singlelayer=True
 
 
     halfspaces=[]
-    for i in np.arange(coeff_array.shape[0]):
-        cconst = coeff_array[i, 0]
-        cgamma = coeff_array[i, 1]
+    for i in np.arange(coef_array.shape[0]):
+        cconst = coef_array[i, 0]
+        cgamma = coef_array[i, 1]
         if not singlelayer:
-            comega = coeff_array[i, 2]
+            comega = coef_array[i, 2]
 
         if singlelayer:
             nv=np.array([cgamma, 1.0])
@@ -149,17 +151,21 @@ def comp_points(pt1,pt2):
     return True
 
 
-def get_intersection(halfspaces, max_pt=None, minpt=(0, 0)):
+def get_intersection(coef_array, max_pt=None, minpt=(0, 1)):
     '''
     Calculate the intersection of the halfspaces (planes) that form the convex hull
-    :param halfspaces:
-    :type halfspaces: list
-    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
+
+   :param coef_array: NxM array of M coefficients across each row representing N partitions
+   :type coef_array: array
+   :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
     to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).
-    :param min_pt: Lower bound for the domains origin
-    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
+   :param min_pt: Lower bound for the domains origin
+   :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''
+
+    halfspaces=create_halfspaces_from_array(coef_array)
+
     interior_pt=get_interior_point(halfspaces)
     singlelayer=False
     if halfspaces[0].normal.shape[0]==2:
