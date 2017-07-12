@@ -6,9 +6,9 @@
 Welcome to CHAMP's documentation!
 =================================
 
-.. figure::  _static/images/graphs_all_old.png
+.. figure::  _static/images/graphs_all_three.png
    :align:   center
-   :figwidth: 90%
+   :figwidth: 95%
 
 
 
