@@ -6,12 +6,12 @@ from collections import Hashable
 
 def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None):
     '''
-    :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels
-    must be hashable.
-    :param A_mat:
-    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\frac{k_ik_j}{2m}`
-    :param C_mat: Optional matrix representing interlayer connectivity
-    :return: size Mx[2/3] array of coefficients for each partition
+   :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels must be hashable.
+   :param A_mat: Interlayer (single layer) adjacency matrix
+   :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`
+   :param C_mat: Optional matrix representing interlayer connectivity
+   :return: size Mx[2/3] array of coefficients for each partition
+
     '''
 
     #TODO
@@ -28,6 +28,7 @@ def create_halfspaces_from_array(coef_array):
     Where each row represents the coefficients for a particular partition.
     If Single Layer network, omit C_i's.
     :return: list of halfspaces with 4 boundary halfspaces appended to the end.
+
     '''
     singlelayer=False
     if coef_array.shape[1]==2:

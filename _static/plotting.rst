@@ -13,11 +13,20 @@ The CHAMP package offers a number of ways to visualize the results for both sing
 networks.
 
 
+Single Layer Plots
+___________________
+
+.. autofunction:: champ.plot_domains.plot_single_layer_modularity
 
 
-==================
+Multiayer Plots
+___________________
+
+.. autofunction:: champ.plot_domains.plot_2d_domains
+
+
 Indices
-==================
+
 
 * :ref:`genindex`
 * :ref:`search`

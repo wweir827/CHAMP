@@ -6,6 +6,12 @@
 Welcome to CHAMP's documentation!
 =================================
 
+.. figure::  _static/images/graphs_all_old.png
+   :align:   center
+   :figwidth: 90%
+
+
+
 Contents:
 
 .. toctree::

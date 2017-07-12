@@ -6,6 +6,7 @@
 Background
 ************
 
+
 =================================
 Introduction
 =================================
@@ -20,18 +21,34 @@ the convex hull of a set of linear subspaces and solved using the `pyhull <http:
 of the quickhull algorithm.
 
 CHAMP can greatly reduce the number of partitions considerable for future analyses by eliminating all partitions that are \
-suboptimal across a given range of the resolution space.
+suboptimal across a given range of the resolution space.  The CHAMP package also allows for visualization of the domains \
+using the matplotlib library.
 
 
 
 ==================
 Modularity
 ==================
+In CHAMP, partitions are compared on the basis of modularity:
 
+    :math:`Q(\gamma)=\frac{1}{2m}\sum_{i,j}{\left( A_{ij}-\gamma \frac{k_ik_j}{2m}\right)\delta(c_i,c_j)}\,,`
 
+Each partition is represented by a line in the :math:`(\gamma,Q)` space that is parameterized by two values:
+
+    :math:`\hat{A}=\sum{A_{ij}\delta(c_i,c_j)}` *Sum of edges internal to communities*
+
+    :math:`\hat{P}=\sum{P_{ij}\delta(c_i,c_j)}` *Expected number of edges internal to communities under random null model*
+
+==================
+Multilayer CHAMP
+==================
+
+.. image::  images/3dplanes_example.jpg
+   :width: 30%
+.. image::  images/dom_weighted_nmi_senate.png
+   :width: 60%
 
 Indices
-
 
 * :ref:`genindex`
 * :ref:`search`

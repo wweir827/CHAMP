@@ -7,6 +7,17 @@ from matplotlib.path import Path
 
 
 def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, label=False):
+    '''
+
+    :param ind_2_domains:
+    :param ax:
+    :param col:
+    :param close:
+    :param widths:
+    :param label:
+    :return:
+
+    '''
     if ax==None:
         f=plt.figure()
         ax=f.add_subplot(111)
@@ -45,6 +56,7 @@ def plot_single_layer_modularity(ind_2_domains,ax=None, col=None, close=False, w
     Plot the piece-wise linear curve for CHAMP of single layer partitions
     :param ind_2_domains:
     :return:
+
     '''
     if ax==None:
         f=plt.figure()

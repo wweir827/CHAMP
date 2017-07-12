@@ -163,18 +163,18 @@
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Hashable</span>
 
 
-<span class="k">def</span> <span class="nf">create_half_space_from_partitions</span><span class="p">(</span><span class="n">partition_array</span><span class="p">,</span><span class="n">A_mat</span><span class="p">,</span><span class="n">P_mat</span><span class="p">,</span><span class="n">C_mat</span><span class="o">=</span><span class="kc">None</span> <span class="p">):</span>
+<div class="viewcode-block" id="create_coefarray_from_partitions"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.create_coefarray_from_partitions">[docs]</a><span class="k">def</span> <span class="nf">create_coefarray_from_partitions</span><span class="p">(</span><span class="n">partition_array</span><span class="p">,</span> <span class="n">A_mat</span><span class="p">,</span> <span class="n">P_mat</span><span class="p">,</span> <span class="n">C_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels</span>
-<span class="sd">    must be hashable.</span>
-<span class="sd">    :param A_mat:</span>
-<span class="sd">    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\frac{k_ik_j}{2m}`</span>
-<span class="sd">    :param C_mat: Optional matrix representing interlayer connectivity</span>
-<span class="sd">    :return: size M list of halfspaces</span>
+<span class="sd">   :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels must be hashable.</span>
+<span class="sd">   :param A_mat: Interlayer (single layer) adjacency matrix</span>
+<span class="sd">   :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`</span>
+<span class="sd">   :param C_mat: Optional matrix representing interlayer connectivity</span>
+<span class="sd">   :return: size Mx[2/3] array of coefficients for each partition</span>
+
 <span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="c1">#TODO</span>
-    <span class="k">return</span>
+    <span class="k">return</span></div>
 
 <span class="k">def</span> <span class="nf">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -187,6 +187,7 @@
 <span class="sd">    Where each row represents the coefficients for a particular partition.</span>
 <span class="sd">    If Single Layer network, omit C_i&#39;s.</span>
 <span class="sd">    :return: list of halfspaces with 4 boundary halfspaces appended to the end.</span>
+
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="n">singlelayer</span><span class="o">=</span><span class="kc">False</span>
     <span class="k">if</span> <span class="n">coef_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
@@ -310,7 +311,7 @@
     <span class="k">return</span> <span class="kc">True</span>
 
 
-<div class="viewcode-block" id="get_intersection"><a class="viewcode-back" href="../../_static/plotting.html#champ.champ_functions.get_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_intersection</span><span class="p">(</span><span class="n">coef_array</span><span class="p">,</span> <span class="n">max_pt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">minpt</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+<div class="viewcode-block" id="get_intersection"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.get_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_intersection</span><span class="p">(</span><span class="n">coef_array</span><span class="p">,</span> <span class="n">max_pt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">minpt</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Calculate the intersection of the halfspaces (planes) that form the convex hull</span>
 
