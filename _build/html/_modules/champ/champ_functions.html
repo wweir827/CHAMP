@@ -169,7 +169,8 @@
 <span class="sd">   :param A_mat: Interlayer (single layer) adjacency matrix</span>
 <span class="sd">   :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`</span>
 <span class="sd">   :param C_mat: Optional matrix representing interlayer connectivity</span>
-<span class="sd">   :return: size Mx[2/3] array of coefficients for each partition</span>
+<span class="sd">   :return: size :math:`M\\times\\text{Dim}` array of coefficients for each partition. Dim can be 2 (single layer) \</span>
+<span class="sd">   or 3 (multilayer)</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
 
@@ -179,9 +180,13 @@
 <span class="k">def</span> <span class="nf">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    :param coef_array: list of coefficients for each partition to be considered.  Should be an array</span>
-<span class="sd">        [ [ A_0 , P_0 , C_0 ],</span>
-<span class="sd">           ... ,</span>
-<span class="sd">          [ A_n , P_n , C_n ]</span>
+<span class="sd">    .. math:</span>
+<span class="sd">        :nowrap:</span>
+
+<span class="sd">        \begin{array}</span>
+<span class="sd">        1 &amp; 1 &amp; 1 \\</span>
+<span class="sd">        2 &amp; 2 &amp; 2</span>
+<span class="sd">        \end{array}</span>
 <span class="sd">        ]</span>
 
 <span class="sd">    Where each row represents the coefficients for a particular partition.</span>
@@ -311,7 +316,7 @@
     <span class="k">return</span> <span class="kc">True</span>
 
 
-<div class="viewcode-block" id="get_intersection"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.get_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_intersection</span><span class="p">(</span><span class="n">coef_array</span><span class="p">,</span> <span class="n">max_pt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">minpt</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+<div class="viewcode-block" id="get_intersection"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.get_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_intersection</span><span class="p">(</span><span class="n">coef_array</span><span class="p">,</span> <span class="n">max_pt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Calculate the intersection of the halfspaces (planes) that form the convex hull</span>
 
@@ -319,10 +324,10 @@
 <span class="sd">   :type coef_array: array</span>
 <span class="sd">   :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \</span>
 <span class="sd">    to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).</span>
-<span class="sd">   :param min_pt: Lower bound for the domains origin</span>
 <span class="sd">   :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary</span>
 <span class="sd">    of the domain</span>
 <span class="sd">    &#39;&#39;&#39;</span>
+
 
     <span class="n">halfspaces</span><span class="o">=</span><span class="n">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">)</span>
 
@@ -332,7 +337,9 @@
         <span class="n">singlelayer</span><span class="o">=</span><span class="kc">True</span>
 
 
-    <span class="c1"># Create Boundary Halfspaces - These will always be included in the convex hull and need to be removed</span>
+    <span class="c1"># Create Boundary Halfspaces - These will always be included in the convex hull</span>
+    <span class="c1"># and need to be removed before returning</span>
+
     <span class="n">num2rm</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">singlelayer</span><span class="p">:</span>
         <span class="c1"># origin boundaries</span>
@@ -356,7 +363,25 @@
 
     <span class="n">non_inf_vert</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hs_inter</span><span class="o">.</span><span class="n">vertices</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
     <span class="n">mx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">non_inf_vert</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1">#At this point we inlude max boundary planes and recalculate the intersection</span>
+    <span class="c1">#to correct inf points</span>
+    <span class="k">if</span> <span class="n">max_pt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">singlelayer</span><span class="p">:</span>
+            <span class="n">halfspaces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">mx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+            <span class="n">num2rm</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">halfspaces</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">mx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)),</span>
+                               <span class="n">hs</span><span class="o">.</span><span class="n">Halfspace</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">offset</span><span class="o">=-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">mx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="p">)])</span>
+            <span class="n">num2rm</span> <span class="o">+=</span> <span class="mi">2</span>
+
+    <span class="n">hs_inter</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">HalfspaceIntersection</span><span class="p">(</span><span class="n">halfspaces</span><span class="p">,</span> <span class="n">interior_pt</span><span class="p">)</span>  <span class="c1"># Find boundary intersection of half spaces</span>
+
+    <span class="c1"># assert not any([ coord==np.inf  for v in hs_inter.vertices for coord in v ])</span>
+
+
     <span class="n">rep_verts</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span> <span class="k">else</span> <span class="n">mx</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hs_inter</span><span class="o">.</span><span class="n">vertices</span><span class="p">]</span>
+    <span class="c1"># rep_verts=hs_inter.vertices</span>
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vlist</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hs_inter</span><span class="o">.</span><span class="n">facets_by_halfspace</span><span class="p">):</span>
         <span class="c1">#Empty domains</span>

@@ -8,6 +8,7 @@ options=dict( name='champ',
     author='William Weir',
     author_email='wweir@med.unc.edu',
     description='Modularity based networks partition selection tool',
+    zip_safe=False,
     install_requires=['pyhull','matplotlib','numpy',]
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]

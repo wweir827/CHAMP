@@ -30,24 +30,24 @@ def main():
     # print test_hs
     # print test_int_dict
 
-    # logging.info("Multilayer Test")
-    # test_hs_arry=champ.get_random_halfspaces(50)
-    # print test_hs_arry.shape
-    # print test_hs_arry
-    # test_hs=champ.create_halfspaces_from_array(test_hs_arry)
-    #
-    # logging.info("Number of Initial Partitions: %d" %(len(test_hs)) )
-    # ind_2_doms=champ.get_intersection(test_hs)
-    # logging.info("Number of Admissible Partitions: %d" %(len(ind_2_doms.keys())))
-    # #plot domain by domain
-    # # for i,dom in ind_2_doms.items():
-    # #     plt.close()
-    # #     champ.plot_2d_domains(dict([(i,dom)]))
-    # #     plt.show()
-    # plt.close()
-    # ax=champ.plot_2d_domains(ind_2_doms)
-    # # print ind_2_doms
-    # plt.show()
+    logging.info("Multilayer Test")
+    test_hs_arry=champ.get_random_halfspaces(50)
+    print test_hs_arry.shape
+    print test_hs_arry
+    test_hs=champ.create_halfspaces_from_array(test_hs_arry)
+
+    logging.info("Number of Initial Partitions: %d" %(len(test_hs)) )
+    ind_2_doms=champ.get_intersection(test_hs_arry)
+    logging.info("Number of Admissible Partitions: %d" %(len(ind_2_doms.keys())))
+    #plot domain by domain
+    # for i,dom in ind_2_doms.items():
+    #     plt.close()
+    #     champ.plot_2d_domains(dict([(i,dom)]))
+    #     plt.show()
+    plt.close()
+    ax=champ.plot_2d_domains(ind_2_doms)
+    # print ind_2_doms
+    plt.show()
 
     logging.info("Single-layer Test")
     test_hs_arry = champ.get_random_halfspaces(100,dim=2)
@@ -67,7 +67,7 @@ def main():
     # intpt=champ.get_interior_point(test_hs)
     # qhout=pyhull.qhalf('Fp',test_hs,intpt)
     logging.info("Number of Initial Partitions: %d" % (len(test_hs)))
-    ind_2_doms = champ.get_intersection(test_hs,max_pt=(10,10))
+    ind_2_doms = champ.get_intersection(test_hs_arry,max_pt=(10,10))
     pdb.set_trace()
     logging.info("Number of Admissible Partitions: %d" % (len(ind_2_doms.keys())))
     plt.close()

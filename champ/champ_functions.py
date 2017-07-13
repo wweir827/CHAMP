@@ -10,7 +10,8 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None):
    :param A_mat: Interlayer (single layer) adjacency matrix
    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`
    :param C_mat: Optional matrix representing interlayer connectivity
-   :return: size Mx[2/3] array of coefficients for each partition
+   :return: size :math:`M\\times\\text{Dim}` array of coefficients for each partition. Dim can be 2 (single layer) \
+   or 3 (multilayer)
 
     '''
 
@@ -20,9 +21,13 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None):
 def create_halfspaces_from_array(coef_array):
     '''
     :param coef_array: list of coefficients for each partition to be considered.  Should be an array
-        [ [ A_0 , P_0 , C_0 ],
-           ... ,
-          [ A_n , P_n , C_n ]
+    .. math:
+        :nowrap:
+
+        \begin{array}
+        1 & 1 & 1 \\
+        2 & 2 & 2
+        \end{array}
         ]
 
     Where each row represents the coefficients for a particular partition.
@@ -152,7 +157,7 @@ def comp_points(pt1,pt2):
     return True
 
 
-def get_intersection(coef_array, max_pt=None, minpt=(0, 1)):
+def get_intersection(coef_array, max_pt=None):
     '''
     Calculate the intersection of the halfspaces (planes) that form the convex hull
 
@@ -160,10 +165,10 @@ def get_intersection(coef_array, max_pt=None, minpt=(0, 1)):
    :type coef_array: array
    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
     to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).
-   :param min_pt: Lower bound for the domains origin
    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''
+
 
     halfspaces=create_halfspaces_from_array(coef_array)
 
@@ -173,7 +178,9 @@ def get_intersection(coef_array, max_pt=None, minpt=(0, 1)):
         singlelayer=True
 
 
-    # Create Boundary Halfspaces - These will always be included in the convex hull and need to be removed
+    # Create Boundary Halfspaces - These will always be included in the convex hull
+    # and need to be removed before returning
+
     num2rm=0
     if not singlelayer:
         # origin boundaries
@@ -197,7 +204,25 @@ def get_intersection(coef_array, max_pt=None, minpt=(0, 1)):
 
     non_inf_vert = np.array([v for v in hs_inter.vertices if v[0] != np.inf])
     mx = np.max(non_inf_vert,axis=0)
+
+    #At this point we inlude max boundary planes and recalculate the intersection
+    #to correct inf points
+    if max_pt is None:
+        if singlelayer:
+            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * (mx[0]+1)))
+            num2rm += 1
+        else:
+            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0]+1)),
+                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1 * (mx[0]+1) )])
+            num2rm += 2
+
+    hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
+
+    # assert not any([ coord==np.inf  for v in hs_inter.vertices for coord in v ])
+
+
     rep_verts = [v if v[0] != np.inf else mx for v in hs_inter.vertices]
+    # rep_verts=hs_inter.vertices
 
     for i, vlist in enumerate(hs_inter.facets_by_halfspace):
         #Empty domains
