@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath('../champ'))
 
 #Mock Modules Needed for Sphynx
 import mock
-MOCK_MODULES = ['numpy','numpy.random','igraph', 'matplotlib', 'matplotlib.pyplot',
+MOCK_MODULES = ['numpy','numpy.random','igraph','louvain', 'matplotlib', 'matplotlib.pyplot',
                 'matplotlib.cm',
                 'matplotlib.colors',
                 'matplotlib.patches',
