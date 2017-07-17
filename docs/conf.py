@@ -18,13 +18,13 @@
 #
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../champ'))
 
 
 #Mock Modules Needed for Sphynx
 import mock
-MOCK_MODULES = ['numpy','numpy.random', 'matplotlib', 'matplotlib.pyplot',
+MOCK_MODULES = ['numpy','numpy.random','igraph', 'matplotlib', 'matplotlib.pyplot',
                 'matplotlib.cm',
                 'matplotlib.colors',
                 'matplotlib.patches',
