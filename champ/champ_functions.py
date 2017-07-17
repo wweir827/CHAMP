@@ -201,6 +201,7 @@ def get_intersection(coef_array, max_pt=None):
    :type coef_array: array
    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
     to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).
+   :type max_pt: (float,float)
    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''
@@ -228,10 +229,12 @@ def get_intersection(coef_array, max_pt=None):
             num2rm +=2
 
     else:
-        halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0))
+        halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0)) # y-axis
+        halfspaces.append(hs.Halfspace(normal=(0,-1), offset=0)) # x-axis
+
         num2rm +=1
         if max_pt is not None:
-            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt[0]))
+            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt))
             num2rm+=1
 
 
@@ -244,15 +247,16 @@ def get_intersection(coef_array, max_pt=None):
     #At this point we inlude max boundary planes and recalculate the intersection
     #to correct inf points
     if max_pt is None:
-        if singlelayer:
-            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * (mx[0]+1)))
-            num2rm += 1
-        else:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0]+1)),
-                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1 * (mx[0]+1) )])
+        # if singlelayer:
+        #     halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * (mx[0])))
+        #     num2rm += 1
+        if not singlelayer:
+            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0])),
+                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0* (mx[0]) )])
             num2rm += 2
 
-    hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
+    if not singlelayer:
+        hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
 
     # assert not any([ coord==np.inf  for v in hs_inter.vertices for coord in v ])
 

@@ -4,6 +4,54 @@ import matplotlib.patches as patch
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.path import Path
+from .champ_functions import create_halfspaces_from_array
+
+def plot_line_coefficients(coef_array,ax=None,colors=None):
+    '''
+    Plot an array of coefficients (lines) in 2D plane.  Each line is drawn from \
+     y-intercept to x-intercept.
+
+    :param coef_array: :math:`N\\times 2` array of coefficients representing lines.
+    :param ax: optional matplotlib ax to draw the figure on.
+    :param cols: optional list of colors (or single color) to draw lines
+    :return: matplotlib ax on which the plot is draw
+
+    '''
+    halfspaces=create_halfspaces_from_array(coef_array)
+    ax=plot_line_halfspaces(halfspaces,ax=ax,colors=colors)
+    return ax
+
+def plot_line_halfspaces(halfspaces, ax=None, colors=None):
+    '''
+    Plot a list of halfspaces (lines) in 2D plane.  Each line is drawn from y-intercept to x-intercept.
+
+    :param halfspaces: list of halfspaces
+    :param ax: optional matplotlib ax to draw the figure on
+    :param cols: optional list of colors (or single color) to draw lines
+    :return: matplotlib ax on which the plot is draw
+
+    '''
+
+    if ax == None:
+        f = plt.figure()
+        ax = f.add_subplot(111)
+
+    if colors==None:
+        cnorm=mcolors.Normalize(vmin=0,vmax=len(halfspaces))
+        cmap=cm.get_cmap("Set1")
+        pal=map(lambda(i): cmap(cnorm(i)),range(len(halfspaces)))
+
+    for i,hs in enumerate(halfspaces):
+        if hasattr(colors, "__iter__"):
+            c = colors[i%len(colors)]  # must match length
+        else:
+            c = pal[i] if colors == None else colors
+
+        A=-1.0*hs.offset/hs.normal[0]
+        B=-1.0*hs.offset/hs.normal[1]
+        ax.plot( [0,A],[B,0],color=c )
+
+    return ax
 
 
 def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, label=False):
@@ -42,7 +90,7 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
         polypath=Path(polypts,polycodes)
         polypatch = patch.PathPatch(polypath, facecolor=c, lw=2,alpha=.75)
         ax.add_patch(polypatch)
-        xcrds=[x[0] for x in  pts  ]
+        xcrds=[x[0] for x in  pts ]
         ycrds =[x[1] for x in pts ]
         ax.scatter(xcrds, ycrds, marker='x', c=c)
         # for i,x in enumerate(xcrds):
@@ -54,10 +102,12 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
 def plot_single_layer_modularity(ind_2_domains,ax=None, col=None):
     '''
     Plot the piece-wise linear curve for CHAMP of single layer partitions
-    :param ind_2_domains:
+
+    :param ind_2_domains: dictionary mapping partition index to domain of dominance
+    :type ind_2_domains: { ind: [ np.array(gam_0x, gam_0y), np.array(gam_1x, gam_1y)  ] ,...}
     :param ax: Matplotlib Axes object to draw the graph on
     :param col: Either a single color or list of colors with same length as number of domains
-    :return :  ax  Reference to the ax
+    :return :  ax  Reference to the ax on which plot is drawn.
 
     '''
     if ax==None:

@@ -12,16 +12,7 @@ DESCRIPTION = ""
 LOG_LEVEL = logging.INFO
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(message)s"
 
-def plot_hs_list(hs2plt,ax=None):
-    if ax == None:
-        f = plt.figure()
-        ax = f.add_subplot(111)
-    for hs in hs2plt:
-        A=-1.0*hs.offset/hs.normal[0]
-        B=-1.0*hs.offset/hs.normal[1]
 
-        ax.plot( [0,A],[B,0] )
-    return ax
 
 def main():
     logging.basicConfig(format=LOG_FORMAT,
@@ -63,7 +54,7 @@ def main():
     # plt.show()
     test_hs = champ.create_halfspaces_from_array(test_hs_arry)
     plt.close()
-    ax=plot_hs_list(test_hs)
+    ax=champ.plot_domains.plot_line_halfspaces(test_hs_arry)
     ax.set_title("Visualization of All Parition Lines")
     plt.show()
 

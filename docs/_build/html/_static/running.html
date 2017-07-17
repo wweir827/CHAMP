@@ -1,0 +1,328 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Running CHAMP &mdash; CHAMP 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="CHAMP 1 documentation" href="../index.html"/>
+        <link rel="next" title="Visualizing Results" href="plotting.html"/>
+        <link rel="prev" title="Background" href="intro.html"/> 
+
+  
+  <script src="js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CHAMP
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Background</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Running CHAMP</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#starting-from-partitions">Starting from Partitions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#starting-from-partition-coefficients">Starting from Partition Coefficients</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Visualizing Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="louvain_ext.html">Louvain Parallel Extension</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CHAMP</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Running CHAMP</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/_static/running.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="running-champ">
+<h1>Running CHAMP<a class="headerlink" href="#running-champ" title="Permalink to this headline">¶</a></h1>
+<p>CHAMP uses the quick hull algorithm to find the intersection of the space above all of the planes representing the input set of partitions as shown in <a class="reference internal" href="intro.html#singlelayer-champ"><span class="std std-ref">Single Layer</span></a> and <a class="reference internal" href="intro.html#id5"><span class="std std-ref">Multilayer</span></a>. There are many tools</p>
+<div class="section" id="starting-from-partitions">
+<h2>Starting from Partitions<a class="headerlink" href="#starting-from-partitions" title="Permalink to this headline">¶</a></h2>
+<p>If the partitions were generated using a modularity based community detection method, it&#8217;s better to calculate the coefficients while optimizing the communities and feed these into CHAMP directly.  This is especially true, if the community detection is being performed in parallel.  However, if the partitions were generated using some other form of community detection algorithm, we provide a method to compute these coefficients directly and allow for parallization of this process on supported machines.</p>
+<dl class="function">
+<dt id="champ.champ_functions.create_coefarray_from_partitions">
+<code class="descclassname">champ.champ_functions.</code><code class="descname">create_coefarray_from_partitions</code><span class="sig-paren">(</span><em>partition_array</em>, <em>A_mat</em>, <em>P_mat</em>, <em>C_mat=None</em>, <em>nprocesses=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/champ_functions.html#create_coefarray_from_partitions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.champ_functions.create_coefarray_from_partitions" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>partition_array</strong> &#8211; Each row is one of M partitions of the network with N nodes.  Community labels must be hashable.</li>
+<li><strong>A_mat</strong> &#8211; Interlayer (single layer) adjacency matrix</li>
+<li><strong>P_mat</strong> &#8211; Matrix representing null model of connectivity (i.e configuration model - <span class="math">\(\frac{k_ik_j}{2m}\)</span></li>
+<li><strong>C_mat</strong> &#8211; Optional matrix representing interlayer connectivity</li>
+<li><strong>nprocesses</strong> (<em>int</em>) &#8211; Optional number of processes to use (0 or 1 for single core)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">size <span class="math">\(M\times\text{Dim}\)</span> array of coefficients for each partition. Dim can be 2 (single layer)    or 3 (multilayer)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="starting-from-partition-coefficients">
+<h2>Starting from Partition Coefficients<a class="headerlink" href="#starting-from-partition-coefficients" title="Permalink to this headline">¶</a></h2>
+<p>In practice, it is often easier to calculate the coefficients while running performing the community detection to generate the input ensemble of partitions, especially if these partitions are being generated in parallel. If these have been generated already, one can apply CHAMP directly via the following call.  The same command is used in both the Single Layer and Multilayer context, with the output determined automatically by the number of coefficients supplied in the input array.</p>
+<dl class="function">
+<dt id="champ.champ_functions.get_intersection">
+<code class="descclassname">champ.champ_functions.</code><code class="descname">get_intersection</code><span class="sig-paren">(</span><em>coef_array</em>, <em>max_pt=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/champ_functions.html#get_intersection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.champ_functions.get_intersection" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Calculate the intersection of the halfspaces (planes) that form the convex hull</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coef_array</strong> (<em>array</em>) &#8211; NxM array of M coefficients across each row representing N partitions</li>
+<li><strong>max_pt</strong> (<em>(float,float)</em>) &#8211; Upper bound for the domains (in the xy plane). This will restrict the convex hull     to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dictionary mapping the index of the elements in the convex hull to the points defining the boundary
+of the domain</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="section" id="id1">
+<h3>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">champ</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1">#generate random coefficent matrices</span>
+<span class="n">coeffs</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_random_halfspaces</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">ind_2_dom</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_intersection</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+
+
+<span class="n">ax</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">plot_2d_domains</span><span class="p">(</span><span class="n">ind_2_dom</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<a class="reference internal image-reference" href="../_images/example_2d.jpg" id="example1-out"><img alt="../_images/example_2d.jpg" id="example1-out" src="../_images/example_2d.jpg" style="width: 50%;" /></a>
+<p>Indices</p>
+<ul class="simple">
+<li><a class="reference internal" href="../genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="../search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="plotting.html" class="btn btn-neutral float-right" title="Visualizing Results" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="intro.html" class="btn btn-neutral" title="Background" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, William Weir.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
+        };
+    </script>
+      <script type="text/javascript" src="jquery.js"></script>
+      <script type="text/javascript" src="underscore.js"></script>
+      <script type="text/javascript" src="doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

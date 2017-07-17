@@ -1,0 +1,392 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Visualizing Results &mdash; CHAMP 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="CHAMP 1 documentation" href="../index.html"/>
+        <link rel="next" title="Louvain Parallel Extension" href="louvain_ext.html"/>
+        <link rel="prev" title="Running CHAMP" href="running.html"/> 
+
+  
+  <script src="js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CHAMP
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Background</a></li>
+<li class="toctree-l1"><a class="reference internal" href="running.html">Running CHAMP</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Visualizing Results</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#plotting-results">Plotting Results</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#single-layer-plots">Single Layer Plots</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#single-layer-example">Single Layer Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#multiayer-plots">Multiayer Plots</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#multilayer-example">Multilayer Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="louvain_ext.html">Louvain Parallel Extension</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CHAMP</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Visualizing Results</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/_static/plotting.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="visualizing-results">
+<h1>Visualizing Results<a class="headerlink" href="#visualizing-results" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="plotting-results">
+<h2>Plotting Results<a class="headerlink" href="#plotting-results" title="Permalink to this headline">¶</a></h2>
+<p>The CHAMP package offers a number of ways to visualize the results for both single layer and multilayer networks.</p>
+<div class="section" id="single-layer-plots">
+<h3>Single Layer Plots<a class="headerlink" href="#single-layer-plots" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="champ.plot_line_coefficients">
+<code class="descclassname">champ.</code><code class="descname">plot_line_coefficients</code><span class="sig-paren">(</span><em>coef_array</em>, <em>ax=None</em>, <em>colors=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/plot_domains.html#plot_line_coefficients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.plot_line_coefficients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot an array of coefficients (lines) in 2D plane.  Each line is drawn from      y-intercept to x-intercept.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coef_array</strong> &#8211; <span class="math">\(N\times 2\)</span> array of coefficients representing lines.</li>
+<li><strong>ax</strong> &#8211; optional matplotlib ax to draw the figure on.</li>
+<li><strong>cols</strong> &#8211; optional list of colors (or single color) to draw lines</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">matplotlib ax on which the plot is draw</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="champ.plot_single_layer_modularity">
+<code class="descclassname">champ.</code><code class="descname">plot_single_layer_modularity</code><span class="sig-paren">(</span><em>ind_2_domains</em>, <em>ax=None</em>, <em>col=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/plot_domains.html#plot_single_layer_modularity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.plot_single_layer_modularity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the piece-wise linear curve for CHAMP of single layer partitions</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ind_2_domains</strong> (<em>{ ind: [ np.array(gam_0x, gam_0y), np.array(gam_1x, gam_1y)  ] ,...}</em>) &#8211; dictionary mapping partition index to domain of dominance</li>
+<li><strong>ax</strong> &#8211; Matplotlib Axes object to draw the graph on</li>
+<li><strong>col</strong> &#8211; Either a single color or list of colors with same length as number of domains</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:return :  ax  Reference to the ax on which plot is drawn.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="champ.create_similarity_heatmap_single_layer">
+<code class="descclassname">champ.</code><code class="descname">create_similarity_heatmap_single_layer</code><span class="sig-paren">(</span><em>partitions</em>, <em>index_2_domain</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/plot_domains.html#create_similarity_heatmap_single_layer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.create_similarity_heatmap_single_layer" title="Permalink to this definition">¶</a></dt>
+<dd><p>todo</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>partitions</strong> &#8211; </li>
+<li><strong>index_2_domain</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="section" id="single-layer-example">
+<h4>Single Layer Example<a class="headerlink" href="#single-layer-example" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">champ</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+
+<span class="c1">#generate random coefficent matrices</span>
+<span class="n">coeffs</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_random_halfspaces</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ind_2_dom</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_intersection</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">f</span><span class="p">,</span><span class="n">axarray</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">champ</span><span class="o">.</span><span class="n">plot_line_coefficients</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span><span class="n">axarray</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">champ</span><span class="o">.</span><span class="n">plot_single_layer_modularity</span><span class="p">(</span><span class="n">ind_2_dom</span><span class="p">,</span><span class="n">axarray</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">champ</span><span class="o">.</span><span class="n">create_similarity_heatmap_single_layer</span><span class="p">(</span><span class="n">ind_2_dom</span><span class="p">,</span><span class="n">axarray</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<a class="reference internal image-reference" href="../_images/example_2d.jpg" id="example1-out"><img alt="../_images/example_2d.jpg" id="example1-out" src="../_images/example_2d.jpg" style="width: 50%;" /></a>
+</div>
+</div>
+<div class="section" id="multiayer-plots">
+<h3>Multiayer Plots<a class="headerlink" href="#multiayer-plots" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="champ.plot_2d_domains">
+<code class="descclassname">champ.</code><code class="descname">plot_2d_domains</code><span class="sig-paren">(</span><em>ind_2_domains</em>, <em>ax=None</em>, <em>col=None</em>, <em>close=False</em>, <em>widths=None</em>, <em>label=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/plot_domains.html#plot_2d_domains"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.plot_2d_domains" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ind_2_domains</strong> &#8211; </li>
+<li><strong>ax</strong> &#8211; </li>
+<li><strong>col</strong> &#8211; </li>
+<li><strong>close</strong> &#8211; </li>
+<li><strong>widths</strong> &#8211; </li>
+<li><strong>label</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="section" id="multilayer-example">
+<h4>Multilayer Example<a class="headerlink" href="#multilayer-example" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">champ</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1">#generate random coefficent matrices</span>
+<span class="n">coeffs</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_random_halfspaces</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="n">dim</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">ind_2_dom</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">get_intersection</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+
+
+<span class="n">ax</span><span class="o">=</span><span class="n">champ</span><span class="o">.</span><span class="n">plot_2d_domains</span><span class="p">(</span><span class="n">ind_2_dom</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<a class="reference internal image-reference" href="../_images/example_2d.jpg" id="id1"><img alt="../_images/example_2d.jpg" id="id1" src="../_images/example_2d.jpg" style="width: 50%;" /></a>
+<p>Indices</p>
+<ul class="simple">
+<li><a class="reference internal" href="../genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="../search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="louvain_ext.html" class="btn btn-neutral float-right" title="Louvain Parallel Extension" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="running.html" class="btn btn-neutral" title="Running CHAMP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, William Weir.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: ''
+        };
+    </script>
+      <script type="text/javascript" src="jquery.js"></script>
+      <script type="text/javascript" src="underscore.js"></script>
+      <script type="text/javascript" src="doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
