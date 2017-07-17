@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import matplotlib.patches as patch
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.path import Path
 
 
@@ -80,6 +80,9 @@ def plot_single_layer_modularity(ind_2_domains,ax=None, col=None):
         coords=zip(*pts)
 
         ax.plot(coords[0],coords[1],color=c,lw=2,alpha=.75)
+
+    ax.set_ylabel("Q,Modularity")
+    ax.set_xlabel("resolution")
 
     return ax
 

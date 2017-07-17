@@ -18,7 +18,7 @@ produced by ones favorite third party detection method ( *e.g.* `Louvain <http:/
 identifies the partitions that have a non-empty range of the resolution parameter, :math:`\gamma` over which their modularity \
 is larger than any other partition in the input ensemble.  This is done by reformulating the problem in terms of finding \
 the convex hull of a set of linear subspaces and solved using the `pyhull <http://pythonhosted.org/pyhull/>`_ implementation \
-of the quickhull algorithm.
+of the quickhull :cite:`Barber:1996iv` algorithm.
 
 CHAMP can greatly reduce the number of partitions considerable for future analyses by eliminating all partitions that are \
 suboptimal across a given range of the resolution space.  The CHAMP package also allows for visualization of the domains \
@@ -64,7 +64,7 @@ Multilayer CHAMP
 ==================
 
 One of the strengths of modularity is that it has been extended in a principled way into a variety of network topologies \
-in particular the multilayer context.  The multilayer formulation for modularity incorporates the interlayer \
+in particular the multilayer context.  The multilayer formulation :cite:`Mucha:2010vk` for modularity incorporates the interlayer \
 connectivity of the network in the form of a second adjacency matrix :math:`C_{ij}`
 
 .. math::
@@ -99,6 +99,12 @@ In the multilayer case, we look for the planes that define the intersection of t
 as depicted in :ref:`3D Planes <Multilayer_CHAMP>`.  These domains are now 2D polygons in the :math:`(\gamma,\omega)` \
 space as shown in :ref:`Domains <senate_domains>`.
 
+References
+___________
+
+.. bibliography:: biblio.bib
+    :style: plain
+    :filter: docname in docnames
 
 Indices
 

@@ -1,22 +1,46 @@
-from pyhull import halfspace as hs
-import numpy as np
-from numpy.random import uniform
+import multiprocessing
 from collections import Hashable
 
+import numpy as np
+from numpy.random import uniform
+from pyhull import halfspace as hs
 
-def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None):
+
+def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,nprocesses=0):
     '''
    :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels must be hashable.
    :param A_mat: Interlayer (single layer) adjacency matrix
    :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`
    :param C_mat: Optional matrix representing interlayer connectivity
+   :param nprocesses: Optional number of processes to use (0 or 1 for single core)
+   :type nprocesses: int
    :return: size :math:`M\\times\\text{Dim}` array of coefficients for each partition. Dim can be 2 (single layer) \
    or 3 (multilayer)
 
     '''
+    outarray = []
 
-    #TODO
-    return
+    if nprocesses==0 or nprocesses==1:
+
+
+        for partition in partition_array:
+            curarray=[]
+            curarray.append(calculate_coefficient(partition,A_mat))
+            curarray.append(calculate_coefficient(partition,P_mat))
+            curarray.append(calculate_coefficient(partition,C_mat))
+            outarray.append(curarray)
+
+    else:
+        pool=multiprocessing.Pool(nprocesses=nprocesses)
+        parallel_args=[]
+        for partition in partition_array:
+            parallel_args.append((partition, A_mat))
+            parallel_args.append((partition, P_mat))
+            parallel_args.append((partition, C_mat))
+        #map preserves order
+        parallel_res=pool.map(_calculate_coefficient_parallel,parallel_args)
+        outarray=np.array(parallel_res).reshape((3,len(parallel_res)/3))
+    return np.array(outarray)
 
 def create_halfspaces_from_array(coef_array):
     '''
@@ -142,6 +166,18 @@ def calculate_coefficient(com_vec,adj_matrix):
 
     return sumA
 
+def _calculate_coefficient_parallel(comvec_mat):
+    '''
+    wrapper function for calc coefficient with single parameter for use with the \
+    multiprocessing map call
+
+    :param comvec_mat: (community vector, adj_matrix
+    :return: calculate_coefficient to get coeficient
+    '''
+    com_vec,adj_matrix=comvec_mat
+
+    return calculate_coefficient(com_vec,adj_matrix)
+
 def comp_points(pt1,pt2):
     '''
     check for equality within certain tolerance
@@ -164,7 +200,7 @@ def get_intersection(coef_array, max_pt=None):
    :param coef_array: NxM array of M coefficients across each row representing N partitions
    :type coef_array: array
    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
-    to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).
+    to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).
    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''

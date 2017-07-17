@@ -93,6 +93,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../_static/intro.html">Background</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../_static/running.html">Running CHAMP</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../_static/plotting.html">Visualizing Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_static/louvain_ext.html">Louvain Extension</a></li>
 </ul>
 
             
@@ -161,21 +162,43 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy.random</span> <span class="k">import</span> <span class="n">uniform</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Hashable</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
 
-
-<div class="viewcode-block" id="create_coefarray_from_partitions"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.create_coefarray_from_partitions">[docs]</a><span class="k">def</span> <span class="nf">create_coefarray_from_partitions</span><span class="p">(</span><span class="n">partition_array</span><span class="p">,</span> <span class="n">A_mat</span><span class="p">,</span> <span class="n">P_mat</span><span class="p">,</span> <span class="n">C_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="create_coefarray_from_partitions"><a class="viewcode-back" href="../../_static/running.html#champ.champ_functions.create_coefarray_from_partitions">[docs]</a><span class="k">def</span> <span class="nf">create_coefarray_from_partitions</span><span class="p">(</span><span class="n">partition_array</span><span class="p">,</span> <span class="n">A_mat</span><span class="p">,</span> <span class="n">P_mat</span><span class="p">,</span> <span class="n">C_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">nprocesses</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">   :param partition_array: Each row is one of M partitions of the network with N nodes.  Community labels must be hashable.</span>
 <span class="sd">   :param A_mat: Interlayer (single layer) adjacency matrix</span>
 <span class="sd">   :param P_mat: Matrix representing null model of connectivity (i.e configuration model - :math:`\\frac{k_ik_j}{2m}`</span>
 <span class="sd">   :param C_mat: Optional matrix representing interlayer connectivity</span>
+<span class="sd">   :param nprocesses: Optional number of processes to use (0 or 1 for single core)</span>
+<span class="sd">   :type nprocesses: int</span>
 <span class="sd">   :return: size :math:`M\\times\\text{Dim}` array of coefficients for each partition. Dim can be 2 (single layer) \</span>
 <span class="sd">   or 3 (multilayer)</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">outarray</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="c1">#TODO</span>
-    <span class="k">return</span></div>
+    <span class="k">if</span> <span class="n">nprocesses</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="n">nprocesses</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+
+
+        <span class="k">for</span> <span class="n">partition</span> <span class="ow">in</span> <span class="n">partition_array</span><span class="p">:</span>
+            <span class="n">curarray</span><span class="o">=</span><span class="p">[]</span>
+            <span class="n">curarray</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calculate_coefficient</span><span class="p">(</span><span class="n">partition</span><span class="p">,</span><span class="n">A_mat</span><span class="p">))</span>
+            <span class="n">curarray</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calculate_coefficient</span><span class="p">(</span><span class="n">partition</span><span class="p">,</span><span class="n">P_mat</span><span class="p">))</span>
+            <span class="n">curarray</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calculate_coefficient</span><span class="p">(</span><span class="n">partition</span><span class="p">,</span><span class="n">C_mat</span><span class="p">))</span>
+            <span class="n">outarray</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curarray</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pool</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">nprocesses</span><span class="o">=</span><span class="n">nprocesses</span><span class="p">)</span>
+        <span class="n">parallel_args</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">partition</span> <span class="ow">in</span> <span class="n">partition_array</span><span class="p">:</span>
+            <span class="n">parallel_args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">partition</span><span class="p">,</span> <span class="n">A_mat</span><span class="p">))</span>
+            <span class="n">parallel_args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">partition</span><span class="p">,</span> <span class="n">P_mat</span><span class="p">))</span>
+            <span class="n">parallel_args</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">partition</span><span class="p">,</span> <span class="n">C_mat</span><span class="p">))</span>
+        <span class="c1">#map preserves order</span>
+        <span class="n">parallel_res</span><span class="o">=</span><span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_calculate_coefficient_parallel</span><span class="p">,</span><span class="n">parallel_args</span><span class="p">)</span>
+        <span class="n">outarray</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">parallel_res</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">parallel_res</span><span class="p">)</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">outarray</span><span class="p">)</span></div>
 
 <span class="k">def</span> <span class="nf">create_halfspaces_from_array</span><span class="p">(</span><span class="n">coef_array</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
@@ -301,6 +324,18 @@
 
     <span class="k">return</span> <span class="n">sumA</span>
 
+<span class="k">def</span> <span class="nf">_calculate_coefficient_parallel</span><span class="p">(</span><span class="n">comvec_mat</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    wrapper function for calc coefficient with single parameter for use with the \</span>
+<span class="sd">    multiprocessing map call</span>
+
+<span class="sd">    :param comvec_mat: (community vector, adj_matrix</span>
+<span class="sd">    :return: calculate_coefficient to get coeficient</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">com_vec</span><span class="p">,</span><span class="n">adj_matrix</span><span class="o">=</span><span class="n">comvec_mat</span>
+
+    <span class="k">return</span> <span class="n">calculate_coefficient</span><span class="p">(</span><span class="n">com_vec</span><span class="p">,</span><span class="n">adj_matrix</span><span class="p">)</span>
+
 <span class="k">def</span> <span class="nf">comp_points</span><span class="p">(</span><span class="n">pt1</span><span class="p">,</span><span class="n">pt2</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    check for equality within certain tolerance</span>
@@ -323,7 +358,7 @@
 <span class="sd">   :param coef_array: NxM array of M coefficients across each row representing N partitions</span>
 <span class="sd">   :type coef_array: array</span>
 <span class="sd">   :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \</span>
-<span class="sd">    to be within a reasonable range of gamma/omega (such as the range of parameters originally searched using Louvain).</span>
+<span class="sd">    to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).</span>
 <span class="sd">   :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary</span>
 <span class="sd">    of the domain</span>
 <span class="sd">    &#39;&#39;&#39;</span>

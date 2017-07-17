@@ -1,8 +1,12 @@
-import champ
-import numpy as np
-import pyhull
+import logging
+import pdb
+import sys
+import traceback
+
 import matplotlib.pyplot as plt
-import pdb,sys,traceback,logging
+import numpy as np
+
+import champ
 
 DESCRIPTION = ""
 LOG_LEVEL = logging.INFO
@@ -32,8 +36,8 @@ def main():
 
     logging.info("Multilayer Test")
     test_hs_arry=champ.get_random_halfspaces(50)
-    print test_hs_arry.shape
-    print test_hs_arry
+    logging.info("Coefficent array: ", str(test_hs_arry.shape))
+
     test_hs=champ.create_halfspaces_from_array(test_hs_arry)
 
     logging.info("Number of Initial Partitions: %d" %(len(test_hs)) )
@@ -51,24 +55,20 @@ def main():
 
     logging.info("Single-layer Test")
     test_hs_arry = champ.get_random_halfspaces(100,dim=2)
-    print test_hs_arry.shape
 
     # plt.close()
     # for i in range(test_hs_arry.shape[0]):
     #     plt.plot([0,test_hs_arry[i,0]],[test_hs_arry[i,1],0])
     #
     # plt.show()
-
-    print test_hs_arry
     test_hs = champ.create_halfspaces_from_array(test_hs_arry)
     plt.close()
-    plot_hs_list(test_hs)
+    ax=plot_hs_list(test_hs)
+    ax.set_title("Visualization of All Parition Lines")
     plt.show()
-    # intpt=champ.get_interior_point(test_hs)
-    # qhout=pyhull.qhalf('Fp',test_hs,intpt)
+
     logging.info("Number of Initial Partitions: %d" % (len(test_hs)))
     ind_2_doms = champ.get_intersection(test_hs_arry,max_pt=(10,10))
-    pdb.set_trace()
     logging.info("Number of Admissible Partitions: %d" % (len(ind_2_doms.keys())))
     plt.close()
     ax=champ.plot_single_layer_modularity(ind_2_doms)
