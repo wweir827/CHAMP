@@ -183,13 +183,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="_static/louvain_ext.html">Louvain Parallel Extension</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_static/louvain_ext.html#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_static/louvain_ext.html#partition-ensemble-example">Partition Ensemble Example</a></li>
 </ul>
 </li>
 </ul>
 </div>
+</div>
 <div class="section" id="download-and-installation">
-<h3>Download and Installation:<a class="headerlink" href="#download-and-installation" title="Permalink to this headline">¶</a></h3>
+<h2>Download and Installation:<a class="headerlink" href="#download-and-installation" title="Permalink to this headline">¶</a></h2>
 <p>The CHAMP module is hosted on <a class="reference external" href="https://pypi.python.org/pypi/champ">PyPi</a>.  The easiest way to install is via the pip command:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">champ</span>
 </pre></div>
@@ -197,9 +198,25 @@
 <p>For installation from source, the latest version of champ can be downloaded from GitHub:</p>
 <blockquote>
 <div><a class="reference external" href="https://github.com/wweir827/CHAMP">https://github.com/wweir827/CHAMP</a></div></blockquote>
+<p>For basic installation:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>python setup.py install
+</pre></div>
+</div>
+<div class="section" id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h3>
+<p>Most of the dependencies for CHAMP are fairly standard tools for data analysis in Python, with the exception of
+<a class="reference external" href="https://github.com/vtraag/louvain-igraph">louvain_igraph</a>.   They include :</p>
+<ul class="simple">
+<li><a class="reference external" href="https://www.scipy.org/scipylib/download.html">NumPy</a></li>
+<li><a class="reference external" href="http://scikit-learn.org/stable/install.html">sklearn</a></li>
+<li><a class="reference external" href="http://igraph.org/python/#downloads">igraph</a></li>
+<li><a class="reference external" href="https://matplotlib.org/users/installing.html">matplotlib</a></li>
+<li><a class="reference external" href="https://github.com/vtraag/louvain-igraph">louvain</a></li>
+</ul>
+</div>
 </div>
 <div class="section" id="citation">
-<h3>Citation:<a class="headerlink" href="#citation" title="Permalink to this headline">¶</a></h3>
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this headline">¶</a></h2>
 <p>Please cite:</p>
 <p id="bibtex-bibliography-index-0"><table class="docutils citation" frame="void" id="weir-2017wk" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
@@ -209,12 +226,10 @@
 </table>
 </p>
 <p><a class="reference external" href="_static/champ.bib">bibtex</a></p>
-<p>Indices</p>
 <ul class="simple">
 <li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
-</div>
 </div>
 </div>
 

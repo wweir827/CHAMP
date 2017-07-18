@@ -106,7 +106,7 @@ ___________
     :style: plain
     :filter: docname in docnames
 
-Indices
+
 
 * :ref:`genindex`
 * :ref:`search`

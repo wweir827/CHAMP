@@ -37,13 +37,11 @@ Single Layer Example
     plt.show()
 
 
-Output\:
+Output [1]_ \:
 
 .. _`example_sl`:
 .. image::  images/example_sl.png
    :width: 90%
-
-Note that actual output might differ due to random seeding.
 
 -----------------
 Heatmap Example
@@ -81,7 +79,7 @@ dominant partitions.
     a,nmi=champ.plot_similarity_heatmap_single_layer(ensemb.partitions,ensemb.ind2doms,title=True)
     plt.show()
 
-Output\:
+Output [1]_ \:
 
 |
 |   Run 0 at gamma = 0.000.  Return time: 0.0275
@@ -91,12 +89,15 @@ Output\:
 
 .. _`example_nmi`:
 .. image::  images/example_nmi.png
-   :width: 50%
+   :width: 70%
 
 
 
 Multiayer Plots
 ___________________
+
+In the multilayer case, each domain is a convex ploygon in the :math:`(\gamma,\omega)` plane. \
+
 
 .. autofunction:: champ.plot_2d_domains
 
@@ -117,15 +118,16 @@ Multilayer Example
     plt.show()
 
 
-Output\:
+Output [1]_ \:
 
 .. _`example1_out`:
 .. image::  images/example_2d.jpg
-   :width: 50%
+   :width: 70%
 
-Indices
+
 
 
 * :ref:`genindex`
 * :ref:`search`
 
+.. [1] Note that actual output might differ due to random seeding.

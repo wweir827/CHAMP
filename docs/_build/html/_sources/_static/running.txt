@@ -22,9 +22,9 @@ for parallization of this process on supported machines.
 
 .. autofunction:: champ.champ_functions.create_coefarray_from_partitions
 
---------
-Example
---------
+------------------------------------
+Coeffients from Partitions Example
+------------------------------------
 
 
 
@@ -40,9 +40,9 @@ of coefficients supplied in the input array.
 
 .. autofunction:: champ.champ_functions.get_intersection
 
---------
-Example
---------
+------------------------------------------------
+Applying CHAMP to Coefficients Array Example
+------------------------------------------------
 ::
 
     import champ
@@ -57,14 +57,15 @@ Example
     plt.show()
 
 
-Output\:
+Output [1]_ \:
 
 .. _`example1_out`:
 .. image::  images/example_2d.jpg
    :width: 50%
 
-Indices
+
 
 * :ref:`genindex`
 * :ref:`search`
 
+.. [1] Note that actual output might differ due to random seeding.
