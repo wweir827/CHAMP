@@ -20,7 +20,7 @@ __________
 
     _static/intro
     _static/running
-    _static/plotting
+    _static/plotting2
     _static/louvain_ext
 
 
