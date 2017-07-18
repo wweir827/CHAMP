@@ -5,6 +5,9 @@ from contextlib import contextmanager
 from multiprocessing import Pool,cpu_count
 from time import time
 
+from .champ_functions import create_halfspaces_from_array
+from .champ_functions import get_intersection
+
 import igraph as ig
 import louvain
 import numpy as np
@@ -47,23 +50,29 @@ class PartitionEnsemble():
     :cvar partitions: List of membership vectors for each partition
 
     :cvar int_edges:  Number of edges internal to the communities
-    :type int_edges:  np.array
+    :type int_edges:  list
 
     :cvar exp_edges:  Number of expected edges (based on configuration model)
-    :type int_edges:  np.array
+    :type exp_edges:  list
 
     :cvar resoltions:  If partitions were idenitfied with Louvain, what resolution \
     were they identified at (otherwise None)
+    :type resolutions: list
 
-    :cvar orig_mods:  Modularity of partition at the resolution it was identified at\
+    :cvar orig_mods:  Modularity of partition at the resolution it was identified at \
     if Louvain was used (otherwise None).
+    :type orig_mods: list
 
     :cvar numparts: number of partitions
+    :type numparts: int
+    :cvar ind2doms: Maps index of dominant partitions to boundary points of their dominant \
+    domains
+    :type ind2doms: dict
 
     '''
 
 
-    def __init__(self,graph=None,listofparts=None,name='unnamed_graph'):
+    def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None):
         self.partitions = []
         self.int_edges = []
         self.exp_edges = []
@@ -72,14 +81,16 @@ class PartitionEnsemble():
         self.numparts=0
         self.graph=graph
         if listofparts!=None:
-            self.add_partitions(listofparts)
+            self.add_partitions(listofparts,maxpt=maxpt)
         self.name=name
 
 
     def get_adjacency(self):
         '''
         Calc adjacency representation if it exists
+
         :return: self.adjacency
+
         '''
         if self.adjacency==None:
             if 'weight' in self.graph.edge_attributes():
@@ -91,10 +102,14 @@ class PartitionEnsemble():
 
     def calc_internal_edges(self,memvec):
         '''
-        :param memvec: membership vector for which to calculate the internal edges. see \
-        :meth:`louvain_ext.get_sum_internal_edges`
+        Uses igraph Vertex Clustering representation to calculate internal edges.  see \
+        :meth:`louvain_ext.get_expected_edges`
+
+        :param memvec: membership vector for which to calculate the internal edges.
+        :type memvec: list
 
         :return:
+
         '''
         # if "weight" in self.graph.edge_attributes():
         #     adj=self.graph.get_adjacency(attribute='weight')
@@ -108,7 +123,10 @@ class PartitionEnsemble():
         :meth:`louvain_ext.get_expected_edges`
 
         :param memvec: membership vector for which to calculate the expected edges
-        :return:
+        :type memvec: list
+        :return: expected edges under null
+        :rtype: float
+
         '''
         # adj = self.graph.as_adjacency()
         # m=np.sum(adj)
@@ -120,12 +138,23 @@ class PartitionEnsemble():
         return get_expected_edges(partobj,weight)
 
 
+    def __getitem__(self, item):
+        '''
+        List of paritions in the PartitionEnsemble object can be indexed directly
 
+        :param item: index of partition for direct access
+        :type item: int
+        :return: self.partitions[item]
+        :rtype:  membership vector of community for partition
+        '''
+        return self.partitions[item]
 
     def _check_lengths(self):
         '''
         check all state variables for equal length
+
         :return: boolean indicating states varaible lengths are equal
+
         '''
         if len(self.partitions)==len(self.int_edges) and \
             len(self.partitions)==len(self.resolutions) and \
@@ -134,12 +163,13 @@ class PartitionEnsemble():
         else:
             return False
 
-    def add_partitions(self,partitions):
+    def add_partitions(self,partitions,maxpt=None):
         '''
+        Add additional partitions to the PartitionEnsemble object
 
         :param partitions: list of partitions to add to the PartitionEnsemble
+        :type partitions: dict,list
 
-        :return:
         '''
         #wrap in list.
         if not hasattr(partitions,'__iter__'):
@@ -177,21 +207,21 @@ class PartitionEnsemble():
 
             assert self._check_lengths()
             self.numparts=len(self.partitions)
+            #update the pruned set
+            self.apply_CHAMP(maxpt=maxpt)
+
 
 
     def get_partition_dictionary(self, ind=None):
         '''
         Get dictionary representation of partitions with the following keys:
 
-                'partition':
-                'resolution':
-                'orig_mod':
-                'int_edges':
-                'exp_edges':
+            'partition','resolution','orig_mod','int_edges','exp_edges'
 
         :param ind: optional indices of partitions to return.  if not supplied all partitions will be returned.
-
+        :type ind: int, list
         :return: list of dictionaries
+
         '''
 
         if ind is not None:
@@ -217,7 +247,8 @@ class PartitionEnsemble():
         Assumes that internal ordering on the graph nodes for each is the same.
 
         :param otherEnsemble: otherEnsemble to merge
-        :return: new PartitionEnsemble with
+        :return: new PartitionEnsemble with merged set of partitions
+
         '''
 
         if not self.graph.vcount()==otherEnsemble.graph.vcount():
@@ -230,7 +261,10 @@ class PartitionEnsemble():
 
     def get_coefficient_array(self):
         '''
+        Create array of coefficents for each partition
+
         :return: np.array with coefficents for each of the partions
+
         '''
 
         outlist=[]
@@ -242,16 +276,58 @@ class PartitionEnsemble():
 
         return np.array(outlist)
 
-    def save(self,f=None):
+    def apply_CHAMP(self,maxpt=None):
+        '''
+        Apply CHAMP to the partition ensemble.
+
+        :param maxpt: maximum domain threshhold for included partition.  I.e \
+        partitions with a domain greater than maxpt will not be included in pruned \
+        set
+        :type maxpt: int
+
+        '''
+        self.ind2doms=get_intersection(self.get_coefficient_array(),max_pt=maxpt)
+
+    def get_CHAMP_indices(self):
+
+        '''
+        Get the indices of the partitions that form the pruned set after application of \
+        CHAMP
+
+        :return: list of indices of partitions that are included in the prune set \
+        sorted by their domains of dominance
+        :rtype: list
+
+        '''
+
+        inds=zip(self.ind2doms.keys(),[val[0][0] for val in self.ind2doms.values()])
+        #asscending sort by last value of domain
+        inds.sort(key=lambda x: x[1])
+
+        #retreive index
+        return [ind[0] for ind in inds]
+
+    def get_CHAMP_partitions(self):
+
+        '''Return the subset of partitions that form the outer envelop.
+        :return: List of partitions in membership vector form of the paritions
+        :rtype: list
+
+        '''
+        inds=self.get_CHAMP_indices()
+        return [self.partitions[i] for i in inds]
+
+    def save(self,filename=None):
         '''
         Use pickle to dump representation to compressed file
-        :param f:
-        :return:
-        '''
-        if f is None:
-            f="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
-        with gzip.open(f,'wb') as fh:
+        :param filename:
+
+        '''
+        if filename is None:
+            filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
+
+        with gzip.open(filename,'wb') as fh:
             pickle.dump(self,fh)
 
 
@@ -262,6 +338,7 @@ class PartitionEnsemble():
 
         :param file:  filename of pickled PartitionEnsemble Object
         :return: writes over current instance and returns the reference
+
         '''
         with gzip.open(filename,'rb') as fh:
             opened=pickle.load(fh)
@@ -445,7 +522,7 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress):
             print "Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t)
 
     return outparts
-def parallel_louvain(graph,start=0,fin=1,numruns=200,
+def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
                      numprocesses=None,attribute=None,weight=None,node_subset=None,progress=False):
     '''
     Generates arguments for parallel function call of louvain on graph
@@ -454,6 +531,8 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,
     :param start: beginning of range of resolution parameter :math:`\\gamma` . Default is 0.
     :param fin: end of range of resolution parameter :math:`\\gamma`.  Default is 1.
     :param numruns: number of intervals to divide resolution parameter, :math:`\\gamma` range into
+    :param maxpt: Cutoff off resolution for domains when applying CHAMP. Default is None
+    :type maxpt: int
     :param numprocesses: the number of processes to spawn.  Default is number of CPUs.
     :param weight: If True will use 'weight' attribute of edges in runnning Louvain and calculating modularity.
     :param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
@@ -493,7 +572,6 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,
 
     with terminating(Pool(processes=numprocesses)) as pool:
         parts_list_of_list=pool.map(_run_louvain_parallel, parallel_args )
-
 
 
     all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]

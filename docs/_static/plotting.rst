@@ -6,9 +6,7 @@
 Visualizing Results
 ********************
 
-=================================
-Plotting Results
-=================================
+
 The CHAMP package offers a number of ways to visualize the results for both single layer and multilayer \
 networks.
 
@@ -18,7 +16,6 @@ ___________________
 
 .. autofunction:: champ.plot_line_coefficients
 .. autofunction:: champ.plot_single_layer_modularity
-.. autofunction:: champ.create_similarity_heatmap_single_layer
 
 ---------------------
 Single Layer Example
@@ -34,18 +31,66 @@ Single Layer Example
     ind_2_dom=champ.get_intersection(coeffs)
 
     plt.close()
-    f,axarray=plt.subplots(1,3,figsize=(9,3))
+    f,axarray=plt.subplots(1,2,figsize=(10,5))
     champ.plot_line_coefficients(coeffs,axarray[0])
     champ.plot_single_layer_modularity(ind_2_dom,axarray[1])
-    champ.create_similarity_heatmap_single_layer(ind_2_dom,axarray[2])
-
     plt.show()
 
 
 Output\:
 
-.. _`example1_out`:
-.. image::  images/example_2d.jpg
+.. _`example_sl`:
+.. image::  images/example_sl.png
+   :width: 90%
+
+Note that actual output might differ due to random seeding.
+
+-----------------
+Heatmap Example
+-----------------
+
+In most cases CHAMP reduces the number of considerable parttions drastically.  So much so that it is \
+feasible to calculate the similarity between all pairs of paritions and visualize them ordered by their \
+domains.  The easier way to do this is to wrap the input partitions into a :class:`louvain_ext.PartitionEnsemble` object \
+.  Creation of the :ref:`PartitionEnsemble <louvain_ext.PartitionEnsemble>` object automatically applies CHAMP and allows access to the \
+dominant partitions.
+
+.. autofunction:: champ.plot_similarity_heatmap_single_layer
+
+
+::
+
+    import champ
+    from champ import louvain_ext
+    import igraph as ig
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    np.random.seed(0)
+    test_graph=ig.Graph.Random_Bipartite(n1=100,n2=100,p=.1)
+
+    #parallelized wrapper
+    ensemb=louvain_ext.parallel_louvain(test_graph,
+                                      numruns=300,start=0,fin=4,
+                                      numprocesses=2,
+                                      progress=True)
+
+
+
+    plt.close()
+    a,nmi=champ.plot_similarity_heatmap_single_layer(ensemb.partitions,ensemb.ind2doms,title=True)
+    plt.show()
+
+Output\:
+
+|
+|   Run 0 at gamma = 0.000.  Return time: 0.0275
+|   Run 100 at gamma = 1.333.  Return time: 0.0716
+|   Run 200 at gamma = 2.667.  Return time: 0.0717
+|
+
+.. _`example_nmi`:
+.. image::  images/example_nmi.png
    :width: 50%
 
 

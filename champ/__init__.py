@@ -6,7 +6,7 @@ from .plot_domains import plot_2d_domains
 from .plot_domains import plot_single_layer_modularity
 from .plot_domains import plot_line_halfspaces
 from .plot_domains import plot_line_coefficients
-from .plot_domains import create_similarity_heatmap_single_layer
+from .plot_domains import plot_similarity_heatmap_single_layer
 
 from .champ_functions import create_coefarray_from_partitions
 from .champ_functions import create_halfspaces_from_array

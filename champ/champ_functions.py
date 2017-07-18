@@ -232,7 +232,7 @@ def get_intersection(coef_array, max_pt=None):
         halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0)) # y-axis
         halfspaces.append(hs.Halfspace(normal=(0,-1), offset=0)) # x-axis
 
-        num2rm +=1
+        num2rm +=2
         if max_pt is not None:
             halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt))
             num2rm+=1

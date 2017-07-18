@@ -22,10 +22,12 @@ finds *local* optima.
 
 We also have created a convenient class for managing and merging groups of partitions \
 called :mod:`champ.louvain_ext.PartitionEnsemble` .  This class stores the partitions in membership vector form \
-( i.e. a list of N community assignments), as well as the coefficients for the partitions.
+( i.e. a list of N community assignments), as well as the coefficients for the partitions.  As part of its class \
+methods, the PartitionEnsemble is able to apply CHAMP to its own partitions and store their domains.
 
+.. _`louvain_ext.PartitionEnsemble`:
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
-
+    :members:
 
 --------
 Example

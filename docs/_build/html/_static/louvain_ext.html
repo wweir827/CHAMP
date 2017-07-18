@@ -195,8 +195,8 @@ stochastic over each run.  In general this is desireable because Louvain uses a 
 </table>
 </dd></dl>
 
-<p>We also have created a convenient class for managing and merging groups of partitions called <a class="reference internal" href="#champ.louvain_ext.PartitionEnsemble" title="champ.louvain_ext.PartitionEnsemble"><code class="xref py py-mod docutils literal"><span class="pre">champ.louvain_ext.PartitionEnsemble</span></code></a> .  This class stores the partitions in membership vector form ( i.e. a list of N community assignments), as well as the coefficients for the partitions.</p>
-<dl class="class">
+<p>We also have created a convenient class for managing and merging groups of partitions called <a class="reference internal" href="#champ.louvain_ext.PartitionEnsemble" title="champ.louvain_ext.PartitionEnsemble"><code class="xref py py-mod docutils literal"><span class="pre">champ.louvain_ext.PartitionEnsemble</span></code></a> .  This class stores the partitions in membership vector form ( i.e. a list of N community assignments), as well as the coefficients for the partitions.  As part of its class methods, the PartitionEnsemble is able to apply CHAMP to its own partitions and store their domains.</p>
+<span class="target" id="louvain-ext-partitionensemble"></span><dl class="class">
 <dt id="champ.louvain_ext.PartitionEnsemble">
 <em class="property">class </em><code class="descclassname">champ.louvain_ext.</code><code class="descname">PartitionEnsemble</code><span class="sig-paren">(</span><em>graph=None</em>, <em>listofparts=None</em>, <em>name='unnamed_graph'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble" title="Permalink to this definition">¶</a></dt>
 <dd><p>Group of partitions of a graph stored in membership vector format</p>
@@ -211,13 +211,192 @@ stochastic over each run.  In general this is desireable because Louvain uses a 
 <li><strong>int_edges</strong> &#8211; Number of edges internal to the communities</li>
 <li><strong>exp_edges</strong> &#8211; Number of expected edges (based on configuration model)</li>
 <li><strong>resoltions</strong> &#8211; If partitions were idenitfied with Louvain, what resolution     were they identified at (otherwise None)</li>
-<li><strong>orig_mods</strong> &#8211; Modularity of partition at the resolution it was identified at    if Louvain was used (otherwise None).</li>
+<li><strong>orig_mods</strong> &#8211; Modularity of partition at the resolution it was identified at     if Louvain was used (otherwise None).</li>
 <li><strong>numparts</strong> &#8211; number of partitions</li>
+<li><strong>ind2doms</strong> &#8211; Maps index of dominant partitions to boundary points of their dominant     domains</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.add_partitions">
+<code class="descname">add_partitions</code><span class="sig-paren">(</span><em>partitions</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.add_partitions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.add_partitions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add additional partitions to the PartitionEnsemble object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>partitions</strong> (<em>dict,list</em>) &#8211; list of partitions to add to the PartitionEnsemble</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.apply_CHAMP">
+<code class="descname">apply_CHAMP</code><span class="sig-paren">(</span><em>maxpt=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.apply_CHAMP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.apply_CHAMP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply CHAMP to the partition ensemble.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>maxpt</strong> (<em>int</em>) &#8211; maximum domain threshhold for included partition.  I.e         partitions with a domain greater than maxpt will not be included in pruned         set</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.calc_expected_edges">
+<code class="descname">calc_expected_edges</code><span class="sig-paren">(</span><em>memvec</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.calc_expected_edges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.calc_expected_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses igraph Vertex Clustering representation to calculate expected edges.  see         <code class="xref py py-meth docutils literal"><span class="pre">louvain_ext.get_expected_edges()</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>memvec</strong> (<em>list</em>) &#8211; membership vector for which to calculate the expected edges</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">expected edges under null</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.calc_internal_edges">
+<code class="descname">calc_internal_edges</code><span class="sig-paren">(</span><em>memvec</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.calc_internal_edges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.calc_internal_edges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses igraph Vertex Clustering representation to calculate internal edges.  see         <code class="xref py py-meth docutils literal"><span class="pre">louvain_ext.get_expected_edges()</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>memvec</strong> (<em>list</em>) &#8211; membership vector for which to calculate the internal edges.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.get_CHAMP_indices">
+<code class="descname">get_CHAMP_indices</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.get_CHAMP_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.get_CHAMP_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the indices of the partitions that form the pruned set after application of         CHAMP</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of indices of partitions that are included in the prune set         sorted by their domains of dominance</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.get_CHAMP_partitions">
+<code class="descname">get_CHAMP_partitions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.get_CHAMP_partitions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.get_CHAMP_partitions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the subset of partitions that form the outer envelop.
+:return: List of partitions in membership vector form of the paritions
+:rtype: list</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.get_adjacency">
+<code class="descname">get_adjacency</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.get_adjacency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.get_adjacency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calc adjacency representation if it exists</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">self.adjacency</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.get_coefficient_array">
+<code class="descname">get_coefficient_array</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.get_coefficient_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.get_coefficient_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create array of coefficents for each partition</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">np.array with coefficents for each of the partions</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.get_partition_dictionary">
+<code class="descname">get_partition_dictionary</code><span class="sig-paren">(</span><em>ind=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.get_partition_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.get_partition_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get dictionary representation of partitions with the following keys:</p>
+<blockquote>
+<div>&#8216;partition&#8217;,&#8217;resolution&#8217;,&#8217;orig_mod&#8217;,&#8217;int_edges&#8217;,&#8217;exp_edges&#8217;</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ind</strong> (<em>int, list</em>) &#8211; optional indices of partitions to return.  if not supplied all partitions will be returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of dictionaries</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.merge_ensemble">
+<code class="descname">merge_ensemble</code><span class="sig-paren">(</span><em>otherEnsemble</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.merge_ensemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.merge_ensemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combine to PartitionEnsembles.  Checks for concordance in the number of vertices.         Assumes that internal ordering on the graph nodes for each is the same.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>otherEnsemble</strong> &#8211; otherEnsemble to merge</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">new PartitionEnsemble with merged set of partitions</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="champ.louvain_ext.PartitionEnsemble.open">
+<em class="property">static </em><code class="descname">open</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads pickled PartitionEnsemble from file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file</strong> &#8211; filename of pickled PartitionEnsemble Object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">writes over current instance and returns the reference</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="champ.louvain_ext.PartitionEnsemble.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/louvain_ext.html#PartitionEnsemble.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.louvain_ext.PartitionEnsemble.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use pickle to dump representation to compressed file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <div class="section" id="example">

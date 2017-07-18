@@ -170,7 +170,7 @@
 <h1>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
-<p>CHAMP (Convex Hull of Admissible Modularity Partitions) is an algorithm to find the subset of an ensembles of network partitions that are optimal in terms of modularity.  Thus CHAMP is not a community detection algorithm <em>per say</em> but a method to assist in interpretation of a collection of partitions produced by ones favorite third party detection method ( <a href="#id1"><span class="problematic" id="id2">*</span></a>e.g Louvain, SBM, Infomap etc. * ).  Instead CHAMP identifies the partitions that have a non-empty range of the resolution parameter, <span class="math">\(\gamma\)</span> over which their modularity is larger than any other partition in the input ensemble.  This is done by reformulating the problem in terms of finding the convex hull of a set of linear subspaces and solved using the <a class="reference external" href="http://pythonhosted.org/pyhull/">pyhull</a> implementation of the quickhull <a class="reference internal" href="#barber-1996iv" id="id3">[1]</a> algorithm.</p>
+<p>CHAMP (Convex Hull of Admissible Modularity Partitions) is an algorithm to find the subset of an ensembles of network partitions that are optimal in terms of modularity.  Thus CHAMP is not a community detection algorithm <em>per</em> <em>say</em> but a method to assist in interpretation of a collection of partitions produced by ones favorite third party detection method ( <em>e.g</em> Louvain, SBM, Infomap <em>etc.</em> ).  Instead CHAMP identifies the partitions that have a non-empty range of the resolution parameter, <span class="math">\(\gamma\)</span> over which their modularity is larger than any other partition in the input ensemble.  This is done by reformulating the problem in terms of finding the convex hull of a set of linear subspaces and solved using the <a class="reference external" href="http://pythonhosted.org/pyhull/">pyhull</a> implementation of the quickhull <a class="reference internal" href="#barber-1996iv" id="id1">[1]</a> algorithm.</p>
 <p>CHAMP can greatly reduce the number of partitions considerable for future analyses by eliminating all partitions that are suboptimal across a given range of the resolution space.  The CHAMP package also allows for visualization of the domains using the matplotlib library.  Finally, the CHAMP package also includes a wrapper function for a python implementation of Louvain <a class="reference external" href="https://github.com/vtraag/louvain-igraph">louvain_igraph</a> in parallel over a range of resolutions.</p>
 <p>For more details and results see our <a class="reference external" href="https://arxiv.org/abs/1706.03675">preprint</a></p>
 </div>
@@ -194,7 +194,7 @@
 </div>
 <div class="section" id="multilayer-champ">
 <h2>Multilayer CHAMP<a class="headerlink" href="#multilayer-champ" title="Permalink to this headline">¶</a></h2>
-<p>One of the strengths of modularity is that it has been extended in a principled way into a variety of network topologies in particular the multilayer context.  The multilayer formulation <a class="reference internal" href="#mucha-2010vk" id="id4">[2]</a> for modularity incorporates the interlayer connectivity of the network in the form of a second adjacency matrix <span class="math">\(C_{ij}\)</span></p>
+<p>One of the strengths of modularity is that it has been extended in a principled way into a variety of network topologies in particular the multilayer context.  The multilayer formulation <a class="reference internal" href="#mucha-2010vk" id="id2">[2]</a> for modularity incorporates the interlayer connectivity of the network in the form of a second adjacency matrix <span class="math">\(C_{ij}\)</span></p>
 <div class="math">
 \begin{equation}
 Q(\gamma)=\frac{1}{2m}\sum_{i,j}{\left( A_{ij}-\gamma \frac{k_ik_j}{2m} \
@@ -204,21 +204,21 @@ Q(\gamma)=\frac{1}{2m}\sum_{i,j}{\left( A_{ij}-\gamma \frac{k_ik_j}{2m} \
 \[\begin{split}\begin{array}
 \hat{C}=\sum{C_{ij}\delta(c_i,c_j)} &amp;\textit{Sum of interlayer edges internal to communities}\\
 \end{array}\end{split}\]</div>
-<a class="reference internal image-reference" href="../_images/3dplanes_example.jpg" id="id5"><img alt="../_images/3dplanes_example.jpg" id="id5" src="../_images/3dplanes_example.jpg" style="width: 30%;" /></a>
+<a class="reference internal image-reference" href="../_images/3dplanes_example.jpg" id="id3"><img alt="../_images/3dplanes_example.jpg" id="id3" src="../_images/3dplanes_example.jpg" style="width: 30%;" /></a>
 <a class="reference internal image-reference" href="../_images/dom_weighted_nmi_senate.png" id="senate-domains"><img alt="../_images/dom_weighted_nmi_senate.png" id="senate-domains" src="../_images/dom_weighted_nmi_senate.png" style="width: 60%;" /></a>
-<p>In the multilayer case, we look for the planes that define the intersection of the area above all of the planes as depicted in <a class="reference internal" href="#id5"><span class="std std-ref">3D Planes</span></a>.  These domains are now 2D polygons in the <span class="math">\((\gamma,\omega)\)</span> space as shown in <a class="reference internal" href="#senate-domains"><span class="std std-ref">Domains</span></a>.</p>
+<p>In the multilayer case, we look for the planes that define the intersection of the area above all of the planes as depicted in <a class="reference internal" href="#id3"><span class="std std-ref">3D Planes</span></a>.  These domains are now 2D polygons in the <span class="math">\((\gamma,\omega)\)</span> space as shown in <a class="reference internal" href="#senate-domains"><span class="std std-ref">Domains</span></a>.</p>
 <div class="section" id="references">
 <h3>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h3>
 <p id="bibtex-bibliography-_static/intro-0"><table class="docutils citation" frame="void" id="barber-1996iv" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id3">[1]</a></td><td>C.&nbsp;Bradford Barber, David&nbsp;P. Dobkin, and Hannu Huhdanpaa. The Quickhull algorithm for convex hulls. <em>ACM Trans. Math. Softw.</em>, 22(4):469483, Dec 1996. <a class="reference external" href="https://doi.org/10.1145/235815.235821">doi:10.1145/235815.235821</a>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>C.&nbsp;Bradford Barber, David&nbsp;P. Dobkin, and Hannu Huhdanpaa. The Quickhull algorithm for convex hulls. <em>ACM Trans. Math. Softw.</em>, 22(4):469483, Dec 1996. <a class="reference external" href="https://doi.org/10.1145/235815.235821">doi:10.1145/235815.235821</a>.</td></tr>
 </tbody>
 </table>
 <table class="docutils citation" frame="void" id="mucha-2010vk" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id4">[2]</a></td><td>P&nbsp;J Mucha, T&nbsp;Richardson, K&nbsp;Macon, and M&nbsp;A Porter. Community structure in time-dependent, multiscale, and multiplex networks. <em>Science</em>, May 2010.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td>P&nbsp;J Mucha, T&nbsp;Richardson, K&nbsp;Macon, and M&nbsp;A Porter. Community structure in time-dependent, multiscale, and multiplex networks. <em>Science</em>, May 2010.</td></tr>
 </tbody>
 </table>
 </p>
