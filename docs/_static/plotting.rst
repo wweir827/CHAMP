@@ -122,7 +122,7 @@ Output [1]_ \:
 
 .. _`example1_out`:
 .. image::  images/example_2d.jpg
-   :width: 70%
+   :width: 60%
 
 
 
