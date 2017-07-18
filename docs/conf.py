@@ -22,19 +22,6 @@ sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../champ'))
 
 
-#Mock Modules Needed for Sphynx
-# import mock
-# MOCK_MODULES = ['numpy','numpy.random','igraph','louvain', 'matplotlib', 'matplotlib.pyplot',
-#                 'matplotlib.cm',
-#                 'matplotlib.colors',
-#                 'matplotlib.patches',
-#                 'matplotlib.path',
-#                 'sklearn.metrics',
-#                 'sklearn'
-#                 'scipy','scipy.sparse']
-#
-# for mod_name in MOCK_MODULES:
-#     sys.modules[mod_name] = mock.Mock()
 
 # -- General configuration ------------------------------------------------
 
@@ -58,11 +45,26 @@ extensions = [
 ]
 
 #Have to specify all modules
+#These are for local mocks.
 autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib',
                       'matplotlib.cm','matplotlib.colors','matplotlib.patches',
                       'matplotlib.path','matplotlib.pyplot','sklearn.metrics','numpy.random',
                 'sklearn','ipython',
                 'scipy']
+
+#
+import mock
+MOCK_MODULES = ['numpy','numpy.random','igraph','louvain', 'matplotlib', 'matplotlib.pyplot',
+                'matplotlib.cm',
+                'matplotlib.colors',
+                'matplotlib.patches',
+                'matplotlib.path',
+                'sklearn.metrics',
+                'sklearn'
+                'scipy','scipy.sparse','ipython']
+
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
