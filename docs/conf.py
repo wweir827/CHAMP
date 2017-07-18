@@ -61,7 +61,7 @@ extensions = [
 autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib',
                       'matplotlib.cm','matplotlib.colors','matplotlib.patches',
                       'matplotlib.path','matplotlib.pyplot','sklearn.metrics','numpy.random',
-                'sklearn'
+                'sklearn','ipython',
                 'scipy']
 
 # Add any paths that contain templates here, relative to this directory.
