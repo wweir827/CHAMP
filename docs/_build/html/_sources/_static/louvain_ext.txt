@@ -29,9 +29,9 @@ methods, the PartitionEnsemble is able to apply CHAMP to its own partitions and 
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
     :members:
 
---------
+----------------------------
 Partition Ensemble Example
---------
+----------------------------
 We use igraph to generate a random ER graph, call louvain in parallel, and apply CHAMP to the ensemble.
 ::
 
