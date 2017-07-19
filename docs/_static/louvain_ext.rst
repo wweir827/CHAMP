@@ -33,7 +33,8 @@ constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and s
 ----------------------------
 Partition Ensemble Example
 ----------------------------
-We use igraph to generate a random ER graph, call louvain in parallel, and apply CHAMP to the ensemble.
+We use igraph to generate a random ER graph, call louvain in parallel, and apply CHAMP to the ensemble.  This example \
+took approximately 1 minute to run on 2 cores.
 ::
 
     import champ
