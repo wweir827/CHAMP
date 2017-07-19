@@ -51,7 +51,7 @@ Most of the dependencies for CHAMP are fairly standard tools for data analysis i
 
 + `NumPy <https://www.scipy.org/scipylib/download.html>`_
 + `sklearn <http://scikit-learn.org/stable/install.html>`_
-+ `igraph <http://igraph.org/python/#downloads>`_
++ `igraph-python <http://igraph.org/python/#downloads>`_
 + `matplotlib <https://matplotlib.org/users/installing.html>`_
 + `louvain <https://github.com/vtraag/louvain-igraph>`_
 

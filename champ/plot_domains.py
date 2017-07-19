@@ -152,7 +152,7 @@ def plot_single_layer_modularity_domains(ind_2_domains, ax=None, colors=None, la
 
     if labels is not None:
         if labels is True:
-            ax.set_ylabel("Modularity")
+            ax.set_ylabel("modularity")
             ax.set_xlabel("resolution")
         else:
             ax.set_xlabel(labels[0])
@@ -219,8 +219,8 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=Non
 
 
     pmap = ax.pcolor(G1S, G2S, AMI_mat, cmap=cmap)
-    ax.set_xlabel("Resolution")
-    ax.set_ylabel("Resolution")
+    ax.set_xlabel("resolution")
+    ax.set_ylabel("resolution")
 
     for gm in gamma_transitions:
         ax.axhline(gm, color='k', linestyle='dashed')
@@ -231,7 +231,7 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=Non
     ax.set_xlim(gamma_transitions[0], max(gamma_transitions))
     if not title is None:
         if title is True:
-            ax.set_title('Adjusted Mutual Information Score of Partitions')
+            ax.set_title('Adjusted Mutual Information between Partitions')
         else:
             ax.set_title(title)
     plt.colorbar(pmap, ax=ax)

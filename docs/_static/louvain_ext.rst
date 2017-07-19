@@ -22,8 +22,9 @@ finds *local* optima.
 
 We also have created a convenient class for managing and merging groups of partitions \
 called :mod:`champ.louvain_ext.PartitionEnsemble` .  This class stores the partitions in membership vector form \
-( i.e. a list of N community assignments), as well as the coefficients for the partitions.  As part of its class \
-methods, the PartitionEnsemble is able to apply CHAMP to its own partitions and store their domains.
+( i.e. a list of N community assignments), as well as the coefficients for the partitions.  As part of its \
+constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and stores the domains of dominance.
+
 
 .. _`louvain_ext.PartitionEnsemble`:
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
@@ -36,8 +37,6 @@ We use igraph to generate a random ER graph, call louvain in parallel, and apply
 ::
 
     import champ
-    from champ import louvain_ext
-
     import igraph as ig
     import tempfile
     import numpy as np
@@ -50,25 +49,45 @@ We use igraph to generate a random ER graph, call louvain in parallel, and apply
     test_graph.write_graphmlz(tfile.name)
 
     #non-parallelized wrapper
-    ens1=louvain_ext.run_louvain(tfile.name,nruns=30,gamma=1)
+    ens1=champ.run_louvain(tfile.name,nruns=2,gamma=1)
 
     #parallelized wrapper
-    ens2=louvain_ext.parallel_louvain(test_graph,
-                                      numruns=10,
+    test_graph2=ig.Graph.Random_Bipartite(n1=100,n2=100,p=.1)
+    ens2=champ.parallel_louvain(test_graph2,
+                                      numruns=1000,start=0,fin=4,maxpt=4,
                                       numprocesses=2,
                                       progress=True)
 
-    #Output as gzipped file
-    ens2.save("test_esemble_file.gz")
+    print ("%d of %d domains after application of CHAMP"%(len(ens2.ind2doms),ens2.numparts))
 
-
-
-    #Apply Champ to Coefficients
-    coeffs2=ens2.get_coefficient_array()
-    ind2dom2=champ.get_intersection(coeffs2)
+    #plot both of these
     plt.close()
-    ax=champ.plot_single_layer_modularity(ind2dom2)
+    f,(a1,a2)=plt.subplots(1,2,figsize=(10,5))
+    champ.plot_single_layer_modularity_domains(ens2.ind2doms,ax=a1,labels=True)
+    champ.plot_similarity_heatmap_single_layer(ens2.partitions,ens2.ind2doms,ax=a2,title=True)
+    plt.tight_layout()
     plt.show()
+
+
+
+Output\:
+
+|   Run 0 at gamma = 0.000.  Return time: 0.0326
+|   Run 100 at gamma = 0.400.  Return time: 0.0318
+|   Run 200 at gamma = 0.800.  Return time: 0.0665
+|   Run 300 at gamma = 1.200.  Return time: 0.0659
+|   Run 400 at gamma = 1.600.  Return time: 0.0936
+|   Run 500 at gamma = 2.000.  Return time: 0.0715
+|   Run 600 at gamma = 2.400.  Return time: 0.0811
+|   Run 700 at gamma = 2.800.  Return time: 0.0780
+|   Run 800 at gamma = 3.200.  Return time: 0.0759
+|   Run 900 at gamma = 3.600.  Return time: 0.0735
+|   12 of 1000 domains after application of CHAMP
+
+.. _`part_ens_exp`:
+.. image::  images/part_ens_exp.png
+   :width: 90%
+
 
 References
 ___________
