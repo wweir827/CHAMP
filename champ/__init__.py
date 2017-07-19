@@ -3,7 +3,7 @@ CHAMP (Convex Hull of Admissible Modularity Partitions) implementation
 '''
 
 from .plot_domains import plot_2d_domains
-from .plot_domains import plot_single_layer_modularity
+from .plot_domains import plot_single_layer_modularity_domains
 from .plot_domains import plot_line_halfspaces
 from .plot_domains import plot_line_coefficients
 from .plot_domains import plot_similarity_heatmap_single_layer

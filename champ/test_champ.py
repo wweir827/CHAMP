@@ -62,7 +62,7 @@ def main():
     ind_2_doms = champ.get_intersection(test_hs_arry,max_pt=(10,10))
     logging.info("Number of Admissible Partitions: %d" % (len(ind_2_doms.keys())))
     plt.close()
-    ax=champ.plot_single_layer_modularity(ind_2_doms)
+    ax=champ.plot_single_layer_modularity_domains(ind_2_doms)
     plt.show()
 
     return 1

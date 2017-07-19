@@ -576,7 +576,7 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 
     all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
 
-    outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts)
+    outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
     return outensemble
 
 

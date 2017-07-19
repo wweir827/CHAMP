@@ -116,7 +116,7 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
 
     return ax
 
-def plot_single_layer_modularity(ind_2_domains, ax=None, colors=None, labels=None):
+def plot_single_layer_modularity_domains(ind_2_domains, ax=None, colors=None, labels=None):
     '''
     Plot the piece-wise linear curve for CHAMP of single layer partitions
 
@@ -144,8 +144,10 @@ def plot_single_layer_modularity(ind_2_domains, ax=None, colors=None, labels=Non
             c=colors[i] #must match length
         else:
             c=pal[i] if colors == None else colors
-        coords=zip(*pts)
+        coords=map(list,zip(*pts))
 
+
+        ax.scatter(coords[0],coords[1],color=c,marker='x')
         ax.plot(coords[0],coords[1],color=c,lw=2,alpha=.75)
 
     if labels is not None:

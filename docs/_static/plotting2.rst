@@ -15,7 +15,7 @@ Single Layer Plots
 ___________________
 
 .. autofunction:: champ.plot_line_coefficients
-.. autofunction:: champ.plot_single_layer_modularity
+.. autofunction:: champ.plot_single_layer_modularity_domains
 
 ---------------------
 Single Layer Example
