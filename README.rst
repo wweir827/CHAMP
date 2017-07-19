@@ -2,13 +2,6 @@ CHAMP (Convex Hull of Admissible Modularity Partitions)
 ==========================================================
 by William Weir
 
-.. toctree::
-    :maxdepth: 2
-
-    docs/_static/intro
-    docs/_static/running
-    docs/_static/plotting2
-    docs/_static/louvain_ext
 
 
 .. figure::  docs/_static/images/graphs_all_three.png
