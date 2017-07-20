@@ -338,7 +338,7 @@ class PartitionEnsemble():
         '''
         Use pickle to dump representation to compressed file
 
-        :param filename:
+        :param filename: name of file to write to.
 
         '''
         if filename is None:
@@ -346,6 +346,29 @@ class PartitionEnsemble():
 
         with gzip.open(filename,'wb') as fh:
             pickle.dump(self,fh)
+
+    def save_graph(self,filename=None):
+        '''
+        Save a copy of the graph with each of the optimal partitions stored as vertex attributes \
+        in graphml compressed format.  Each partition is attribute names part_gamma where gamma is \
+        the beginning of the partitions domain of dominance
+
+        :param filename: name of file to write out to.  default is self.name.graphml.gz
+        :type filename: str
+
+        '''
+
+        #TODO add other graph formats for saving.
+        if filename is None:
+            filename=self.name+".graphml.gz"
+        outgraph=self.graph.copy()
+        #Add the CHAMP partitions to the outgraph
+        for ind in self.get_CHAMP_indices():
+            part_name="part_%.3f" %(self.ind2doms[ind][0][0])
+            outgraph.vp[part_name]=self.partitions
+
+        outgraph.write_graphmlz(filename)
+
 
 
     def open(filename):

@@ -28,7 +28,7 @@ constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and s
 
 .. _`louvain_ext.PartitionEnsemble`:
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
-    :members:
+    :members: add_partitions,merge_ensemble,apply_CHAMP,plot_modularity_mapping,save,save_graph,open
 
 ----------------------------
 Partition Ensemble Example
