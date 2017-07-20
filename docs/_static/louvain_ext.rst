@@ -50,7 +50,7 @@ took approximately 1 minute to run on 2 cores.
     test_graph.write_graphmlz(tfile.name)
 
     #non-parallelized wrapper
-    ens1=champ.run_louvain(tfile.name,nruns=2,gamma=1)
+    ens1=champ.run_louvain(tfile.name,nruns=5,gamma=1)
 
     #parallelized wrapper
     test_graph2=ig.Graph.Random_Bipartite(n1=100,n2=100,p=.1)
@@ -60,30 +60,37 @@ took approximately 1 minute to run on 2 cores.
                                       progress=True)
 
     print ("%d of %d domains after application of CHAMP"%(len(ens2.ind2doms),ens2.numparts))
-
     #plot both of these
     plt.close()
-    f,(a1,a2)=plt.subplots(1,2,figsize=(10,5))
+    f,a=plt.subplots(1,3,figsize=(21,7))
+    a1,a2,a3=a
     champ.plot_single_layer_modularity_domains(ens2.ind2doms,ax=a1,labels=True)
     champ.plot_similarity_heatmap_single_layer(ens2.partitions,ens2.ind2doms,ax=a2,title=True)
+
+    #PartitionEnsemble has method to plot downsampled summary of all partitions
+    #with optmal transitions and number of communities overlayed.
+
+    ens2.plot_modularity_mapping(ax=a3,no_tex=False)
     plt.tight_layout()
     plt.show()
 
 
 
+
 Output\:
 
-|   Run 0 at gamma = 0.000.  Return time: 0.0326
-|   Run 100 at gamma = 0.400.  Return time: 0.0318
-|   Run 200 at gamma = 0.800.  Return time: 0.0665
-|   Run 300 at gamma = 1.200.  Return time: 0.0659
-|   Run 400 at gamma = 1.600.  Return time: 0.0936
-|   Run 500 at gamma = 2.000.  Return time: 0.0715
-|   Run 600 at gamma = 2.400.  Return time: 0.0811
-|   Run 700 at gamma = 2.800.  Return time: 0.0780
-|   Run 800 at gamma = 3.200.  Return time: 0.0759
-|   Run 900 at gamma = 3.600.  Return time: 0.0735
-|   12 of 1000 domains after application of CHAMP
+|   Run 0 at gamma = 0.000.  Return time: 0.0311
+|   Run 200 at gamma = 0.800.  Return time: 0.0508
+|   Run 100 at gamma = 0.400.  Return time: 0.0316
+|   Run 300 at gamma = 1.200.  Return time: 0.0736
+|   Run 400 at gamma = 1.600.  Return time: 0.0889
+|   Run 500 at gamma = 2.000.  Return time: 0.1135
+|   Run 600 at gamma = 2.400.  Return time: 0.0691
+|   Run 700 at gamma = 2.800.  Return time: 0.0743
+|   Run 800 at gamma = 3.200.  Return time: 0.0698
+|   Run 900 at gamma = 3.600.  Return time: 0.1002
+|   10 of 1000 domains after application of CHAMP
+
 
 .. _`part_ens_exp`:
 .. image::  images/part_ens_exp.png

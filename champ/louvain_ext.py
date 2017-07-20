@@ -1,5 +1,6 @@
 import gzip
 import sys
+import re
 import tempfile
 from contextlib import contextmanager
 from multiprocessing import Pool,cpu_count
@@ -7,7 +8,10 @@ from time import time
 
 from .champ_functions import create_halfspaces_from_array
 from .champ_functions import get_intersection
-
+from .champ_functions import create_coefarray_from_partitions
+import matplotlib.lines as mlines
+import matplotlib.patheffects as path_effects
+from matplotlib import rc
 import igraph as ig
 import louvain
 import numpy as np
@@ -31,7 +35,8 @@ def terminating(obj):
 
 '''
 Extension of Traag's implementation of louvain in python to use multiprocessing \
-and allow for randomization
+and allow for randomization.  Defines PartitionEnsemble a class for storage of \
+partitions and coefficients as well as dominant domains.
 '''
 
 class PartitionEnsemble():
@@ -68,18 +73,24 @@ class PartitionEnsemble():
     :cvar ind2doms: Maps index of dominant partitions to boundary points of their dominant \
     domains
     :type ind2doms: dict
-
+    :cvar ncoms: List with number of communities for each partition
+    :type numcoms: list
+    :cvar min_com_size: How many nodes must be in a community for it to count towards the number \
+    of communities.  This eliminates very small or unstable communities.  Default is 5
+    :type min_com_size: int
     '''
 
 
-    def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None):
+    def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
         self.partitions = []
         self.int_edges = []
         self.exp_edges = []
         self.resolutions = []
+        self.numcoms=[]
         self.orig_mods = []
         self.numparts=0
         self.graph=graph
+        self.min_com_size=min_com_size
         if listofparts!=None:
             self.add_partitions(listofparts,maxpt=maxpt)
         self.name=name
@@ -165,7 +176,8 @@ class PartitionEnsemble():
 
     def add_partitions(self,partitions,maxpt=None):
         '''
-        Add additional partitions to the PartitionEnsemble object
+        Add additional partitions to the PartitionEnsemble object. Also adds the number of \
+        communities for each.
 
         :param partitions: list of partitions to add to the PartitionEnsemble
         :type partitions: dict,list
@@ -205,10 +217,15 @@ class PartitionEnsemble():
                 self.orig_mods.append(None)
 
 
-            assert self._check_lengths()
-            self.numparts=len(self.partitions)
-            #update the pruned set
-            self.apply_CHAMP(maxpt=maxpt)
+
+            self.numcoms.append(get_number_of_communities(part['partition'],
+                                                          min_com_size=self.min_com_size))
+
+
+        assert self._check_lengths()
+        self.numparts=len(self.partitions)
+        #update the pruned set
+        self.apply_CHAMP(maxpt=maxpt)
 
 
 
@@ -331,7 +348,6 @@ class PartitionEnsemble():
             pickle.dump(self,fh)
 
 
-    @staticmethod
     def open(filename):
         '''
         Loads pickled PartitionEnsemble from file.
@@ -349,7 +365,217 @@ class PartitionEnsemble():
         return PartitionEnsemble(opened.graph,listofparts=openedparts)
 
 
+    def _sub_tex(self,str):
+        new_str = re.sub("\$", "", str)
+        new_str = re.sub("\\\\ge", ">=", new_str)
+        new_str = re.sub("\\\\", "", new_str)
+        return new_str
 
+    def _remove_tex_legend(self,legend):
+        for text in legend.get_texts():
+            text.set_text(self._sub_tex(text.get_text()))
+        return legend
+
+    def _remove_tex_axes(self, axes):
+        axes.set_title(self._sub_tex(axes.get_title()))
+        axes.set_xlabel(self._sub_tex(axes.get_xlabel()))
+        axes.set_ylabel(self._sub_tex(axes.get_ylabel()))
+        return axes
+
+    def plot_modularity_mapping(self,ax=None,downsample=2000,champ_only=False,legend=True,
+                                no_tex=False):
+        '''
+
+        Plot a scatter of the original modularity vs gamma with the modularity envelope super imposed. \
+        Along with communities vs :math:`\\gamma` on a twin axis.  If no orig_mod values are stored in the \
+        ensemble, just the modularity envelope is plotted.  Depending on the backend used to render plot \
+        the latex in the labels can cause error.  If you are getting RunTime errors when showing or saving \
+        the plot, try setting no_tex=True
+
+        :param ax: axes to draw the figure on.
+        :type ax: matplotlib.Axes
+        :param champ_only: Only plot the modularity envelop represented by the CHAMP identified subset.
+        :type champ_only: bool
+        :param downsample: for large number of runs, we down sample the scatter for the number of communities \
+        and the original partition set.  Default is 2000 randomly selected partitions.
+        :type downsample: int
+        :param legend: Add legend to the figure.  Default is true
+        :type legend: bool
+        :param no_tex: Use latex in the legends.  Default is true.  If error is thrown on plotting try setting \
+        this to false.
+        :type no_tex: bool
+        :return: axes drawn upon
+        :rtype: matplotlib.Axes
+
+
+        '''
+
+
+        if not no_tex:
+            rc('text',usetex=True)
+        else:
+            rc('text',usetex=False)
+
+        # check for downsampling and subset indices
+        if downsample and downsample<=len(self.partitions):
+            rand_ind=np.random.choice(range(len(self.partitions)),size=downsample)
+        else:
+            rand_ind=range(len(self.partitions))
+
+        allgams = [self.resolutions[ind] for ind in rand_ind]
+        allcoms = [self.numcoms[ind] for ind in rand_ind]
+
+        if not champ_only and not self.orig_mods[0] is None :
+
+
+            allmods=[self.orig_mods[ind] for ind in rand_ind]
+
+            ax.set_ylim([np.min(allmods) - 100, np.max(allmods) + 100])
+            mk1 = ax.scatter(allgams, allmods,
+                             color='red', marker='.', alpha=.6, s=10,
+                             label="modularity", zorder=2)
+
+        #take the x-coord of first point in each domain
+
+        #Get lists for the champ subset
+        champ_inds=self.get_CHAMP_indices()
+
+        # take the x-coord of first point in each domain
+        gammas=[ self.ind2doms[ind][0][0] for ind in champ_inds  ]
+        # take the y-coord of first point in each domain
+        mods = [self.ind2doms[ind][0][1] for ind in champ_inds]
+
+        champ_coms = [self.numcoms[ind] for ind in champ_inds]
+
+
+
+        mk5 = ax.plot(gammas, mods, ls='--', color='green', lw=3, zorder=3)
+        mk5 = mlines.Line2D([], [], color='green', ls='--', lw=3)
+
+        mk2 = ax.scatter(gammas, mods, marker="v", color='blue', s=60, zorder=4)
+        #     ax.scatter(gamma_ins,orig_mods,marker='x',color='red')
+        ax.set_ylabel("modularity")
+
+
+
+        a2 = ax.twinx()
+        a2.grid('off')
+        #     a2.scatter(allgammas,allcoms,marker="^",color="#fe9600",alpha=1,label=r'\# communities ($\ge 5$ nodes)',zorder=1)
+
+        sct2 = a2.scatter(allgams, allcoms, marker="^", color="#91AEC1",
+                          alpha=1, label=r'\# communities ($\ge 5$ nodes)',
+                          zorder=1)
+        #     sct2.set_path_effects([path_effects.SimplePatchShadow(alpha=.5),path_effects.Normal()])
+
+        # fake for legend with larger marker size
+        mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1, label=r'\# communities ($\ge 5$)', zorder=1,
+                         s=20)
+
+
+
+        stp = a2.step(gammas, champ_coms, color="#004F2D", where='post',
+                      path_effects=[path_effects.SimpleLineShadow(alpha=.5), path_effects.Normal()])
+        #     stp.set_path_effects([patheffects.Stroke(linewidth=1, foreground='black'),
+        #                     patheffects.Normal()])
+
+        # for legend
+        mk4 = mlines.Line2D([], [], color='#004F2D', lw=2,
+                            path_effects=[path_effects.SimpleLineShadow(alpha=.5), path_effects.Normal()])
+
+
+        a2.set_ylabel(r"\# communities ($\ge 5$ nodes)")
+
+        ax.set_zorder(a2.get_zorder() + 1)  # put ax in front of ax2
+        ax.patch.set_visible(False)  # hide the 'canvas'
+
+        ax.set_xlim(xmin=0, xmax=max(allgams))
+        if legend:
+            l = ax.legend([mk1, mk3, mk2, mk4, mk5],
+                          ['modularity', r'\# communities ($\ge 5$ nodes)', "transitions,$\gamma$",
+                           r"\# communities ($\ge 5$ nodes) optimal", "convex hull of $Q(\gamma)$"],
+                          bbox_to_anchor=[0.5, .87], loc='center',
+                          frameon=True, fontsize=14)
+            l.get_frame().set_fill(False)
+            l.get_frame().set_ec("k")
+            l.get_frame().set_linewidth(1)
+            if no_tex:
+                l=self._remove_tex_legend(l)
+
+        if no_tex: #clean up the tex the axes
+            a2=self._remove_tex_axes(a2)
+            ax=self._remove_tex_axes(ax)
+
+        return ax
+
+            
+
+
+class MultiLayerPartitionEnsemble():
+
+    '''
+    MultilayerPartitionEnsemble.  Similar to louvain_ext.PartitionEnsemble except that \
+    multigraphs are stored as supradjacency format (igraph does't have a good multigraph \
+    representation).
+    '''
+
+    def __init__(self,adj_A=None,adj_P=None,adj_C=None,partitions=None,coef_array=None,maxpt=None,name="unnamed_multilayer_ensemble"):
+        self.adj_A=adj_A
+        self.adj_C=adj_C
+        self.adj_P=adj_P
+        self.partitions=partitions
+        self.maxpt=maxpt
+        self.name=name
+        self.numparts=0 if self.partitions is None else len((self.partitions))
+
+        if coef_array is None and not self.partitions is None:
+            self.coef_array=create_coefarray_from_partitions(self.adj_A,
+                                                             self.adj_P,self.adj_C,nprocesses=cpu_count())
+        self.ind2doms=self.apply_CHAMP(maxpt=self.maxpt)
+
+    def apply_CHAMP(self,maxpt=None):
+        '''
+        Apply champ internally to the coefficent array.
+
+        :param maxpt: Cut off value for inclusion of domains in both the :math:`\\gamma` and :math:`\\omega` axes.
+        :type maxpt: (float,float)
+        '''
+
+        if maxpt is None:
+            maxpt=self.maxpt
+        if self.coef_array is None:
+            create_coefarray_from_partitions(self.partitions,
+                                             self.adj_A,self.adj_P,self.adj_C,nprocesses=cpu_count())
+        self.ind2doms=get_intersection(self.coef_array,maxpt)
+
+    def save(self,filename=None):
+        '''
+        Use pickle to dump representation to compressed file
+
+        :param filename:
+
+        '''
+        if filename is None:
+            filename="%s_MultiPartEnsemble_%d.gz" %(self.name,self.numparts)
+
+        with gzip.open(filename,'wb') as fh:
+            pickle.dump(self,fh)
+
+
+    def open(filename):
+        '''
+        Loads pickled PartitionEnsemble from file.
+
+        :param file:  filename of pickled PartitionEnsemble Object
+        :return: writes over current instance and returns the reference
+
+        '''
+        with gzip.open(filename,'rb') as fh:
+            opened=pickle.load(fh)
+
+        #construct and return
+        return MultiLayerPartitionEnsemble(opened.adj_A,opened.adj_P,opened.adj_C,
+                                           partitions=opened.partitions,coef_array=opened.coef_array,
+                                           maxpt=opened.maxpt,name=opened.name)
 
 ##### STATIC METHODS ######
 
@@ -371,6 +597,27 @@ def get_sum_internal_edges(partobj,weight=None):
         else:
             sumA+= subg.ecount()
     return 2.0*sumA
+
+def get_number_of_communities(partition,min_com_size=0):
+    '''
+
+    :param partition: list with community assignments (labels must be of hashable type \
+    e.g. int,string, etc...).
+    :type partition: list
+    :param min_com_size: Minimum size to include community in the total number of communities (default is 0)
+    :type min_com_size: int
+    :return: number of communities
+    :rtype: int
+    '''
+    count_dict={}
+    for label in partition:
+        count_dict[label]=count_dict.get(label,0)+1
+
+    tot_coms=0
+    for k,val in count_dict.items():
+        if val>=min_com_size:
+            tot_coms+=1
+    return tot_coms
 
 def get_expected_edges(partobj,weight=None):
     '''

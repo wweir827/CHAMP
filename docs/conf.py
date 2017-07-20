@@ -48,19 +48,18 @@ extensions = [
 #These are for local mocks.
 autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib',
                       'matplotlib.cm','matplotlib.colors','matplotlib.patches',
-                      'matplotlib.path','matplotlib.pyplot','sklearn.metrics','numpy.random',
-                'sklearn','ipython',
-                'scipy']
+                      'matplotlib.path','matplotlib.lines','matplotlib.pyplot','matplotlib.patheffects',
+                      'sklearn.metrics','numpy.random','sklearn','ipython','scipy']
 
 #
 import mock
 MOCK_MODULES = ['numpy','numpy.random','igraph','louvain', 'matplotlib', 'matplotlib.pyplot',
-                'matplotlib.cm',
+                'matplotlib.cm', 'matplotlib.lines','matplotlib.patheffects',
                 'matplotlib.colors',
                 'matplotlib.patches',
                 'matplotlib.path',
                 'sklearn.metrics',
-                'sklearn'
+                'sklearn',
                 'scipy','scipy.sparse','ipython']
 
 for mod_name in MOCK_MODULES:

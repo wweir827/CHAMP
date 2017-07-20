@@ -1,10 +1,22 @@
-import multiprocessing
+from multiprocessing import Pool
 from collections import Hashable
-
+from contextlib import contextmanager
 import numpy as np
 from numpy.random import uniform
 from pyhull import halfspace as hs
 
+
+@contextmanager
+def terminating(obj):
+    '''
+    Context manager to handle appropriate shutdown of processes
+    :param obj: obj to open
+    :return:
+    '''
+    try:
+        yield obj
+    finally:
+        obj.terminate()
 
 def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,nprocesses=0):
     '''
@@ -31,31 +43,28 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,n
             outarray.append(curarray)
 
     else:
-        pool=multiprocessing.Pool(nprocesses=nprocesses)
+
+
         parallel_args=[]
         for partition in partition_array:
             parallel_args.append((partition, A_mat))
             parallel_args.append((partition, P_mat))
             parallel_args.append((partition, C_mat))
         #map preserves order
-        parallel_res=pool.map(_calculate_coefficient_parallel,parallel_args)
+        with terminating(Pool(nprocesses=nprocesses)) as pool:
+            parallel_res=pool.map(_calculate_coefficient_parallel,parallel_args)
         outarray=np.array(parallel_res).reshape((3,len(parallel_res)/3))
     return np.array(outarray)
 
 def create_halfspaces_from_array(coef_array):
     '''
-    :param coef_array: list of coefficients for each partition to be considered.  Should be an array
-    .. math:
-        :nowrap:
-
-        \begin{array}
-        1 & 1 & 1 \\
-        2 & 2 & 2
-        \end{array}
-        ]
+    create a list of halfspaces from an array of coefficent.  Each half space is defined by\
+     the inequality\:
+    :math:`normal\\dot point + offset \\le 0`
 
     Where each row represents the coefficients for a particular partition.
-    If Single Layer network, omit C_i's.
+    For single Layer network, omit C_i's.
+
     :return: list of halfspaces with 4 boundary halfspaces appended to the end.
 
     '''
