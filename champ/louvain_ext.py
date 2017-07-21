@@ -1,15 +1,16 @@
 import gzip
-import sys
+import sys, os
 import re
 import tempfile
 from contextlib import contextmanager
 from multiprocessing import Pool,cpu_count
 from time import time
-
+import h5py
 from .champ_functions import create_halfspaces_from_array
 from .champ_functions import get_intersection
 from .champ_functions import create_coefarray_from_partitions
 import matplotlib.lines as mlines
+import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 from matplotlib import rc
 import igraph as ig
@@ -91,6 +92,7 @@ class PartitionEnsemble():
         self.numparts=0
         self.graph=graph
         self.min_com_size=min_com_size
+
         if listofparts!=None:
             self.add_partitions(listofparts,maxpt=maxpt)
         self.name=name
@@ -221,7 +223,6 @@ class PartitionEnsemble():
             self.numcoms.append(get_number_of_communities(part['partition'],
                                                           min_com_size=self.min_com_size))
 
-
         assert self._check_lengths()
         self.numparts=len(self.partitions)
         #update the pruned set
@@ -334,28 +335,56 @@ class PartitionEnsemble():
         inds=self.get_CHAMP_indices()
         return [self.partitions[i] for i in inds]
 
-    def save(self,filename=None):
+    def save(self,filename=None,dir=".",hdf5=False):
         '''
         Use pickle to dump representation to compressed file
 
         :param filename: name of file to write to.
-
+        :param hdf5: save the PartitionEnsemble object as a hdf5 file.  This is \
+        very useful for larger partition sets, especially when you only need to work \
+        with the optimal subset.
+        :type hdf5: bool
+        :param dir: directory to save graph in.  relative or absolute path.  default is working dir.
+        :type dir: str
         '''
+
         if filename is None:
-            filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
+            if hdf5:
+                filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
+            else:
+                filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
-        with gzip.open(filename,'wb') as fh:
-            pickle.dump(self,fh)
+        if hdf5:
+            with h5py.File(filename,'w') as outfile:
 
-    def save_graph(self,filename=None):
+                for k,val in self.__dict__.items():
+                    #store dictionary type object as its own group
+                    if isinstance(val,dict):
+                        indgrp=outfile.create_group(k)
+                        for ind,dom in val.items():
+                            indgrp.create_dataset(str(ind),data=dom)
+                    elif hasattr(val,"__len__"):
+                        cdset=outfile.create_dataset(self.__dict__[k],
+                                                 data=np.array(val))
+                    else:
+                        cdset = outfile.create_dataset(self.__dict__[k],
+                                                       data=val)
+
+
+        else:
+            with gzip.open(os.path.join(dir,filename),'wb') as fh:
+                pickle.dump(self,fh)
+
+    def save_graph(self,filename=None,dir="."):
         '''
         Save a copy of the graph with each of the optimal partitions stored as vertex attributes \
         in graphml compressed format.  Each partition is attribute names part_gamma where gamma is \
         the beginning of the partitions domain of dominance
 
-        :param filename: name of file to write out to.  default is self.name.graphml.gz
+        :param filename: name of file to write out to.  Default is self.name.graphml.gz or \
         :type filename: str
-
+        :param dir: directory to save graph in.  relative or absolute path.  default is working dir.
+        :type dir: str
         '''
 
         #TODO add other graph formats for saving.
@@ -365,27 +394,35 @@ class PartitionEnsemble():
         #Add the CHAMP partitions to the outgraph
         for ind in self.get_CHAMP_indices():
             part_name="part_%.3f" %(self.ind2doms[ind][0][0])
-            outgraph.vp[part_name]=self.partitions
+            outgraph.vs[part_name]=self.partitions[ind]
 
-        outgraph.write_graphmlz(filename)
+        outgraph.write_graphmlz(os.path.join(dir,filename))
 
 
 
-    def open(filename):
+    def open(self,filename):
         '''
         Loads pickled PartitionEnsemble from file.
 
         :param file:  filename of pickled PartitionEnsemble Object
+
         :return: writes over current instance and returns the reference
 
         '''
-        with gzip.open(filename,'rb') as fh:
-            opened=pickle.load(fh)
 
-        openedparts=opened.get_partition_dictionary()
+        #try openning it as an hd5file
+        try:
+            infile=h5py.File(filename,'r')
 
-        #construct and return
-        return PartitionEnsemble(opened.graph,listofparts=openedparts)
+        except IOError:
+
+            with gzip.open(filename,'rb') as fh:
+                opened=pickle.load(fh)
+
+            openedparts=opened.get_partition_dictionary()
+
+            #construct and return
+            return PartitionEnsemble(opened.graph,listofparts=openedparts)
 
 
     def _sub_tex(self,str):
@@ -433,11 +470,16 @@ class PartitionEnsemble():
 
         '''
 
+        if ax == None:
+            f = plt.figure()
+            ax = f.add_subplot(111)
 
         if not no_tex:
             rc('text',usetex=True)
         else:
             rc('text',usetex=False)
+
+
 
         # check for downsampling and subset indices
         if downsample and downsample<=len(self.partitions):
@@ -486,12 +528,14 @@ class PartitionEnsemble():
         #     a2.scatter(allgammas,allcoms,marker="^",color="#fe9600",alpha=1,label=r'\# communities ($\ge 5$ nodes)',zorder=1)
 
         sct2 = a2.scatter(allgams, allcoms, marker="^", color="#91AEC1",
-                          alpha=1, label=r'\# communities ($\ge 5$ nodes)',
+                          alpha=1, label=r'\# communities ($\ge %d$ nodes)'%(self.min_com_size),
                           zorder=1)
         #     sct2.set_path_effects([path_effects.SimplePatchShadow(alpha=.5),path_effects.Normal()])
 
         # fake for legend with larger marker size
-        mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1, label=r'\# communities ($\ge 5$)', zorder=1,
+        mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1,
+                         label=r'\# communities ($\ge %d$)'%(self.min_com_size),
+                         zorder=1,
                          s=20)
 
 
@@ -514,8 +558,8 @@ class PartitionEnsemble():
         ax.set_xlim(xmin=0, xmax=max(allgams))
         if legend:
             l = ax.legend([mk1, mk3, mk2, mk4, mk5],
-                          ['modularity', r'\# communities ($\ge 5$ nodes)', "transitions,$\gamma$",
-                           r"\# communities ($\ge 5$ nodes) optimal", "convex hull of $Q(\gamma)$"],
+                          ['modularity', r'\# communities ($\ge %d $ nodes)' %(self.min_com_size), "transitions,$\gamma$",
+                           r"\# communities ($\ge %d$ nodes) optimal" %(self.min_com_size), "convex hull of $Q(\gamma)$"],
                           bbox_to_anchor=[0.5, .87], loc='center',
                           frameon=True, fontsize=14)
             l.get_frame().set_fill(False)
@@ -569,6 +613,18 @@ class MultiLayerPartitionEnsemble():
             create_coefarray_from_partitions(self.partitions,
                                              self.adj_A,self.adj_P,self.adj_C,nprocesses=cpu_count())
         self.ind2doms=get_intersection(self.coef_array,maxpt)
+
+    def reset_min_com_size(self,new_min_size):
+        '''
+        Result the minimum community size used to define the total number of communities for each partition \
+        Goes back through and recalculates community sizes for each partition.
+
+        :param new_min_size: new minimum size of communities
+        :type new_min_size: int
+
+        '''
+        for i,part in enumerate(self.partitions):
+            self.numcoms[i]=get_number_of_communities(part,new_min_size)
 
     def save(self,filename=None):
         '''
@@ -848,6 +904,8 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 
     outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
     return outensemble
+
+
 
 
 def main():

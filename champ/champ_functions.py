@@ -225,7 +225,7 @@ def get_intersection(coef_array, max_pt=None):
 
 
     # Create Boundary Halfspaces - These will always be included in the convex hull
-    # and need to be removed before returning
+    # and need to be removed before returning dictionary
 
     num2rm=0
     if not singlelayer:
