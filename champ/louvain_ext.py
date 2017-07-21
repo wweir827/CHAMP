@@ -335,6 +335,54 @@ class PartitionEnsemble():
         inds=self.get_CHAMP_indices()
         return [self.partitions[i] for i in inds]
 
+    def _write_graph_to_hd5f_file(self,file):
+        '''
+        Write the internal graph to hd5f file saving the edge lists, the edge properties, and the \
+        vertex properties all as subgroups.  We only save the edges, and the vertex and node attributes
+
+        :param file: openned h5py.File
+        :type file: h5py.File
+        :return: reference to the File
+        '''
+
+        grph=file.create_group("graph")
+        grph.create_dataset('directed',data=int(self.graph.is_directed()))
+        #save edge list as graph.ecount x 2 numpy array
+        grph.create_dataset("edge_list",
+                            data=np.array([e.tuple for e in self.graph.es]))
+
+        edge_atts=grph.create_group('edge_attributes')
+        for attrib in self.graph.edge_attributes():
+
+            edge_atts.create_dataset(attrib,
+                                     data=np.array(self.graph.es[attrib]))
+
+        node_atts=grph.create_group("node_attributes")
+        for attrib in self.graph.edge_attributes():
+            node_atts.create_dataset(attrib,
+                                     data=np.array(self.graph.vs[attrib]))
+        return file
+
+    def _read_graph_from_hd5f_file(self,file):
+        '''
+        Load self.graph from hd5f file.  Sets self.graph as new igraph created from edge list \
+        and attributes stored in the file.
+
+        :param file: Opened hd5f file that contains the edge list, edge attributes, and \
+        node attributes stored in the hierarchy as PartitionEnsemble._write_graph_to_hd5f_file.
+
+        :type file: h5py.File
+
+        '''
+        grph=file['graph']
+        directed=bool(grph['directed'].value)
+        self.graph=ig.Graph().TupleList(grph['edge_list'],directed=directed)
+        for attrib in grph['edge_attributes'].keys():
+            self.graph.es[attrib]=grph['edge_attributes'][attrib][:]
+        for attrib in grph['node_attributes'].keys():
+            self.graph.vs[attrib] = grph['node_attributes'][attrib][:]
+
+
     def save(self,filename=None,dir=".",hdf5=False):
         '''
         Use pickle to dump representation to compressed file
@@ -364,11 +412,14 @@ class PartitionEnsemble():
                         for ind,dom in val.items():
                             indgrp.create_dataset(str(ind),data=dom)
                     elif hasattr(val,"__len__"):
-                        cdset=outfile.create_dataset(self.__dict__[k],
+                        cdset=outfile.create_dataset(k,
                                                  data=np.array(val))
                     else:
-                        cdset = outfile.create_dataset(self.__dict__[k],
-                                                       data=val)
+                        try:
+                            cdset = outfile.create_dataset(k,
+                                                           data=val)
+                        except TypeError:
+                                self._write_graph_to_hd5f_file(outfile)
 
 
         else:
@@ -412,7 +463,21 @@ class PartitionEnsemble():
 
         #try openning it as an hd5file
         try:
-            infile=h5py.File(filename,'r')
+            with h5py.File(filename,'r') as infile:
+                self.graph=self._read_graph_from_hd5f_file(infile)
+                for key in infile.keys():
+                    if key!='graph':
+                        #get domain indices recreate ind2dom dict
+                        if key=='ind2doms':
+                            self.ind2doms={}
+                            for ind in infile[key]:
+                                self.ind2doms[int(ind)]=infile[key][ind][:]
+                        else:
+                            try:
+                                self.__dict__[key]=infile[key][:]
+                            except ValueError:
+                                self.__dict__[key]=infile[key].value
+            return self
 
         except IOError:
 
@@ -422,7 +487,8 @@ class PartitionEnsemble():
             openedparts=opened.get_partition_dictionary()
 
             #construct and return
-            return PartitionEnsemble(opened.graph,listofparts=openedparts)
+            self.__init__(opened.graph,listofparts=openedparts)
+            return self
 
 
     def _sub_tex(self,str):
