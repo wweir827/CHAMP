@@ -83,7 +83,8 @@ class PartitionEnsemble():
 
 
     def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
-        self.partitions = []
+        self._partitions = []
+        self.hdf5_file=None
         self.int_edges = []
         self.exp_edges = []
         self.resolutions = []
@@ -162,13 +163,70 @@ class PartitionEnsemble():
         '''
         return self.partitions[item]
 
+    class _PartitionOnFile():
+
+        def __init__(self,file=None):
+            self.hdf5_file=file
+
+        def __getitem__(self, item):
+            with h5py.File(self.hdf5_file, 'r') as openfile:
+                return  openfile['_partitions'].__getitem__(item)
+
+        def __len__(self):
+            with h5py.File(self.hdf5_file, 'r') as openfile:
+                return  openfile['_partitions'].shape[0]
+
+        def __str__(self):
+            return "%d partitions saved on %s" %(len(self),self.hdf5_file)
+
+    @property
+    def partitions(self,ind=None):
+        '''custom definition of partitions so that access can be controlled. In particular if the \
+        PartitionEnsemble is read from a file, these values are only accessed as needed.'''
+        #If we have these return these.
+
+        if not self.hdf5_file is None:
+
+            return PartitionEnsemble._PartitionOnFile(file=self.hdf5_file)
+
+        else:
+            return self._partitions
+
+
+
+
+
+    # def __getattribute__(self, key):
+    #     '''We override the get attribute to try and read the partitions off the hdf5 file if this \
+    #     is what's being called for.  Since often times we don't need to access all of the partitions \
+    #     at once we can only return it at run time.'''
+    #     print 'testing'
+    #     if key=='partitions':
+    #         if not self.hdf5_file is None:
+    #             with h5py.File(self.hdf5_file,'r') as hdf5file:
+    #                 return hdf5file['partitions'][:]
+    #
+    #     else: #This is the same as the normal method.
+    #         super(PartitionEnsemble,self).__getattribute__(key)
+
     def _check_lengths(self):
         '''
-        check all state variables for equal length
+        check all state variables for equal length.  Will use length of partitions stored \
+        in the hdf5 file if this is set for the PartitionEnsemble.  Otherwise just uses \
+        internal lists.
 
         :return: boolean indicating states varaible lengths are equal
 
         '''
+        if not self.hdf5_file is None:
+            with h5py.File(self.hdf5_file) as openfile:
+                if openfile['_partitions'].shape[0] == len(self.int_edges) and \
+                    openfile['_partitions'].shape[0] == len(self.resolutions) and \
+                    openfile['_partitions'].shape[0] == len(self.exp_edges):
+                    return True
+                else:
+                    return False
+
         if len(self.partitions)==len(self.int_edges) and \
             len(self.partitions)==len(self.resolutions) and \
             len(self.partitions)==len(self.exp_edges):
@@ -176,57 +234,154 @@ class PartitionEnsemble():
         else:
             return False
 
+
+    def _combine_partitions_hdf5_files(self,otherfile):
+        if self.hdf5_file is None or otherfile is None:
+            raise IOError("PartitionEnsemble does not have hdf5 file currently defined")
+
+        with open(self.hdf5_file,'a') as myfile:
+            with open(otherfile,'r') as file_2_add:
+
+                for attribute in ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges']:
+                    cshape=myfile[attribute].shape
+                    oshape=file_2_add[attribute].shape
+
+                    newshape=(cshape[0]+oshape[0],cshape[1]+oshape[1])
+
+                    myfile[attribute].resize(newshape[0],newshape[1])
+
+                    myfile[attribute][cshape[0]:newshape[0],cshape[1]:newshape[1]]=file_2_add[attribute]
+
+    def _append_partitions_hdf5_file(self,partitions):
+        '''
+
+        :param partitions: list of partitions (in dictionary) to add to the PartitionEnsemble.
+
+        :type partitions: dict
+
+        '''
+        with h5py.File(self.hdf5_file,'a') as openfile:
+            #Resize all of the arrays in the file
+            orig_shape=openfile['_partitions'].shape
+            for attribute in ['_partitions','resolutions','orig_mods',"int_edges",'exp_edges']:
+                cshape=openfile[attribute].shape
+                if len(cshape)==1:
+                    openfile[attribute].resize( (cshape[0]+len(partitions),) )
+                else:
+                    openfile[attribute].resize((cshape[0] + len(partitions), cshape[1]))
+
+            for i,part in enumerate(partitions):
+
+                cind=orig_shape[0]+i
+
+                openfile['_partitions'][cind]=np.array(part['partition'])
+
+                #We leave the new partitions only in the file.  Everything else is updated \
+                # in both the PartitionEnsemble and the file
+
+                if 'resolution' in part:
+                    self.resolutions.append(part['resolution'])
+                    openfile['resolutions'][cind]=part['resolution']
+                else:
+                    self.resolutions.append(None)
+                    openfile['resolutions'][cind]=None
+
+
+                if 'int_edges' in part:
+                    self.int_edges.append(part['int_edges'])
+                    openfile['int_edges'][cind]=part['int_edges']
+                else:
+                    cint_edges = self.calc_internal_edges(part['partition'])
+                    self.int_edges.append(cint_edges)
+                    openfile['int_edges'][cind]=cint_edges
+
+                if 'exp_edges' in part:
+                    self.exp_edges.append(part['exp_edges'])
+                    openfile['exp_edges'][cind]=part['exp_edges']
+                else:
+                    cexp_edges = self.calc_expected_edges(part['partition'])
+                    self.exp_edges.append(cexp_edges)
+                    openfile['exp_edges'][cind]=cexp_edges
+
+                if "orig_mod" in part:
+                    self.orig_mods.append(part['orig_mod'])
+                    openfile['orig_mods'][cind]=part['orig_mod']
+                elif not self.resolutions[-1] is None:
+                    # calculated original modularity from orig resolution
+                    corigmod=self.int_edges[-1] - self.resolutions[-1] * self.exp_edges
+                    self.orig_mods.append(corigmod)
+                    openfile['orig_mods'][cind]=corigmod
+                else:
+                    openfile['orig_mods'][cind]=None
+                    self.orig_mods.append(None)
+
+            self.numparts=openfile['_partitions'].shape[0]
+        assert self._check_lengths()
+
+
     def add_partitions(self,partitions,maxpt=None):
         '''
         Add additional partitions to the PartitionEnsemble object. Also adds the number of \
-        communities for each.
+        communities for each.  In the case where PartitionEnsemble was openned from a file, we \
+        just appended these and the other values onto each of the files.  Partitions are not kept \
+        in object, however the other partitions values are.
 
         :param partitions: list of partitions to add to the PartitionEnsemble
         :type partitions: dict,list
 
         '''
+
         #wrap in list.
         if not hasattr(partitions,'__iter__'):
             partitions=[partitions]
 
-        for part in partitions:
-            #This must be present
-            self.partitions.append(part['partition'])
-
-            if 'resolution' in part:
-                self.resolutions.append(part['resolution'])
-            else:
-                self.resolutions.append(None)
-
-            if 'int_edges' in part:
-                self.int_edges.append(part['int_edges'])
-            else:
-                cint_edges=self.calc_internal_edges(part['partition'])
-                self.int_edges.append(cint_edges)
-
-            if 'exp_edges' in part:
-                self.exp_edges.append(part['exp_edges'])
-            else:
-                cint_edges=self.calc_expected_edges(part['partition'])
-                self.exp_edges.append(cint_edges)
-
-            if "orig_mod" in part:
-                self.orig_mods.append(part['orig_mod'])
-            elif not self.resolutions[-1] is None:
-                #calculated original modularity from orig resolution
-                self.orig_mods.append(self.int_edges[-1]-self.resolutions[-1]*self.exp_edges)
-            else:
-                self.orig_mods.append(None)
+        if self.hdf5_file is not None:
+            # essential same as below, but everything is written to file and partitions \
+            #aren't kept in object memory
+            self._append_partitions_hdf5_file(partitions)
 
 
 
-            self.numcoms.append(get_number_of_communities(part['partition'],
-                                                          min_com_size=self.min_com_size))
+        else:
+            for part in partitions:
 
-        assert self._check_lengths()
-        self.numparts=len(self.partitions)
-        #update the pruned set
-        self.apply_CHAMP(maxpt=maxpt)
+                #This must be present
+                self._partitions.append(part['partition'])
+
+                if 'resolution' in part:
+                    self.resolutions.append(part['resolution'])
+                else:
+                    self.resolutions.append(None)
+
+                if 'int_edges' in part:
+                    self.int_edges.append(part['int_edges'])
+                else:
+                    cint_edges=self.calc_internal_edges(part['partition'])
+                    self.int_edges.append(cint_edges)
+
+                if 'exp_edges' in part:
+                    self.exp_edges.append(part['exp_edges'])
+                else:
+                    cexp_edges=self.calc_expected_edges(part['partition'])
+                    self.exp_edges.append(cexp_edges)
+
+                if "orig_mod" in part:
+                    self.orig_mods.append(part['orig_mod'])
+                elif not self.resolutions[-1] is None:
+                    #calculated original modularity from orig resolution
+                    self.orig_mods.append(self.int_edges[-1]-self.resolutions[-1]*self.exp_edges)
+                else:
+                    self.orig_mods.append(None)
+
+
+
+                self.numcoms.append(get_number_of_communities(part['partition'],
+                                                              min_com_size=self.min_com_size))
+
+                assert self._check_lengths()
+                self.numparts=len(self.partitions)
+            #update the pruned set
+            self.apply_CHAMP(maxpt=maxpt)
 
 
 
@@ -259,23 +414,39 @@ class PartitionEnsemble():
 
         return outdicts
 
-    def merge_ensemble(self,otherEnsemble):
+    def merge_ensemble(self,otherEnsemble,new=True):
         '''
         Combine to PartitionEnsembles.  Checks for concordance in the number of vertices. \
         Assumes that internal ordering on the graph nodes for each is the same.
 
         :param otherEnsemble: otherEnsemble to merge
-        :return: new PartitionEnsemble with merged set of partitions
+        :param new: create a new PartitionEnsemble object? Otherwise partitions will be loaded into \
+        the one of the original partition ensemble objects (the one with more partitions in the first place).
+        :type new: bool
+        :return:  PartitionEnsemble reference with merged set of partitions
 
         '''
 
         if not self.graph.vcount()==otherEnsemble.graph.vcount():
             raise ValueError("PartitionEnsemble graph vertex counts do not match")
 
-        bothpartitions=self.get_partition_dictionary().extend(otherEnsemble.get_partition_dictionary())
-
-
-        return PartitionEnsemble(self.graph,listofparts=bothpartitions)
+        if new:
+            bothpartitions=self.get_partition_dictionary().extend(otherEnsemble.get_partition_dictionary())
+            return PartitionEnsemble(self.graph,listofparts=bothpartitions)
+        else:
+            if self.numparts<otherEnsemble.numparts:
+                #reverse order of merging
+                return otherEnsemble.merge_ensemble(self,new=True)
+            else:
+                if not self.hdf5_file is None and not otherEnsemble.hdf5_file is None:
+                    #merge the second hdf5_file onto the other and then reopen it to
+                    #reload everything.
+                    self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
+                    self.open(self.hdf5_file)
+                    return self
+                else:
+                    self.add_partitions(otherEnsemble.get_partition_dictionary())
+                    return self
 
     def get_coefficient_array(self):
         '''
@@ -286,7 +457,7 @@ class PartitionEnsemble():
         '''
 
         outlist=[]
-        for i in range(len(self.partitions)):
+        for i in range(self.numparts):
             outlist.append([
                 self.int_edges[i],
                 self.exp_edges[i]
@@ -345,7 +516,12 @@ class PartitionEnsemble():
         :return: reference to the File
         '''
 
+        # write over previous if exists.
+        if 'graph' in file.keys():
+            del file['graph']
+
         grph=file.create_group("graph")
+
         grph.create_dataset('directed',data=int(self.graph.is_directed()))
         #save edge list as graph.ecount x 2 numpy array
         grph.create_dataset("edge_list",
@@ -374,6 +550,9 @@ class PartitionEnsemble():
         :type file: h5py.File
 
         '''
+
+
+
         grph=file['graph']
         directed=bool(grph['directed'].value)
         self.graph=ig.Graph().TupleList(grph['edge_list'],directed=directed)
@@ -407,20 +586,40 @@ class PartitionEnsemble():
 
                 for k,val in self.__dict__.items():
                     #store dictionary type object as its own group
-                    if isinstance(val,dict):
+                    if k=='graph':
+                        self._write_graph_to_hd5f_file(outfile)
+
+                    elif isinstance(val,dict):
                         indgrp=outfile.create_group(k)
                         for ind,dom in val.items():
                             indgrp.create_dataset(str(ind),data=dom)
-                    elif hasattr(val,"__len__"):
-                        cdset=outfile.create_dataset(k,
-                                                 data=np.array(val))
-                    else:
-                        try:
-                            cdset = outfile.create_dataset(k,
-                                                           data=val)
-                        except TypeError:
-                                self._write_graph_to_hd5f_file(outfile)
 
+                    elif isinstance(val,str):
+                        outfile.create_dataset(k,data=val)
+
+                    elif hasattr(val,"__len__"):
+                        data=np.array(val)
+
+                        #1D array don't have a second shape index (ie np.array.shape[1] can throw \
+                        #IndexError
+                        cshape=list(data.shape)
+                        try:
+                            cshape[0]=None
+                        except IndexError:
+                            print cshape
+                            print type(data)
+                            print data
+                            raise IndexError
+                        cshape=tuple(cshape)
+
+                        cdset = outfile.create_dataset(k, data=data, maxshape=cshape)
+
+                    elif not val is None:
+                            #Single value attributes
+                            cdset = outfile.create_dataset(k,data=val)
+
+
+            self.hdf5_file=filename
 
         else:
             with gzip.open(os.path.join(dir,filename),'wb') as fh:
@@ -464,9 +663,9 @@ class PartitionEnsemble():
         #try openning it as an hd5file
         try:
             with h5py.File(filename,'r') as infile:
-                self.graph=self._read_graph_from_hd5f_file(infile)
+                self._read_graph_from_hd5f_file(infile)
                 for key in infile.keys():
-                    if key!='graph':
+                    if key!='graph' and key!='_partitions':
                         #get domain indices recreate ind2dom dict
                         if key=='ind2doms':
                             self.ind2doms={}
@@ -477,6 +676,10 @@ class PartitionEnsemble():
                                 self.__dict__[key]=infile[key][:]
                             except ValueError:
                                 self.__dict__[key]=infile[key].value
+
+            #store this for accessing partitions
+
+            self.hdf5_file=filename
             return self
 
         except IOError:
