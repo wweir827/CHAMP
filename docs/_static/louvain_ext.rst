@@ -96,6 +96,57 @@ Output\:
 .. image::  images/part_ens_exp.png
    :width: 90%
 
+============================================
+Creating and Managing Large Partition Sets
+============================================
+
+For large sets of partitions on larger networks, loading the entire set of partitions each time you want to \
+access the data is a waste of time and memory.  As such we have equiped :mod:`champ.louvain_ext.PartitionEnsemble` \
+objects with the ability to write to and access hdf5 files.  Instead of loading the entire set of partitions each \
+time, only the coefficients and the domains of dominance information is loaded, and individual partitions ( or \
+all partitions) can be access from file only if needed.
+
+------------------------------------------------
+Saving and Loading PartitionEnsemble with hdf5
+------------------------------------------------
+
+::
+
+    import champ
+    import igraph as ig
+    import numpy as np
+
+    np.random.seed(0)
+    test_graph=ig.Graph.Erdos_Renyi(n=200,p=.1)
+    times={}
+    run_nums=[100]
+
+    ensemble=champ.parallel_louvain(test_graph,numprocesses=2,numruns=200,start=0,fin=4,maxpt=4,progress=False)
+    print "Ensemble 1, Optimal subset is %d of %d partitions"%(len(ensemble.ind2doms),ensemble.numparts)
+    ensemble.save("ensemble1.hdf5",hdf5=True)
+
+    ensemble2=champ.parallel_louvain(test_graph,numprocesses=2,numruns=200,start=0,fin=4,maxpt=4,progress=False)
+    print "Ensemble 2, Optimal subset is %d of %d partitions"%(len(ensemble2.ind2doms),ensemble2.numparts)
+    ensemble2.save("ensemble2.hdf5",hdf5=True)
+
+    #Esembles can be merged as follows:
+
+    #Create new PartitionEnsemble from scratch
+    ensemble3=ensemble.merge_ensemble(ensemble2,new=True)
+    print "Ensemble 3, Optimal subset is %d of %d partitions"%(len(ensemble3.ind2doms),ensemble3.numparts)
+
+    #Use largest of the 2 PartitionEnsembles being merged  and modify
+    ensemble4=ensemble.merge_ensemble(ensemble3,new=False)
+    print "Ensemble 4, Optimal subset is %d of %d partitions"%(len(ensemble4.ind2doms),ensemble4.numparts)
+    print "ensemble4 is ensemble3: ",ensemble4 is ensemble3
+
+Output\:
+
+|   Ensemble 1, Optimal subset is 13 of 200 partitions
+|   Ensemble 2, Optimal subset is 15 of 200 partitions
+|   Ensemble 3, Optimal subset is 15 of 400 partitions
+|   Ensemble 4, Optimal subset is 15 of 600 partitions
+|   ensemble4 is ensemble3:  True
 
 References
 ___________

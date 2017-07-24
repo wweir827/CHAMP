@@ -239,8 +239,8 @@ class PartitionEnsemble():
         if self.hdf5_file is None or otherfile is None:
             raise IOError("PartitionEnsemble does not have hdf5 file currently defined")
 
-        with open(self.hdf5_file,'a') as myfile:
-            with open(otherfile,'r') as file_2_add:
+        with h5py.File(self.hdf5_file,'a') as myfile:
+            with h5py.File(otherfile,'r') as file_2_add:
 
                 for attribute in ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges']:
                     cshape=myfile[attribute].shape
@@ -404,6 +404,7 @@ class PartitionEnsemble():
             ind=range(len(self.partitions))
 
         outdicts=[]
+
         for i in ind:
             cdict={"partition":self.partitions[i],
                    "int_edges":self.int_edges[i],
@@ -431,12 +432,13 @@ class PartitionEnsemble():
             raise ValueError("PartitionEnsemble graph vertex counts do not match")
 
         if new:
-            bothpartitions=self.get_partition_dictionary().extend(otherEnsemble.get_partition_dictionary())
+            bothpartitions=self.get_partition_dictionary()+otherEnsemble.get_partition_dictionary()
             return PartitionEnsemble(self.graph,listofparts=bothpartitions)
+
         else:
             if self.numparts<otherEnsemble.numparts:
                 #reverse order of merging
-                return otherEnsemble.merge_ensemble(self,new=True)
+                return otherEnsemble.merge_ensemble(self,new=False)
             else:
                 if not self.hdf5_file is None and not otherEnsemble.hdf5_file is None:
                     #merge the second hdf5_file onto the other and then reopen it to
