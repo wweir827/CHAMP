@@ -204,9 +204,11 @@ Output\:
 -------------------------------------------------------
 Improvement with HDF5 saving and loading
 -------------------------------------------------------
-The following example gives a sense of when it is beneficial to save as HDF5 and general runtimes for parallelized\
+
+The following example gives a sense of when it is beneficial to save as HDF5 and general runtimes for parallelized \
 Louvain.  We also found that the overhead is dependent on the size of the graph as well, so that for larger graphs \
-with a lower number of partitions, the read/write time on HDF5 can be greater.
+with a lower number of partitions, the read/write time on HDF5 can be greater.  Total runtime was about 2.5 hours on \
+10 CPUs.
 
 ::
 
@@ -217,8 +219,7 @@ with a lower number of partitions, the read/write time on HDF5 can be greater.
     import pandas as pd
     import igraph as ig
     from time import time
-    import gzip
-    import cPickle as pickle
+
     np.random.seed(0)
     test_graph=ig.Graph.Erdos_Renyi(n=1000,p=.1)
 
@@ -260,7 +261,7 @@ with a lower number of partitions, the read/write time on HDF5 can be greater.
     tab=pd.DataFrame(times,columns=run_nums,index=['runtime','save','load','hdf5save','hdf5load'])
     colors=sbn.color_palette('Set1',n_colors=tab.shape[0])
     plt.close()
-    f,(a1,a2)=plt.subplots(2,1)
+    f,(a1,a2)=plt.subplots(1,2,figsize=(14,7))
     for i,ind in enumerate(tab.index.values):
         if ind=='runtime':
             a1.plot(tab.columns,tab.loc[ind,:],label=ind,color=colors[i])
@@ -268,15 +269,29 @@ with a lower number of partitions, the read/write time on HDF5 can be greater.
             a2.plot(tab.columns,tab.loc[ind,:],label=ind,color=colors[i])
 
     a1.set_xlabel("#partitions")
-    a1.ylabel("seconds")
+    a1.set_ylabel("seconds")
     a2.set_xlabel("#partitions")
-    a2.ylabel("seconds")
+    a2.set_ylabel("seconds")
 
-    a1.set_title("Comparison of Save and Load Times")
-    a1.set_title("Runtimes on random ER-graph G(N=1000,p=.1)")
-    a1.legend()
-    a2.legend()
+    a2.set_title("Comparison of Save and Load Times",fontsize=16)
+    a1.set_title("Runtimes on random ER-graph G(N=1000,p=.1)",fontsize=16)
+    a1.legend(fontsize=14)
+    a2.legend(fontsize=14)
     plt.show()
+
+
+Output\:
+
+|   CHAMP running time 100 runs: 53.771
+|   CHAMP running time 1000 runs: 498.642
+|   CHAMP running time 2000 runs: 988.658
+|   CHAMP running time 3000 runs: 1479.512
+|   CHAMP running time 10000 runs: 5091.727
+
+
+.. _`runtime_exp`:
+.. image::  images/runtime_ex.png
+   :width: 90%
 
 References
 ___________

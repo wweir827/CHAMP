@@ -35,9 +35,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="CHAMP 1 documentation" href="../index.html"/>
-        <link rel="next" title="Louvain Parallel Extension" href="louvain_ext.html"/>
-        <link rel="prev" title="Running CHAMP" href="running.html"/> 
+    <link rel="top" title="CHAMP 1 documentation" href="../index.html"/> 
 
   
   <script src="js/modernizr.min.js"></script>
@@ -90,21 +88,10 @@
               
             
             
-              <ul class="current">
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Background</a></li>
 <li class="toctree-l1"><a class="reference internal" href="running.html">Running CHAMP</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Visualizing Results</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#single-layer-plots">Single Layer Plots</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#single-layer-example">Single Layer Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#heatmap-example">Heatmap Example</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#multiayer-plots">Multiayer Plots</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#multilayer-example">Multilayer Example</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="plotting2.html">Visualizing Results</a></li>
 <li class="toctree-l1"><a class="reference internal" href="louvain_ext.html">Louvain Parallel Extension</a></li>
 </ul>
 
@@ -190,28 +177,6 @@
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">matplotlib ax on which the plot is draw</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="champ.plot_single_layer_modularity">
-<code class="descclassname">champ.</code><code class="descname">plot_single_layer_modularity</code><span class="sig-paren">(</span><em>ind_2_domains</em>, <em>ax=None</em>, <em>colors=None</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/champ/plot_domains.html#plot_single_layer_modularity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#champ.plot_single_layer_modularity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot the piece-wise linear curve for CHAMP of single layer partitions</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>ind_2_domains</strong> (<em>{ ind: [ np.array(gam_0x, gam_0y), np.array(gam_1x, gam_1y)  ] ,...}</em>) &#8211; dictionary mapping partition index to domain of dominance</li>
-<li><strong>ax</strong> &#8211; Matplotlib Axes object to draw the graph on</li>
-<li><strong>colors</strong> &#8211; Either a single color or list of colors with same length as number of domains</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">ax  Reference to the ax on which plot is drawn.</p>
 </td>
 </tr>
 </tbody>
@@ -367,15 +332,6 @@
            </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="louvain_ext.html" class="btn btn-neutral float-right" title="Louvain Parallel Extension" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="running.html" class="btn btn-neutral" title="Running CHAMP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

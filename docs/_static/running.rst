@@ -18,7 +18,7 @@ If the partitions were generated using a modularity based community detection me
 the coefficients while optimizing the communities and feed these into CHAMP directly.  This is especially true, \
 if the community detection is being performed in parallel.  However, if the partitions were generated using some \
 other form of community detection algorithm, we provide a method to compute these coefficients directly and allow \
-for parallization of this process on supported machines.
+for parallelization of this process on supported machines.
 
 .. autofunction:: champ.champ_functions.create_coefarray_from_partitions
 
