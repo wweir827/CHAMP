@@ -512,7 +512,7 @@ class PartitionEnsemble():
         inds=self.get_CHAMP_indices()
         return [self.partitions[i] for i in inds]
 
-    def _write_graph_to_hd5f_file(self,file):
+    def _write_graph_to_hd5f_file(self,file,compress=4):
         '''
         Write the internal graph to hd5f file saving the edge lists, the edge properties, and the \
         vertex properties all as subgroups.  We only save the edges, and the vertex and node attributes
@@ -531,18 +531,18 @@ class PartitionEnsemble():
         grph.create_dataset('directed',data=int(self.graph.is_directed()))
         #save edge list as graph.ecount x 2 numpy array
         grph.create_dataset("edge_list",
-                            data=np.array([e.tuple for e in self.graph.es]))
+                            data=np.array([e.tuple for e in self.graph.es]),compression="gzip",compression_opts=compress)
 
         edge_atts=grph.create_group('edge_attributes')
         for attrib in self.graph.edge_attributes():
 
             edge_atts.create_dataset(attrib,
-                                     data=np.array(self.graph.es[attrib]))
+                                     data=np.array(self.graph.es[attrib]),compression="gzip",compression_opts=compress)
 
         node_atts=grph.create_group("node_attributes")
         for attrib in self.graph.edge_attributes():
             node_atts.create_dataset(attrib,
-                                     data=np.array(self.graph.vs[attrib]))
+                                     data=np.array(self.graph.vs[attrib]),compression="gzip",compression_opts=compress)
         return file
 
     def _read_graph_from_hd5f_file(self,file):
@@ -568,7 +568,7 @@ class PartitionEnsemble():
             self.graph.vs[attrib] = grph['node_attributes'][attrib][:]
 
 
-    def save(self,filename=None,dir=".",hdf5=None):
+    def save(self,filename=None,dir=".",hdf5=None,compress=4):
         '''
         Use pickle or h5py to store representation of PartitionEnsemble in compressed file
 
@@ -606,12 +606,12 @@ class PartitionEnsemble():
                 for k,val in self.__dict__.items():
                     #store dictionary type object as its own group
                     if k=='graph':
-                        self._write_graph_to_hd5f_file(outfile)
+                        self._write_graph_to_hd5f_file(outfile,compress=compress)
 
                     elif isinstance(val,dict):
                         indgrp=outfile.create_group(k)
                         for ind,dom in val.items():
-                            indgrp.create_dataset(str(ind),data=dom)
+                            indgrp.create_dataset(str(ind),data=dom,compression="gzip",compression_opts=compress)
 
                     elif isinstance(val,str):
                         outfile.create_dataset(k,data=val)
@@ -631,7 +631,8 @@ class PartitionEnsemble():
                             raise IndexError
                         cshape=tuple(cshape)
 
-                        cdset = outfile.create_dataset(k, data=data, maxshape=cshape)
+                        cdset = outfile.create_dataset(k, data=data, maxshape=cshape,
+                                                       compression="gzip",compression_opts=compress)
 
                     elif not val is None:
                             #Single value attributes
