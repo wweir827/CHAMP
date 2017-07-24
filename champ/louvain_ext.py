@@ -540,7 +540,7 @@ class PartitionEnsemble():
                                      data=np.array(self.graph.es[attrib]),compression="gzip",compression_opts=compress)
 
         node_atts=grph.create_group("node_attributes")
-        for attrib in self.graph.node_attributes():
+        for attrib in self.graph.vertex_attributes():
             node_atts.create_dataset(attrib,
                                      data=np.array(self.graph.vs[attrib]),compression="gzip",compression_opts=compress)
         return file
