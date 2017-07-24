@@ -5,8 +5,6 @@ import tempfile
 from contextlib import contextmanager
 from multiprocessing import Pool,cpu_count
 from time import time
-import h5py
-from .champ_functions import create_halfspaces_from_array
 from .champ_functions import get_intersection
 from .champ_functions import create_coefarray_from_partitions
 import matplotlib.lines as mlines
@@ -16,6 +14,7 @@ from matplotlib import rc
 import igraph as ig
 import louvain
 import numpy as np
+import h5py
 
 try:
     import cpickle as pickle
