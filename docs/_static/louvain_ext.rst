@@ -96,18 +96,70 @@ Output\:
 .. image::  images/part_ens_exp.png
    :width: 90%
 
-============================================
+-------------------------------------------------------------
 Creating and Managing Large Partition Sets
-============================================
+-------------------------------------------------------------
 
 For large sets of partitions on larger networks, loading the entire set of partitions each time you want to \
-access the data is a waste of time and memory.  As such we have equiped :mod:`champ.louvain_ext.PartitionEnsemble` \
+access the data can take a fair amount of time.  Having to load all of the partitions defeats the purpose of using \
+CHAMP to find the optimal subset.  As such we have equiped :mod:`champ.louvain_ext.PartitionEnsemble` \
 objects with the ability to write to and access hdf5 files.  Instead of loading the entire set of partitions each \
-time, only the coefficients and the domains of dominance information is loaded, and individual partitions ( or \
-all partitions) can be access from file only if needed.
+time, only the coefficients, the domains of dominance, the underlying graph information is loaded. All individual partitions ( or \
+all partitions) can be access from file only if needed, as the example below illustrates:
+
+------------------------------------------
+Saving and Loading PartitionEnsembles
+------------------------------------------
+::
+
+    import champ
+    import igraph as ig
+    import numpy as np
+
+    np.random.seed(0)
+    test_graph=ig.Graph.Erdos_Renyi(n=200,p=.1)
+    times={}
+    run_nums=[100]
+
+    #saving ensemble
+    ensemble=champ.parallel_louvain(test_graph,numprocesses=2,numruns=200,start=0,fin=4,maxpt=4,progress=False)
+    print "Ensemble 1, Optimal subset is %d of %d partitions"%(len(ensemble.ind2doms),ensemble.numparts)
+    ensemble.save("ensemble1.hdf5",hdf5=True)
+
+    #openning created file
+    ensemble2=champ.PartitionEnsemble().open("ensemble1.hdf5")
+    #partitions is an internal class the handles access
+    print ensemble2.partitions
+    #When sliced a numpy.array is returned
+    print "ensemble2.partitions[38,:10]:\n\t",ensemble2.partitions[38:40,:10]
+
+    #You can still add partitions as normal.  These are automatically
+    #added to the hdf5 file
+    ensemble2add=champ.parallel_louvain(test_graph,numprocesses=2,numruns=100,start=0,fin=4,maxpt=4,progress=False)
+    ensemble2.add_partitions(ensemble2add.get_partition_dictionary())
+    print "ensemble 2 has %d of %d partitions dominant"  %(len(ensemble2.ind2doms),ensemble2.numparts)
+
+    #When open is called, the created EnsemblePartition assumes all
+    #the state variables of saved EnsemblePartition, including default save file.
+    #If save() is called, it will overwrite the old ensemble file
+    print "ensemble2 default hdf5 file: ",ensemble2.hdf5_file
+
+
+
+Output\:
+
+|   Ensemble 1, Optimal subset is 11 of 200 partitions
+|   200 partitions saved on ensemble1.hdf5
+|   ensemble2.partitions[38,:10]:
+|   	[[1 0 1 0 0 0 0 0 1 1]
+|       [1 1 2 0 1 0 2 1 2 1]]
+|   ensemble 2 has 12 of 300 partitions dominant
+
+You can see with the above example that CHAMP is reapplied everytime new partitions are added to the \
+ :mod:`louvain_ext.PartitionEnsemble` instance.
 
 ------------------------------------------------
-Saving and Loading PartitionEnsemble with hdf5
+Merging PartitionEnsembles
 ------------------------------------------------
 
 ::
@@ -147,6 +199,84 @@ Output\:
 |   Ensemble 3, Optimal subset is 15 of 400 partitions
 |   Ensemble 4, Optimal subset is 15 of 600 partitions
 |   ensemble4 is ensemble3:  True
+
+
+-------------------------------------------------------
+Improvement with HDF5 saving and loading
+-------------------------------------------------------
+The following example gives a sense of when it is beneficial to save as HDF5 and general runtimes for parallelized\
+Louvain.  We also found that the overhead is dependent on the size of the graph as well, so that for larger graphs \
+with a lower number of partitions, the read/write time on HDF5 can be greater.
+
+::
+
+    import champ
+    import matplotlib.pyplot as plt
+    import seaborn as sbn
+    import numpy as np
+    import pandas as pd
+    import igraph as ig
+    from time import time
+    import gzip
+    import cPickle as pickle
+    np.random.seed(0)
+    test_graph=ig.Graph.Erdos_Renyi(n=1000,p=.1)
+
+    times={}
+    run_nums=[100,1000,2000,3000,10000]
+
+    for nrun in run_nums :
+        rtimes=[]
+        t=time()
+        ens=champ.parallel_louvain(test_graph,numprocesses=10,numruns=nrun,start=0,fin=4,maxpt=4,progress=False)
+        ens.name='name'
+        rtimes.append(time()-t)
+
+        #normal save (gzip)
+        print "CHAMP running time %d runs: %.3f" %(nrun,rtimes[-1])
+        t=time()
+        ens.save()
+        rtimes.append(time()-t)
+        t=time()
+
+        #normal open
+        t=time()
+        newens=champ.PartitionEnsemble().open("name_PartEnsemble_%d.gz"%nrun)
+        rtimes.append(time()-t)
+        t=time()
+
+        #save with h5py
+        t=time()
+        ens.save(hdf5=True)
+        rtimes.append(time()-t)
+        t=time()
+
+        #open with hdf5 format
+        t=time()
+        newes=champ.PartitionEnsemble().open("name_PartEnsemble_%d.hdf5"%nrun)
+        rtimes.append(time()-t)
+        times[nrun]=rtimes
+
+    tab=pd.DataFrame(times,columns=run_nums,index=['runtime','save','load','hdf5save','hdf5load'])
+    colors=sbn.color_palette('Set1',n_colors=tab.shape[0])
+    plt.close()
+    f,(a1,a2)=plt.subplots(2,1)
+    for i,ind in enumerate(tab.index.values):
+        if ind=='runtime':
+            a1.plot(tab.columns,tab.loc[ind,:],label=ind,color=colors[i])
+        else:
+            a2.plot(tab.columns,tab.loc[ind,:],label=ind,color=colors[i])
+
+    a1.set_xlabel("#partitions")
+    a1.ylabel("seconds")
+    a2.set_xlabel("#partitions")
+    a2.ylabel("seconds")
+
+    a1.set_title("Comparison of Save and Load Times")
+    a1.set_title("Runtimes on random ER-graph G(N=1000,p=.1)")
+    a1.legend()
+    a2.legend()
+    plt.show()
 
 References
 ___________

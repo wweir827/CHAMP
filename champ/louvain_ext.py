@@ -83,13 +83,13 @@ class PartitionEnsemble():
 
 
     def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
-        self._partitions = []
+        self._partitions = np.array([])
         self.hdf5_file=None
-        self.int_edges = []
-        self.exp_edges = []
-        self.resolutions = []
-        self.numcoms=[]
-        self.orig_mods = []
+        self.int_edges = np.array([])
+        self.exp_edges = np.array([])
+        self.resolutions = np.array([])
+        self.numcoms=np.array([])
+        self.orig_mods = np.array([])
         self.numparts=0
         self.graph=graph
         self.min_com_size=min_com_size
@@ -227,9 +227,9 @@ class PartitionEnsemble():
                 else:
                     return False
 
-        if len(self.partitions)==len(self.int_edges) and \
-            len(self.partitions)==len(self.resolutions) and \
-            len(self.partitions)==len(self.exp_edges):
+        if self.partitions.shape[0]==len(self.int_edges) and \
+                self.partitions.shape[0]==len(self.resolutions) and \
+                self.partitions.shape[0]==len(self.exp_edges):
             return True
         else:
             return False
@@ -274,46 +274,47 @@ class PartitionEnsemble():
 
                 cind=orig_shape[0]+i
 
+                #We store these on the file
                 openfile['_partitions'][cind]=np.array(part['partition'])
 
                 #We leave the new partitions only in the file.  Everything else is updated \
                 # in both the PartitionEnsemble and the file
 
                 if 'resolution' in part:
-                    self.resolutions.append(part['resolution'])
+                    self.resolutions=np.append(self.resolutions,part['resolution'])
                     openfile['resolutions'][cind]=part['resolution']
                 else:
-                    self.resolutions.append(None)
+                    self.resolutions=np.append(self.resolutions,None)
                     openfile['resolutions'][cind]=None
 
 
                 if 'int_edges' in part:
-                    self.int_edges.append(part['int_edges'])
+                    self.int_edges=np.append(self.int_edges,part['int_edges'])
                     openfile['int_edges'][cind]=part['int_edges']
                 else:
                     cint_edges = self.calc_internal_edges(part['partition'])
-                    self.int_edges.append(cint_edges)
+                    self.int_edges=np.append(self.int_edges,cint_edges)
                     openfile['int_edges'][cind]=cint_edges
 
                 if 'exp_edges' in part:
-                    self.exp_edges.append(part['exp_edges'])
+                    self.exp_edges=np.append(self.exp_edges,part['exp_edges'])
                     openfile['exp_edges'][cind]=part['exp_edges']
                 else:
                     cexp_edges = self.calc_expected_edges(part['partition'])
-                    self.exp_edges.append(cexp_edges)
+                    self.exp_edges=np.append(self.exp_edges,cexp_edges)
                     openfile['exp_edges'][cind]=cexp_edges
 
                 if "orig_mod" in part:
-                    self.orig_mods.append(part['orig_mod'])
+                    self.orig_mods=np.append(self.orig_mods,part['orig_mod'])
                     openfile['orig_mods'][cind]=part['orig_mod']
                 elif not self.resolutions[-1] is None:
                     # calculated original modularity from orig resolution
                     corigmod=self.int_edges[-1] - self.resolutions[-1] * self.exp_edges
-                    self.orig_mods.append(corigmod)
+                    self.orig_mods=np.append(self.orig_mods,corigmod)
                     openfile['orig_mods'][cind]=corigmod
                 else:
                     openfile['orig_mods'][cind]=None
-                    self.orig_mods.append(None)
+                    self.orig_mods=np.append(self.orig_mods,None)
 
             self.numparts=openfile['_partitions'].shape[0]
         assert self._check_lengths()
@@ -346,42 +347,45 @@ class PartitionEnsemble():
             for part in partitions:
 
                 #This must be present
-                self._partitions.append(part['partition'])
+                if len(self._partitions)==0:
+                    self._partitions=np.array([part['partition']])
+                else:
+                    self._partitions=np.append(self._partitions,[part['partition']],axis=0)
 
                 if 'resolution' in part:
-                    self.resolutions.append(part['resolution'])
+                    self.resolutions=np.append(self.resolutions,part['resolution'])
                 else:
-                    self.resolutions.append(None)
+                    self.resolutions=np.append(self.resolutions,None)
 
                 if 'int_edges' in part:
-                    self.int_edges.append(part['int_edges'])
+                    self.int_edges=np.append(self.int_edges,part['int_edges'])
                 else:
                     cint_edges=self.calc_internal_edges(part['partition'])
-                    self.int_edges.append(cint_edges)
+                    self.int_edges=np.append(self.int_edges,cint_edges)
 
                 if 'exp_edges' in part:
-                    self.exp_edges.append(part['exp_edges'])
+                    self.exp_edges=np.append(self.exp_edges,part['exp_edges'])
                 else:
                     cexp_edges=self.calc_expected_edges(part['partition'])
-                    self.exp_edges.append(cexp_edges)
+                    self.exp_edges=np.append(self.exp_edges,cexp_edges)
 
                 if "orig_mod" in part:
-                    self.orig_mods.append(part['orig_mod'])
+                    self.orig_mods=np.append(self.orig_mods,part['orig_mod'])
                 elif not self.resolutions[-1] is None:
                     #calculated original modularity from orig resolution
-                    self.orig_mods.append(self.int_edges[-1]-self.resolutions[-1]*self.exp_edges)
+                    self.orig_mods=np.append(self.orig_mods,self.int_edges[-1]-self.resolutions[-1]*self.exp_edges)
                 else:
-                    self.orig_mods.append(None)
+                    self.orig_mods=np.append(self.orig_mods,None)
 
 
 
-                self.numcoms.append(get_number_of_communities(part['partition'],
+                self.numcoms=np.append(self.numcoms,get_number_of_communities(part['partition'],
                                                               min_com_size=self.min_com_size))
 
                 assert self._check_lengths()
                 self.numparts=len(self.partitions)
             #update the pruned set
-            self.apply_CHAMP(maxpt=maxpt)
+        self.apply_CHAMP(maxpt=maxpt)
 
 
 
@@ -564,22 +568,35 @@ class PartitionEnsemble():
             self.graph.vs[attrib] = grph['node_attributes'][attrib][:]
 
 
-    def save(self,filename=None,dir=".",hdf5=False):
+    def save(self,filename=None,dir=".",hdf5=None):
         '''
-        Use pickle to dump representation to compressed file
+        Use pickle or h5py to store representation of PartitionEnsemble in compressed file
 
-        :param filename: name of file to write to.
+        :param filename: name of file to write to.  Default is created from name of ParititonEnsemble\: \
+            "%s_PartEnsemble_%d" %(self.name,self.numparts)
         :param hdf5: save the PartitionEnsemble object as a hdf5 file.  This is \
         very useful for larger partition sets, especially when you only need to work \
-        with the optimal subset.
+        with the optimal subset.  If object has hdf5_file attribute saved \
+        this becomes the default
         :type hdf5: bool
         :param dir: directory to save graph in.  relative or absolute path.  default is working dir.
         :type dir: str
         '''
 
+        if hdf5 is None:
+            if self.hdf5_file is None:
+                hdf5 is False
+            else:
+                hdf5 is True
+
+
+
         if filename is None:
             if hdf5:
-                filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
+                if self.hdf5_file is None:
+                    filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
+                else:
+                    filename=self.hdf5_file
             else:
                 filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
