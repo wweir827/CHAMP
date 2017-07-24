@@ -92,9 +92,9 @@ class PartitionEnsemble():
         self.numparts=0
         self.graph=graph
         self.min_com_size=min_com_size
-
+        self.maxpt=maxpt
         if listofparts!=None:
-            self.add_partitions(listofparts,maxpt=maxpt)
+            self.add_partitions(listofparts,maxpt=self.maxpt)
         self.name=name
 
 
@@ -384,7 +384,7 @@ class PartitionEnsemble():
                 assert self._check_lengths()
                 self.numparts=len(self.partitions)
             #update the pruned set
-        self.apply_CHAMP(maxpt=maxpt)
+        self.apply_CHAMP(maxpt=self.maxpt)
 
 
 
@@ -480,6 +480,7 @@ class PartitionEnsemble():
         :type maxpt: int
 
         '''
+
         self.ind2doms=get_intersection(self.get_coefficient_array(),max_pt=maxpt)
 
     def get_CHAMP_indices(self):
@@ -567,7 +568,7 @@ class PartitionEnsemble():
             self.graph.vs[attrib] = grph['node_attributes'][attrib][:]
 
 
-    def save(self,filename=None,dir=".",hdf5=None,compress=4):
+    def save(self,filename=None,dir=".",hdf5=None,compress=9):
         '''
         Use pickle or h5py to store representation of PartitionEnsemble in compressed file
 
@@ -578,6 +579,9 @@ class PartitionEnsemble():
         with the optimal subset.  If object has hdf5_file attribute saved \
         this becomes the default
         :type hdf5: bool
+        :param compress: Level of compression for partitions in hdf5 file.  With less compression, files take \
+        longer to write but take up more space.  9 is default.
+        :type compress: int [0,9]
         :param dir: directory to save graph in.  relative or absolute path.  default is working dir.
         :type dir: str
         '''
