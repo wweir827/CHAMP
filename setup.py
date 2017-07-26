@@ -10,8 +10,9 @@ options=dict( name='champ',
     author_email='wweir@med.unc.edu',
     description='Modularity based networks partition selection tool',
     zip_safe=False,
-        classifiers=["Programming Language :: Python :: 2.7"],
-    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy','sklearn','louvain','python-igraph','h5py']
+        classifiers=["Programming Language :: Python :: 2.7",
+                     "Programming Language :: Python :: 3.3"],
+    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy','scipy','sklearn','louvain','python-igraph','h5py']
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]
 

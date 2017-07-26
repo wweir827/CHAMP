@@ -258,7 +258,7 @@ def get_intersection(coef_array, max_pt=None):
     mx = np.max(non_inf_vert,axis=0)
 
     #At this point we inlude max boundary planes and recalculate the intersection
-    #to correct inf points
+    #to correct inf points.  We only do this for single layer
     if max_pt is None:
         if not singlelayer:
             halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0])),

@@ -20,14 +20,13 @@ def main():
     logging.info("Command: %s", " ".join(sys.argv))
     #create random planes
     test_hs=[]
-    np.random.seed(0)
-
+    # np.random.seed(0)
     # print test_hs
     # print test_int_dict
 
     logging.info("Multilayer Test")
     test_hs_arry=champ.get_random_halfspaces(50)
-    logging.info("Coefficent array: ", str(test_hs_arry.shape))
+    logging.info("Coefficent array: "+str(test_hs_arry.shape))
 
     test_hs=champ.create_halfspaces_from_array(test_hs_arry)
 
@@ -53,16 +52,16 @@ def main():
     #
     # plt.show()
     test_hs = champ.create_halfspaces_from_array(test_hs_arry)
-    plt.close()
-    ax=champ.plot_domains.plot_line_halfspaces(test_hs_arry)
-    ax.set_title("Visualization of All Parition Lines")
-    plt.show()
-
     logging.info("Number of Initial Partitions: %d" % (len(test_hs)))
-    ind_2_doms = champ.get_intersection(test_hs_arry,max_pt=(10,10))
+    ind_2_doms = champ.get_intersection(test_hs_arry, max_pt=(10, 10))
     logging.info("Number of Admissible Partitions: %d" % (len(ind_2_doms.keys())))
+
     plt.close()
-    ax=champ.plot_single_layer_modularity_domains(ind_2_doms)
+    f,(a1,a2)=plt.subplots(1,2,figsize=(8,4))
+
+    a1=champ.plot_domains.plot_line_halfspaces(test_hs,ax=a1)
+    a1.set_title("Visualization of All Parition Lines")
+    a2=champ.plot_single_layer_modularity_domains(ind_2_doms,ax=a2)
     plt.show()
 
     return 1

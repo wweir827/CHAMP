@@ -44,6 +44,36 @@ extensions = [
     'sphinxcontrib.bibtex'
 ]
 
+# Use the 'Read the Docs' theme on home builds:
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    # on read the docs, the theme is just called "default"
+    html_theme = 'default'
+
+    # Mock modules as per RTF FAQ to avoid hard C dependencies
+    # the below only works for Python3.3+
+    # from unittest.mock import MagicMock
+    # use this for Python<3.3
+    from mock import Mock as MagicMock
+
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):
+            return Mock()
+
+    # include the names of your minimal required packages here
+    MOCK_MODULES = ['numpy', 'numpy.random', 'igraph', 'louvain', 'matplotlib', 'matplotlib.pyplot',
+                    'matplotlib.cm', 'matplotlib.lines', 'matplotlib.patheffects',
+                    'matplotlib.colors',
+                    'matplotlib.patches',
+                    'matplotlib.path',
+                    'sklearn.metrics',
+                    'sklearn', 'h5py',
+                    'scipy', 'scipy.sparse', 'ipython']
+    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+else:
+    html_theme = 'sphinx_rtd_theme'
+
 #Have to specify all modules
 #These are for local mocks.
 autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py',
@@ -52,18 +82,11 @@ autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py',
                       'sklearn.metrics','numpy.random','sklearn','ipython','scipy']
 
 #
-import mock
-MOCK_MODULES = ['numpy','numpy.random','igraph','louvain', 'matplotlib', 'matplotlib.pyplot',
-                'matplotlib.cm', 'matplotlib.lines','matplotlib.patheffects',
-                'matplotlib.colors',
-                'matplotlib.patches',
-                'matplotlib.path',
-                'sklearn.metrics',
-                'sklearn','h5py',
-                'scipy','scipy.sparse','ipython']
-
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
+# import mock
+#
+#
+# for mod_name in MOCK_MODULES:
+#     sys.modules[mod_name] = mock.Mock()
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -154,7 +177,7 @@ todo_include_todos = True
 # a list of builtin themes.
 #
 #html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
+# html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
