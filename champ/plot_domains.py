@@ -6,6 +6,8 @@ import numpy as np
 from matplotlib.path import Path
 from sklearn.metrics import adjusted_mutual_info_score,normalized_mutual_info_score
 from .champ_functions import create_halfspaces_from_array
+from future.utils import iteritems,iterkeys
+from future.utils import lmap
 
 def plot_line_coefficients(coef_array,ax=None,colors=None):
     '''
@@ -45,7 +47,7 @@ def plot_line_halfspaces(halfspaces, ax=None, colors=None,labels=None):
     if colors==None:
         cnorm=mcolors.Normalize(vmin=0,vmax=len(halfspaces))
         cmap=cm.get_cmap("Set1")
-        pal=map(lambda(i): cmap(cnorm(i)),range(len(halfspaces)))
+        pal=lmap(lambda i: cmap(cnorm(i)),range(len(halfspaces)))
 
     for i,hs in enumerate(halfspaces):
         if hasattr(colors, "__iter__"):
@@ -89,10 +91,10 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
     if col==None:
         cnorm=mcolors.Normalize(vmin=0,vmax=len(ind_2_domains))
         cmap=cm.get_cmap("Set1")
-        colors=map(lambda(i): cmap(cnorm(i)),range(len(ind_2_domains)))
+        colors=lmap(lambda i: cmap(cnorm(i)),range(len(ind_2_domains)))
     i=0
 
-    for i,ind_pts in enumerate(ind_2_domains.items()):
+    for i,ind_pts in enumerate(iteritems(ind_2_domains)):
         ind,pts=ind_pts
         if hasattr(col,"__iter__" ):
             assert len(col) == len(ind_2_domains)
@@ -134,17 +136,17 @@ def plot_single_layer_modularity_domains(ind_2_domains, ax=None, colors=None, la
     if colors==None:
         cnorm=mcolors.Normalize(vmin=0,vmax=len(ind_2_domains))
         cmap=cm.get_cmap("Set1")
-        pal=map(lambda(i): cmap(cnorm(i)),range(len(ind_2_domains)))
+        pal=lmap(lambda i : cmap(cnorm(i)),range(len(ind_2_domains)))
     i=0
 
-    for i,ind_pts in enumerate(ind_2_domains.items()):
+    for i,ind_pts in enumerate(iteritems(ind_2_domains)):
         ind, pts = ind_pts
         if hasattr(colors, "__iter__"):
             assert len(colors) == len(ind_2_domains)
             c=colors[i] #must match length
         else:
             c=pal[i] if colors == None else colors
-        coords=map(list,zip(*pts))
+        coords=lmap(list,zip(*pts))
 
 
         ax.scatter(coords[0],coords[1],color=c,marker='x')
@@ -191,7 +193,7 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=Non
         ax=f.add_subplot(111)
 
     ind_vals=zip(index_2_domain.keys(),[val[0][0] for val in index_2_domain.values()])
-    ind_vals.sort(key=lambda(x):x[1])
+    ind_vals.sort(key=lambda x:x[1])
 
 
 

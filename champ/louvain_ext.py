@@ -1,3 +1,10 @@
+#Py 2/3 Compatibility
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division # use // to specify int div.
+from future.utils import iteritems,iterkeys
+from future.utils import lmap
+
 import gzip
 import sys, os
 import re
@@ -15,6 +22,7 @@ import igraph as ig
 import louvain
 import numpy as np
 import h5py
+
 
 try:
     import cpickle as pickle
@@ -93,6 +101,7 @@ class PartitionEnsemble():
         self.graph=graph
         self.min_com_size=min_com_size
         self.maxpt=maxpt
+        self._uniq_indices=None
         if listofparts!=None:
             self.add_partitions(listofparts,maxpt=self.maxpt)
         self.name=name
@@ -128,7 +137,7 @@ class PartitionEnsemble():
         #     adj=self.graph.get_adjacency(attribute='weight')
         partobj = ig.VertexClustering(graph=self.graph, membership=memvec)
         weight = "weight" if "weight" in self.graph.edge_attributes() else None
-        return get_sum_internal_edges()
+        return get_sum_internal_edges(partobj=partobj,weight=weight)
 
     def calc_expected_edges(self, memvec):
         '''
@@ -192,21 +201,6 @@ class PartitionEnsemble():
             return self._partitions
 
 
-
-
-
-    # def __getattribute__(self, key):
-    #     '''We override the get attribute to try and read the partitions off the hdf5 file if this \
-    #     is what's being called for.  Since often times we don't need to access all of the partitions \
-    #     at once we can only return it at run time.'''
-    #     print 'testing'
-    #     if key=='partitions':
-    #         if not self.hdf5_file is None:
-    #             with h5py.File(self.hdf5_file,'r') as hdf5file:
-    #                 return hdf5file['partitions'][:]
-    #
-    #     else: #This is the same as the normal method.
-    #         super(PartitionEnsemble,self).__getattribute__(key)
 
     def _check_lengths(self):
         '''
@@ -461,14 +455,63 @@ class PartitionEnsemble():
 
         '''
 
-        outlist=[]
-        for i in range(self.numparts):
-            outlist.append([
+        outlist=[self.int_edges[0],
+                self.exp_edges[0]]
+
+        for i in range(1,self.numparts):
+            outlist=np.append(
+                outlist,[
                 self.int_edges[i],
                 self.exp_edges[i]
             ])
 
-        return np.array(outlist)
+        return outlist
+
+    @property
+    def unique_indices(self):
+        if self._uniq_indices is None:
+            self._uniq_indices=self.get_unique_coeff_indices()
+            return self._uniq_indices
+
+
+
+    def get_unique_coeff_indices(self):
+        ''' Get the indices for the partitions with unique coefficient \
+         :math:`\\hat{A}=\\sum_{ij}A_{ij}` \
+         :math:`\\hat{P}=\\sum_{ij}P_{ij}`
+
+         Note that for each replicated partition we return the index of one (the earliest in the list) \
+         the replicated
+
+        :return: the indices of unique coeficients
+        :rtype: np.array
+        '''
+        _,indices=np.unique(self.get_coefficient_array(),return_index=True,axis=0)
+        return indices
+
+
+    def get_uniq_partition_indices(self):
+        '''
+        This returns the indices for the partitions who are unique.  This could be larger than the
+        indices for the unique coeficient
+        :return: list of indicies of unique partitions.
+        :rtype: np.array
+        '''
+        uniq,index,counts,reverse=np.unique(self.get_coefficient_array(),
+                                            return_index=True,return_counts=True,
+                                            return_inverse=True,axis=0)
+        ind2keep=index[np.where(counts==1)[0]]
+
+        for ind in np.where(counts>1)[0]:
+            #we have to load the partitions and compare them to each other
+            parts2comp=self.partitions[np.where(reverse==ind)[0]]
+            #here curpart inds is which of of this current group of partitions are unique
+            _,curpart_inds=np.unique(parts2comp,axis=1,return_index=True)
+            #len of curpart_inds determines how many of the current ind group get added to
+            #the ind2keep.  should always be at least one.
+            ind2keep=np.append(ind2keep,ind[curpart_inds])
+
+        return sorted(ind2keep)
 
     def apply_CHAMP(self,maxpt=None):
         '''
@@ -606,14 +649,14 @@ class PartitionEnsemble():
         if hdf5:
             with h5py.File(filename,'w') as outfile:
 
-                for k,val in self.__dict__.items():
+                for k,val in iteritems(self.__dict__):
                     #store dictionary type object as its own group
                     if k=='graph':
                         self._write_graph_to_hd5f_file(outfile,compress=compress)
 
                     elif isinstance(val,dict):
                         indgrp=outfile.create_group(k)
-                        for ind,dom in val.items():
+                        for ind,dom in iteritems(val):
                             indgrp.create_dataset(str(ind),data=dom,compression="gzip",compression_opts=compress)
 
                     elif isinstance(val,str):
@@ -625,13 +668,7 @@ class PartitionEnsemble():
                         #1D array don't have a second shape index (ie np.array.shape[1] can throw \
                         #IndexError
                         cshape=list(data.shape)
-                        try:
-                            cshape[0]=None
-                        except IndexError:
-                            print cshape
-                            print type(data)
-                            print data
-                            raise IndexError
+                        cshape[0]=None
                         cshape=tuple(cshape)
 
                         cdset = outfile.create_dataset(k, data=data, maxshape=cshape,
@@ -985,7 +1022,7 @@ def get_number_of_communities(partition,min_com_size=0):
         count_dict[label]=count_dict.get(label,0)+1
 
     tot_coms=0
-    for k,val in count_dict.items():
+    for k,val in iteritems(count_dict):
         if val>=min_com_size:
             tot_coms+=1
     return tot_coms
@@ -1017,7 +1054,7 @@ def get_expected_edges(partobj,weight=None):
         # verts=map(lambda x: int(re.search("(?<=n)\d+", x['id']).group()),subg.vs) #you have to get full weight from original graph
         # svec=partobj.graph.strength(verts,weights='weight') #i think is what is slow
 
-        svec=np.array(map(lambda(x):strengths[x],subg.vs['id']))
+        svec=np.array(lmap(lambda x :strengths[x],subg.vs['id']))
         # svec=subg.strength(subg.vs,weights='weight')
         kk+=np.sum(np.outer(svec, svec))
 
@@ -1046,7 +1083,7 @@ def get_orig_ordered_mem_vec(rev_order, membership):
     :param membership: community membership vector to be rearranged
     :return: rearranged membership vector.
     '''
-    new_member=[-1 for i in xrange(len(rev_order))]
+    new_member=[-1 for i in range(len(rev_order))]
 
     for i,val in enumerate(rev_order):
         new_member[val]=membership[i]
@@ -1097,7 +1134,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 
     outparts=[]
-    for i in xrange(nruns):
+    for i in range(nruns):
         rand_perm = list(np.random.permutation(g.vcount()))
         rperm = rev_perm(rand_perm)
         gr=g.permute_vertices(rand_perm) #This is just a labelling switch.  internal properties maintined.
@@ -1137,11 +1174,11 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress):
 
     if progress is not None:
         if progress%100==0:
-            print "Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t)
+            print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
 
     return outparts
 def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
-                     numprocesses=None,attribute=None,weight=None,node_subset=None,progress=False):
+                     numprocesses=None, attribute=None,weight=None,node_subset=None,progress=False):
     '''
     Generates arguments for parallel function call of louvain on graph
 
@@ -1180,7 +1217,7 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
         graph.delete_vertices(gdel)
 
     graph.write_graphmlz(graphfile)
-    for i in xrange(numruns):
+    for i in range(numruns):
         prognum = None if not progress else i
         curg = start + ((fin - start) / (1.0 * numruns)) * i
         parallel_args.append((graphfile ,curg,1, weight,None,None,prognum))

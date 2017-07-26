@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from future.utils import iteritems,iterkeys
+from future.utils import lmap
+
 from multiprocessing import Pool
 from collections import Hashable
 from contextlib import contextmanager
@@ -51,7 +55,7 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,n
             parallel_args.append((partition, P_mat))
             parallel_args.append((partition, C_mat))
         #map preserves order
-        with terminating(Pool(nprocesses=nprocesses)) as pool:
+        with terminating(Pool(processes=nprocesses)) as pool:
             parallel_res=pool.map(_calculate_coefficient_parallel,parallel_args)
         outarray=np.array(parallel_res).reshape((3,len(parallel_res)/3))
     return np.array(outarray)
@@ -106,9 +110,9 @@ def sort_points(points):
     '''
     if len(points[0])>2:
         cent = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
-        points.sort(key=lambda (x): np.arctan2(x[1] - cent[1], x[0] - cent[0]))
+        points.sort(key=lambda x: np.arctan2(x[1] - cent[1], x[0] - cent[0]))
     else:
-       points.sort(key=lambda (x): x[0]) #just sort along x-axis
+       points.sort(key=lambda x: x[0]) #just sort along x-axis
 
 
     return points
@@ -163,7 +167,7 @@ def calculate_coefficient(com_vec,adj_matrix):
                              isinstance(val,Hashable))
 
     # convert indices to np_array
-    for k, val in com_inddict.items():
+    for k, val in iteritems(com_inddict):
         com_inddict[k] = np.array(val)
 
     for com in allcoms:
