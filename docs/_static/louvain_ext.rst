@@ -28,13 +28,15 @@ constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and s
 
 .. _`louvain_ext.PartitionEnsemble`:
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
-    :members: add_partitions,merge_ensemble,apply_CHAMP,plot_modularity_mapping,save,save_graph,open
+    :members: add_partitions,merge_ensemble,apply_CHAMP,plot_modularity_mapping,,save,save_graph,open
 
 ----------------------------
 Partition Ensemble Example
 ----------------------------
 We use igraph to generate a random ER graph, call louvain in parallel, and apply CHAMP to the ensemble.  This example \
-took approximately 1 minute to run on 2 cores.
+took approximately 1 minute to run on 2 cores.  We can use the PartitionEnsemble object to check whether all of the \
+coefficients are unique, and to check whether all of the partitions themselve are unique (it is possible for two unique
+partitions to give rise to the same coefficients).
 ::
 
     import champ
@@ -104,8 +106,9 @@ For large sets of partitions on larger networks, loading the entire set of parti
 access the data can take a fair amount of time.  Having to load all of the partitions defeats the purpose of using \
 CHAMP to find the optimal subset.  As such we have equiped :mod:`champ.louvain_ext.PartitionEnsemble` \
 objects with the ability to write to and access hdf5 files.  Instead of loading the entire set of partitions each \
-time, only the coefficients, the domains of dominance, the underlying graph information is loaded. All individual partitions ( or \
-all partitions) can be access from file only if needed, as the example below illustrates:
+time, only the coefficients, the domains of dominance, the underlying graph information is loaded, vastly reducing the
+loading time and the memory required for large numbers of runs. Each individual partitions ( or \
+all partitions at once) can be access from file only if needed, as the example below illustrates:
 
 ------------------------------------------
 Saving and Loading PartitionEnsembles

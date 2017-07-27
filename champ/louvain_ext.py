@@ -60,8 +60,9 @@ class PartitionEnsemble():
     each of the membership vectors.
     :type graph: igraph.Graph
 
-    :cvar partitions: List of membership vectors for each partition
-
+    :cvar partitions:  of membership vectors for each partition.  If h5py is set this is a dummy \
+    variable that allows access to the file, but never actually hold the array of parititons.
+    :type partitions:  np.array
     :cvar int_edges:  Number of edges internal to the communities
     :type int_edges:  list
 
@@ -86,11 +87,14 @@ class PartitionEnsemble():
     :cvar min_com_size: How many nodes must be in a community for it to count towards the number \
     of communities.  This eliminates very small or unstable communities.  Default is 5
     :type min_com_size: int
+    :cvar unique_indices: The indices of the paritions that represent unique coefficients.  This will be a \
+    subset of all the partitions.
+
     '''
 
 
     def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
-        self._partitions = np.array([])
+
         self.hdf5_file=None
         self.int_edges = np.array([])
         self.exp_edges = np.array([])
@@ -101,7 +105,12 @@ class PartitionEnsemble():
         self.graph=graph
         self.min_com_size=min_com_size
         self.maxpt=maxpt
-        self._uniq_indices=None
+        #some private variable
+        self._partitions=np.array([])
+        self._uniq_coeff_indices=None
+        self._uniq_partition_indices=None
+        self._twin_partitions=None
+
         if listofparts!=None:
             self.add_partitions(listofparts,maxpt=self.maxpt)
         self.name=name
@@ -454,7 +463,7 @@ class PartitionEnsemble():
 
     def get_coefficient_array(self):
         '''
-        Create array of coefficents for each partition
+        Create array of coefficents for each partition.
 
         :return: np.array with coefficents for each of the partions
 
@@ -473,10 +482,40 @@ class PartitionEnsemble():
         return outlist
 
     @property
-    def unique_indices(self):
-        if self._uniq_indices is None:
-            self._uniq_indices=self.get_unique_coeff_indices()
-            return self._uniq_indices
+    def unique_coeff_indices(self):
+        if self._uniq_coeff_indices is None:
+            self._uniq_coeff_indices=self.get_unique_coeff_indices()
+            return self._uniq_coeff_indices
+
+    @property
+    def unique_partition_indices(self):
+        if self._uniq_partition_indices is None:
+            self._uniq_partition_indices=self.get_unique_partition_indices()
+            return self._uniq_partition_indices
+
+    @property
+    def non_unique_partitions(self):
+
+        if self._uniq_partition_indices is None:
+            self._twin_partitions,self._uniq_partition_indices=self._get_unique_twins_and_partition_indices()
+        return self._uniq_partition_indices
+
+
+
+    @property
+    def twin_partitions(self):
+        '''
+        We define twin partitions as those that have the same coefficients but are different partitions.\
+        To find these we look for the diffence in the unique partitions
+        :return: dictionary containing only non-unique indices mapping each to
+        :rtype: list of list (possibly empty if no twins)
+        '''
+
+        if self._twin_partitions is None:
+            self._twin_partitions,self._uniq_partition_indices=self._get_unique_twins_and_partition_indices()
+        return self._twin_partitions
+
+
 
 
 
@@ -494,32 +533,80 @@ class PartitionEnsemble():
         _,indices=np.unique(self.get_coefficient_array(),return_index=True,axis=0)
         return indices
 
+    def _reindex_part_array(self,part_array):
+        '''we renumber partitions labels to ensure that each goes from number 0,1,2,...
+        in order to compare.
 
-    def get_uniq_partition_indices(self):
+        :param part_array:
+        :type part_array:
+        :return: relabeled array
+        :rtype:
         '''
-        This returns the indices for the partitions who are unique.  This could be larger than the
-        indices for the unique coeficient
-        :return: list of indicies of unique partitions.
-        :rtype: np.array
+        out_array=np.zeros(part_array.shape)
+        for i in range(part_array.shape[0]):
+            clabdict={}
+            for j in range(part_array.shape[1]):
+                #Use len of cdict as value
+                clabdict[part_array[i][j]]=clabdict.get(part_array[i][j],len(clabdict))
+
+            for j in range(part_array.shape[1]):
+                out_array[i][j]=clabdict[part_array[i][j]]
+
+        return out_array
+
+
+    def _get_unique_twins_and_partition_indices(self, reindex=True):
+        '''
+        Returns the (possibly empty) list of twin partitions and the list of unique partitions.
+
+        :param reindex: if True, will reindex partitions that it is comparing to ensure they are unique under \
+        permutation.
+        :return: list of twin partition (can be empty), list of indicies of unique partitions.
+        :rtype: list,np.array
         '''
         uniq,index,reverse,counts=np.unique(self.get_coefficient_array(),
                                             return_index=True,return_counts=True,
                                             return_inverse=True,axis=0)
 
         ind2keep=index[np.where(counts==1)[0]]
+        twin_inds=[]
 
         for ind in np.where(counts>1)[0]:
             #we have to load the partitions and compare them to each other
             revinds=np.where(reverse==ind)[0]
             parts2comp=self.partitions[np.where(reverse==ind)[0]]
+            if reindex:
+                reindexed_parts2comp=self._reindex_part_array(parts2comp)
+            else:
+                reindexed_parts2comp=parts2comp
+
             #here curpart inds is which of of this current group of partitions are unique
-            _,curpart_inds=np.unique(parts2comp,axis=0,return_index=True)
+            _,curpart_inds=np.unique(reindexed_parts2comp,axis=0,return_index=True)
             #len of curpart_inds determines how many of the current ind group get added to
             #the ind2keep.  should always be at least one.
+            if ind2keep>1: #matching partitions with different coeffs
+                twin_inds.append(revinds[curpart_inds])
             ind2keep=np.append(ind2keep,revinds[curpart_inds])
 
         np.sort(ind2keep)
-        return  ind2keep
+        return  twin_inds,ind2keep
+
+    def get_unique_and_partition_indices(self,reindex=True):
+        '''
+       This returns the indices for the partitions who are unique.  This could be larger than the
+       indices for the unique coeficient since multiple partitions can give rise to the same coefficient. \
+       In practice this has been very rare.  This function can take sometime for larger network with many \
+       partitions since it reindex the partitions labels to ensure they aren't permutations of each other.
+
+       :param reindex: if True, will reindex partitions that it is comparing to ensure they are unique under \
+       permutation.
+       :return: list of twin partition (can be empty), list of indicies of unique partitions.
+       :rtype: list,np.array
+       '''
+        _,uniq_inds=self._get_unique_twins_and_partition_indices(reindex=reindex)
+        return uniq_inds
+
+
 
     def apply_CHAMP(self,maxpt=None):
         '''

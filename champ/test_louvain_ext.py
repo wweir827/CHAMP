@@ -36,10 +36,13 @@ def main():
     test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1)
     times = {}
     run_nums = [100]
-    ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
-
+    # ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
+    tst="/Users/whweir/Documents/UNC_SOM_docs/Mucha_Lab/Mucha_Python/UCRF/notebooks/nc_only_updated/graphs_with_parts_no_pcps/Combined_50000_prtens.hdf5"
+    ensemble= champ.PartitionEnsemble().open(tst)
+    print ensemble.numparts
+    print ensemble.twin_partitions
     print ensemble.get_unique_coeff_indices().shape
-    print ensemble.get_uniq_partition_indices().shape
+    print ensemble.get_unique_partition_indices().shape
 
     logging.info("Number of partitions in CHAMP: %d/%d " %( len(ensemble.ind2doms),ensemble.numparts))
 
