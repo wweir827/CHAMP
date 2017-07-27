@@ -12,7 +12,10 @@ import pandas as pd
 import igraph as ig
 from time import time
 import gzip
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import igraph as ig
 import numpy as np
 
@@ -33,8 +36,12 @@ def main():
     test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1)
     times = {}
     run_nums = [100]
-    ens = champ.parallel_louvain(test_graph, numprocesses=2, numruns=100, start=0, fin=4, maxpt=4, progress=False)
-    logging.info("Number of partitions in CHAMP: %d/%d " %( len(ens.ind2doms),ens.numparts))
+    ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
+
+    print ensemble.get_unique_coeff_indices().shape
+    print ensemble.get_uniq_partition_indices().shape
+
+    logging.info("Number of partitions in CHAMP: %d/%d " %( len(ensemble.ind2doms),ensemble.numparts))
 
     ens.save("name_PartEnsemble_100.hdf5", hdf5=True)
 

@@ -455,15 +455,15 @@ class PartitionEnsemble():
 
         '''
 
-        outlist=[self.int_edges[0],
-                self.exp_edges[0]]
+        outlist=np.array([[self.int_edges[0],
+                self.exp_edges[0]]])
 
         for i in range(1,self.numparts):
             outlist=np.append(
-                outlist,[
+                outlist,[[
                 self.int_edges[i],
                 self.exp_edges[i]
-            ])
+            ]],axis=0)
 
         return outlist
 
@@ -497,21 +497,24 @@ class PartitionEnsemble():
         :return: list of indicies of unique partitions.
         :rtype: np.array
         '''
-        uniq,index,counts,reverse=np.unique(self.get_coefficient_array(),
+        uniq,index,reverse,counts=np.unique(self.get_coefficient_array(),
                                             return_index=True,return_counts=True,
                                             return_inverse=True,axis=0)
+
         ind2keep=index[np.where(counts==1)[0]]
 
         for ind in np.where(counts>1)[0]:
             #we have to load the partitions and compare them to each other
+            revinds=np.where(reverse==ind)[0]
             parts2comp=self.partitions[np.where(reverse==ind)[0]]
             #here curpart inds is which of of this current group of partitions are unique
-            _,curpart_inds=np.unique(parts2comp,axis=1,return_index=True)
+            _,curpart_inds=np.unique(parts2comp,axis=0,return_index=True)
             #len of curpart_inds determines how many of the current ind group get added to
             #the ind2keep.  should always be at least one.
-            ind2keep=np.append(ind2keep,ind[curpart_inds])
+            ind2keep=np.append(ind2keep,revinds[curpart_inds])
 
-        return sorted(ind2keep)
+        np.sort(ind2keep)
+        return  ind2keep
 
     def apply_CHAMP(self,maxpt=None):
         '''
