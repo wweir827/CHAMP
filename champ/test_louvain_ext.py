@@ -33,24 +33,29 @@ def main():
 
     logging.info("Creating Random ER graph and partitioning")
     np.random.seed(0)
-    test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1)
+    test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1,m=None)
     times = {}
     run_nums = [100]
     # ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
-    tst="/Users/whweir/Documents/UNC_SOM_docs/Mucha_Lab/Mucha_Python/UCRF/notebooks/nc_only_updated/graphs_with_parts_no_pcps/Combined_50000_prtens.hdf5"
+    tst="/Users/whweir/Documents/UNC_SOM_docs/Mucha_Lab/Mucha_Python/UCRF/notebooks/nc_only_updated/graphs_with_parts_no_pcps/MDCR_50000_prtens.hdf5"
     ensemble= champ.PartitionEnsemble().open(tst)
-    print ensemble.numparts
-    print ensemble.twin_partitions
-    print ensemble.get_unique_coeff_indices().shape
-    print ensemble.get_unique_partition_indices().shape
+    print (ensemble.numparts)
+    print ("coefficients: " +str(ensemble.get_coefficient_array()[[3277,2608],:]))
+    print (ensemble.partitions[3277])
+    print (ensemble.partitions[2608])
+    print (np.where(ensemble.partitions[2608]!=ensemble.partitions[3277])[0])
+    print (ensemble.twin_partitions)
+
+
+    print (ensemble.unique_coeff_indices.shape)
+    print (ensemble.unique_partition_indices.shape)
 
     logging.info("Number of partitions in CHAMP: %d/%d " %( len(ensemble.ind2doms),ensemble.numparts))
 
-    ens.save("name_PartEnsemble_100.hdf5", hdf5=True)
 
     ens2 = champ.parallel_louvain(test_graph, numprocesses=2, numruns=100, start=0, fin=4, maxpt=4, progress=False)
     logging.info("merging ensembles")
-    ens3 = ens.merge_ensemble(ens2, new=False)
+    ens3 = ensemble.merge_ensemble(ens2, new=False)
     return 1
 
 def pydebug(type, value, tb):

@@ -18,6 +18,7 @@ __________
 .. toctree::
     :maxdepth: 2
 
+    self
     _static/intro
     _static/running
     _static/plotting2

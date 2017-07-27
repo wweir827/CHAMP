@@ -87,9 +87,15 @@ class PartitionEnsemble():
     :cvar min_com_size: How many nodes must be in a community for it to count towards the number \
     of communities.  This eliminates very small or unstable communities.  Default is 5
     :type min_com_size: int
-    :cvar unique_indices: The indices of the paritions that represent unique coefficients.  This will be a \
+    :cvar unique_partition_indices: The indices of the paritions that represent unique coefficients.  This will be a \
     subset of all the partitions.
-
+    :cvar hdf5_file: Current hdf5_file.  If not None, this serves as the default location for loading and writing \
+    partitions to, as well as the default location for saving.
+    :type hdf5_file: str
+    :type unique_partition_indices: np.array
+    :cvar twin_partitions:  We define twin partitions as those that have the same coefficients, but are actually \
+    different partitions.  This and the unique_partition_indices are only calculated on demand which can take some time.
+    :type twi_partitions: list of np.arrays
     '''
 
 
@@ -203,9 +209,9 @@ class PartitionEnsemble():
 
     @property
     def partitions(self):
-        '''custom definition of partitions so that access can be controlled. In particular if the \
-        PartitionEnsemble is read from a file, these values are only accessed as needed.'''
-        #If we have these return these.
+        '''Type/value of partitions is defined at time of access. If the PartitionEnsemble\
+        has an associated hdf5 file (PartitionEnsemble.hdf5_file), then partitions will be \
+        read and added to on the file, and not as an object in memory.'''
 
         if not self.hdf5_file is None:
 
@@ -214,6 +220,15 @@ class PartitionEnsemble():
         else:
             return self._partitions
 
+    @property
+    def hdf5_file(self):
+        return self.hdf5_file
+
+    @hdf5_file.setter
+    def hdf5_file(self,value):
+        '''Set new value for hdf5_file and automatically save to this file.'''
+        self.hdf5_file=value
+        self.save()
 
 
     def _check_lengths(self):
@@ -490,24 +505,17 @@ class PartitionEnsemble():
     @property
     def unique_partition_indices(self):
         if self._uniq_partition_indices is None:
-            self._uniq_partition_indices=self.get_unique_partition_indices()
-            return self._uniq_partition_indices
-
-    @property
-    def non_unique_partitions(self):
-
-        if self._uniq_partition_indices is None:
             self._twin_partitions,self._uniq_partition_indices=self._get_unique_twins_and_partition_indices()
         return self._uniq_partition_indices
-
-
 
     @property
     def twin_partitions(self):
         '''
         We define twin partitions as those that have the same coefficients but are different partitions.\
-        To find these we look for the diffence in the unique partitions
-        :return: dictionary containing only non-unique indices mapping each to
+        To find these we look for the diffence in the partitions with the same coefficients.
+
+        :return: List of groups of the indices of partitions that have the same coefficient but \
+        are non-identical.
         :rtype: list of list (possibly empty if no twins)
         '''
 
@@ -584,14 +592,14 @@ class PartitionEnsemble():
             _,curpart_inds=np.unique(reindexed_parts2comp,axis=0,return_index=True)
             #len of curpart_inds determines how many of the current ind group get added to
             #the ind2keep.  should always be at least one.
-            if ind2keep>1: #matching partitions with different coeffs
+            if len(curpart_inds)>1: #matching partitions with different coeffs
                 twin_inds.append(revinds[curpart_inds])
             ind2keep=np.append(ind2keep,revinds[curpart_inds])
 
         np.sort(ind2keep)
         return  twin_inds,ind2keep
 
-    def get_unique_and_partition_indices(self,reindex=True):
+    def get_unique_partition_indices(self,reindex=True):
         '''
        This returns the indices for the partitions who are unique.  This could be larger than the
        indices for the unique coeficient since multiple partitions can give rise to the same coefficient. \
@@ -708,7 +716,9 @@ class PartitionEnsemble():
 
     def save(self,filename=None,dir=".",hdf5=None,compress=9):
         '''
-        Use pickle or h5py to store representation of PartitionEnsemble in compressed file
+        Use pickle or h5py to store representation of PartitionEnsemble in compressed file.  When called \
+        if object has an assocated hdf5_file, this is the default file written to.  Otherwise objected \
+        is stored using pickle.
 
         :param filename: name of file to write to.  Default is created from name of ParititonEnsemble\: \
             "%s_PartEnsemble_%d" %(self.name,self.numparts)

@@ -28,7 +28,10 @@ constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and s
 
 .. _`louvain_ext.PartitionEnsemble`:
 .. autoclass:: champ.louvain_ext.PartitionEnsemble
-    :members: add_partitions,merge_ensemble,apply_CHAMP,plot_modularity_mapping,,save,save_graph,open
+
+
+
+
 
 ----------------------------
 Partition Ensemble Example
@@ -51,17 +54,20 @@ partitions to give rise to the same coefficients).
     tfile=tempfile.NamedTemporaryFile('wb')
     test_graph.write_graphmlz(tfile.name)
 
-    #non-parallelized wrapper
+    # non-parallelized wrapper
     ens1=champ.run_louvain(tfile.name,nruns=5,gamma=1)
 
-    #parallelized wrapper
+    # parallelized wrapper
     test_graph2=ig.Graph.Random_Bipartite(n1=100,n2=100,p=.1)
     ens2=champ.parallel_louvain(test_graph2,
                                       numruns=1000,start=0,fin=4,maxpt=4,
                                       numprocesses=2,
                                       progress=True)
 
-    print ("%d of %d domains after application of CHAMP"%(len(ens2.ind2doms),ens2.numparts))
+    print ("%d of %d partitions are unique"%(len(ens2.unique_partition_indices),ens2.numparts))
+    print ("%d of %d partitions after application of CHAMP"%(len(ens2.ind2doms),ens2.numparts))
+    print ("Number of twin sets:")
+    print (ens2.twin_partitions)
     #plot both of these
     plt.close()
     f,a=plt.subplots(1,3,figsize=(21,7))
@@ -79,24 +85,39 @@ partitions to give rise to the same coefficients).
 
 
 
+
+
 Output\:
 
-|   Run 0 at gamma = 0.000.  Return time: 0.0311
-|   Run 200 at gamma = 0.800.  Return time: 0.0508
-|   Run 100 at gamma = 0.400.  Return time: 0.0316
-|   Run 300 at gamma = 1.200.  Return time: 0.0736
-|   Run 400 at gamma = 1.600.  Return time: 0.0889
-|   Run 500 at gamma = 2.000.  Return time: 0.1135
-|   Run 600 at gamma = 2.400.  Return time: 0.0691
-|   Run 700 at gamma = 2.800.  Return time: 0.0743
-|   Run 800 at gamma = 3.200.  Return time: 0.0698
-|   Run 900 at gamma = 3.600.  Return time: 0.1002
-|   10 of 1000 domains after application of CHAMP
+|  Run 0 at gamma = 0.000.  Return time: 0.0264
+|  Run 200 at gamma = 0.800.  Return time: 0.0621
+|  Run 100 at gamma = 0.400.  Return time: 0.0589
+|  Run 300 at gamma = 1.200.  Return time: 0.0660
+|  Run 400 at gamma = 1.600.  Return time: 0.0963
+|  Run 500 at gamma = 2.000.  Return time: 0.0970
+|  Run 600 at gamma = 2.400.  Return time: 0.0828
+|  Run 700 at gamma = 2.800.  Return time: 0.0769
+|  Run 800 at gamma = 3.200.  Return time: 0.0763
+|  Run 900 at gamma = 3.600.  Return time: 0.0818
+|  847 of 1000 partitions are unique
+|  11 of 1000 partitions after application of CHAMP
+|  Number of twin sets:
+|   []
+|
 
+We see that there are a number of identical partitions here, there are no twin partitions .  That is \
+different partitions with the same coefficents.
 
 .. _`part_ens_exp`:
 .. image::  images/part_ens_exp.png
    :width: 90%
+
+.. automethod:: champ.louvain_ext.PartitionEnsemble.apply_CHAMP
+.. automethod:: champ.louvain_ext.PartitionEnsemble.plot_modularity_mapping
+.. automethod:: champ.louvain_ext.PartitionEnsemble.get_unique_partition_indices
+.. autoattribute:: champ.louvain_ext.PartitionEnsemble.twin_partitions
+
+
 
 -------------------------------------------------------------
 Creating and Managing Large Partition Sets
@@ -148,18 +169,34 @@ Saving and Loading PartitionEnsembles
     print "ensemble2 default hdf5 file: ",ensemble2.hdf5_file
 
 
-
 Output\:
 
 |   Ensemble 1, Optimal subset is 11 of 200 partitions
 |   200 partitions saved on ensemble1.hdf5
 |   ensemble2.partitions[38,:10]:
+|
 |   	[[1 0 1 0 0 0 0 0 1 1]
 |       [1 1 2 0 1 0 2 1 2 1]]
+|
 |   ensemble 2 has 12 of 300 partitions dominant
+|
+|
 
 You can see with the above example that CHAMP is reapplied everytime new partitions are added to the \
- :mod:`louvain_ext.PartitionEnsemble` instance.
+PartitionEnsemble instance.  In addition, whole PartitionEnsemble objects can be \
+merged together in a similar fashion.  You can either have a new PartitionEnsemble generated, containing the \
+contents of both the inputs.  Or one partition can be merged into the other one.  It automatically uses the \
+larger of the two to merge into.  In addition, if either PartitionEnsemble has an associated hdf5 file, \
+the merger will just expand the contents of the file and keep the same PartitionEnsemble object.
+
+.. automethod:: champ.louvain_ext.PartitionEnsemble.add_partitions
+.. autoattribute:: champ.louvain_ext.PartitionEnsemble.add_partitions
+.. autoattribute:: champ.louvain_ext.PartitionEnsemble.hdf5_file
+.. automethod:: champ.louvain_ext.PartitionEnsemble.save
+.. automethod:: champ.louvain_ext.PartitionEnsemble.save_graph
+.. automethod:: champ.louvain_ext.PartitionEnsemble.open
+
+
 
 ------------------------------------------------
 Merging PartitionEnsembles
@@ -202,6 +239,9 @@ Output\:
 |   Ensemble 3, Optimal subset is 15 of 400 partitions
 |   Ensemble 4, Optimal subset is 15 of 600 partitions
 |   ensemble4 is ensemble3:  True
+|
+
+.. automethod:: champ.louvain_ext.PartitionEnsemble.merge_ensemble
 
 
 -------------------------------------------------------
@@ -290,7 +330,7 @@ Output\:
 |   CHAMP running time 2000 runs: 988.658
 |   CHAMP running time 3000 runs: 1479.512
 |   CHAMP running time 10000 runs: 5091.727
-
+|
 
 .. _`runtime_exp`:
 .. image::  images/runtime_ex.png
