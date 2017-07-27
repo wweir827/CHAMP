@@ -178,7 +178,12 @@ class PartitionEnsemble():
 
         def __getitem__(self, item):
             with h5py.File(self.hdf5_file, 'r') as openfile:
-                return  openfile['_partitions'].__getitem__(item)
+                try:
+                    return  openfile['_partitions'].__getitem__(item)
+                except TypeError:
+                    #h5py has some controls on what can be used as a slice object.
+                    return  openfile['_partitions'].__getitem__(list(item))
+
 
         def __len__(self):
             with h5py.File(self.hdf5_file, 'r') as openfile:
@@ -188,7 +193,7 @@ class PartitionEnsemble():
             return "%d partitions saved on %s" %(len(self),self.hdf5_file)
 
     @property
-    def partitions(self,ind=None):
+    def partitions(self):
         '''custom definition of partitions so that access can be controlled. In particular if the \
         PartitionEnsemble is read from a file, these values are only accessed as needed.'''
         #If we have these return these.
