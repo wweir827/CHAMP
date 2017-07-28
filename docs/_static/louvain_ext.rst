@@ -372,12 +372,7 @@ took about 50 minutes of run time on our desktop.
 
    np.random.seed(0)
    test_graph=ig.Graph.Erdos_Renyi(n=karate.vcount(),m=karate.ecount())
-   #Create temporary file for calling louvain
-   tfile=tempfile.NamedTemporaryFile('wb')
-   test_graph.write_graphmlz(tfile.name)
 
-
-   test_graph=ig.Graph.Random_Bipartite(n1=75,n2=75,p=.1)
    plt.close()
    f,a=plt.subplots(2,5)
    f.set_size_inches((25,10))
