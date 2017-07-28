@@ -50,12 +50,12 @@ Dependencies
 Most of the dependencies for CHAMP are fairly standard tools for data analysis in Python, with the exception of
 `louvain_igraph <https://github.com/vtraag/louvain-igraph>`_.   They include :
 
-+ `NumPy <https://www.scipy.org/scipylib/download.html>`_
-+ `sklearn <http://scikit-learn.org/stable/install.html>`_
-+ `python-igraph <http://igraph.org/python/#downloads>`_
-+ `matplotlib <https://matplotlib.org/users/installing.html>`_
-+ `louvain <https://github.com/vtraag/louvain-igraph>`_
-+ `h5py <https://pypi.python.org/pypi/h5py>`_
++ `NumPy <https://www.scipy.org/scipylib/download.html>`_ \: Python numerical analysis library.
++ `sklearn <http://scikit-learn.org/stable/install.html>`_ \:Machine learning tools for python.
++ `python-igraph <http://igraph.org/python/#downloads>`_ \:igraph python version for manipulation of networks.
++ `matplotlib <https://matplotlib.org/users/installing.html>`_ \:Python data visualization library.
++ `louvain <https://github.com/vtraag/louvain-igraph>`_ \:Vincent Traag's implementation of louvain algorithm.
++ `h5py <https://pypi.python.org/pypi/h5py>`_ \: HDF5 file format library for ptyhon.
 
 These should all be handled automatically if using pip to install.
 

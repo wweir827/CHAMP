@@ -222,6 +222,8 @@ class PartitionEnsemble():
 
     @property
     def hdf5_file(self):
+        '''Default location for saving/loading PartitionEnsemble if hdf5 format is used.  When this is set\
+        it will automatically resave the PartitionEnsemble into the file specified.'''
         return self.hdf5_file
 
     @hdf5_file.setter

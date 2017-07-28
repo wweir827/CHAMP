@@ -336,6 +336,133 @@ Output\:
 .. image::  images/runtime_ex.png
    :width: 90%
 
+---------------------------------------------------
+Comparison of CHAMP on Random vs Structure Graphs
+---------------------------------------------------
+
+We have a more extended example below looking at the behavior of CHAMP on a well known structured \
+graph :cite:`zachary:1977` vs a random Erdos-Renyi realization for different number of partitions in the \
+input set. For each graph, we generate two input sets of a given size and compare there similarity \
+using :func:`champ.plot_similarity_heatmap_single_layer` function.  We also print out the number of domains \
+in optimal subset as well as the number of unique partitions actually identified by Louvain.  This example \
+took about 50 minutes of run time on our desktop.
+
+::
+
+   import champ
+   import igraph as ig
+   import tempfile
+   import numpy as np
+   import matplotlib.pyplot as plt
+   karate_edges=\
+       [[0, 1, 3, 6, 7, 8, 11, 15, 18, 21, 22, 24, 30, 32, 34, 46],[0, 2, 4, 12, 25, 31, 33, 35, 44],
+        [1, 2, 5, 13, 16, 17, 26, 38, 41, 50],[3, 4, 5, 14, 23, 27],[6, 9, 19],
+        [7, 10, 20, 28],[8, 9, 10, 29],[11, 12, 13, 14],[15, 16, 45, 51, 61],
+        [17, 62],[18, 19, 20],[21],[22, 23],[24, 25, 26, 27, 63],[52, 64],[53, 65],[28, 29],[30, 31],[54, 66],
+        [32, 33, 67],[55, 68],[34, 35],[56, 69],[36, 39, 42, 57, 70],[37, 40, 47],[36, 37, 48],
+        [43, 71],[38, 39, 40, 72],[41, 49, 73],[42, 43, 58, 74],[44, 45, 59, 75],[46, 47, 48, 49, 60, 76],
+        [50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 77],
+        [61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77]]
+
+   karate=ig.Graph(directed=False)
+   karate.add_vertices(78)
+   for i,edges in enumerate(karate_edges):
+       for j in edges:
+           karate.add_edge(source=i,target=j)
+
+   np.random.seed(0)
+   test_graph=ig.Graph.Erdos_Renyi(n=karate.vcount(),m=karate.ecount())
+   #Create temporary file for calling louvain
+   tfile=tempfile.NamedTemporaryFile('wb')
+   test_graph.write_graphmlz(tfile.name)
+
+
+   test_graph=ig.Graph.Random_Bipartite(n1=75,n2=75,p=.1)
+   plt.close()
+   f,a=plt.subplots(2,5)
+   f.set_size_inches((25,10))
+
+   allens=[[],[]]
+   runs=[2000,4000,8000,16000,32000]
+   for i,num in enumerate(runs):
+
+       ax=plt.subplot2grid((2,5),(0,i))
+
+       ens_rand1=champ.parallel_louvain(test_graph,
+                                         numruns=num,start=0,fin=4,maxpt=4,
+                                         numprocesses=20,
+                                         progress=False)
+       ens_rand2=champ.parallel_louvain(test_graph,
+                                         numruns=num,start=0,fin=4,maxpt=4,
+                                         numprocesses=20,
+                                         progress=False)
+       print "Random1 %d runs: final %d of unique %d"%(num,len(ens_rand1.ind2doms),len(ens_rand1.unique_coeff_indices))
+       print "Random2 %d runs: final %d of unique %d"%(num,len(ens_rand2.ind2doms),len(ens_rand2.unique_coeff_indices))
+
+       allens[0].append(np.mean([len(ens_rand1.ind2doms),len(ens_rand2.ind2doms)]))
+
+       ax,nmi=champ.plot_similarity_heatmap_single_layer(partitions=ens_rand1.partitions,
+                                                  index_2_domain=ens_rand1.ind2doms,
+                                                  index_2_dom_other=ens_rand2.ind2doms,
+                                                  partitions_other=ens_rand2.partitions,
+                                                  ax=ax)
+       ax.set_title("Random Num Runs %d"%(num))
+       ax=plt.subplot2grid((2,5),(1,i))
+
+
+       ens_kar1=champ.parallel_louvain(karate,
+                                         numruns=num,start=0,fin=4,maxpt=4,
+                                         numprocesses=20,
+                                         progress=False)
+       ens_kar2=champ.parallel_louvain(karate,
+                                         numruns=num,start=0,fin=4,maxpt=4,
+                                         numprocesses=20,
+                                         progress=False)
+
+       print "Karate1 %d runs: final %d of unique %d"%(num,len(ens_kar1.ind2doms),len(ens_kar1.unique_coeff_indices))
+       print "Karate2 %d runs: final %d of unique %d"%(num,len(ens_kar2.ind2doms),len(ens_kar2.unique_coeff_indices))
+
+       ax,nmi=champ.plot_similarity_heatmap_single_layer(partitions=ens_kar1.partitions,
+                                                  index_2_domain=ens_kar1.ind2doms,
+                                                  index_2_dom_other=ens_kar2.ind2doms,
+                                                  partitions_other=ens_kar2.partitions,
+                                                  ax=ax)
+
+       allens[1].append(np.mean([len(ens_kar1.ind2doms),len(ens_kar2.ind2doms)]))
+
+
+   plt.show()
+
+Output\:
+
+|   Random1 2000 runs: final 14 of unique 1716
+|   Random2 2000 runs: final 12 of unique 1710
+|   Karate1 2000 runs: final 20 of unique 803
+|   Karate2 2000 runs: final 19 of unique 824
+|   Random1 4000 runs: final 12 of unique 3414
+|   Random2 4000 runs: final 13 of unique 3414
+|   Karate1 4000 runs: final 19 of unique 1228
+|   Karate2 4000 runs: final 20 of unique 1169
+|   Random1 8000 runs: final 11 of unique 6814
+|   Random2 8000 runs: final 14 of unique 6811
+|   Karate1 8000 runs: final 21 of unique 1811
+|   Karate2 8000 runs: final 20 of unique 1798
+|   Random1 16000 runs: final 14 of unique 13534
+|   Random2 16000 runs: final 11 of unique 13502
+|   Karate1 16000 runs: final 22 of unique 2655
+|   Karate2 16000 runs: final 24 of unique 2653
+|   Random1 32000 runs: final 15 of unique 26592
+|   Random2 32000 runs: final 20 of unique 26578
+|   Karate1 32000 runs: final 21 of unique 3714
+|   Karate2 32000 runs: final 21 of unique 3630
+|
+
+.. _`random_comp`:
+.. image::  images/random_comp.png
+   :width: 90%
+
+
+
 References
 ___________
 

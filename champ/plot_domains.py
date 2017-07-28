@@ -164,8 +164,8 @@ def plot_single_layer_modularity_domains(ind_2_domains, ax=None, colors=None, la
 
 
 
-def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=None,
-                                         ax=None, cmap=None, title=None):
+def plot_similarity_heatmap_single_layer(partitions, index_2_domain, partitions_other=None,index_2_dom_other=None,
+                                         sim_mat=None,ax=None, cmap=None, title=None):
     '''
 
     :param partitions:
@@ -194,25 +194,34 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=Non
 
     ind_vals=zip(index_2_domain.keys(),[val[0][0] for val in index_2_domain.values()])
     ind_vals.sort(key=lambda x:x[1])
+    # Take the x coordinate of first point in each domain
+    gamma_transitions = [val for ind, val in ind_vals]
+    gamma_transitions.append(index_2_domain[ind_vals[-1][0]][-1][0])  # Append last point of last partition
+
+    #if there isn't a partition set to compare to the default is to compare to self.
+    if not( index_2_dom_other is None or partitions_other is None):
+        ind_vals2 = zip(index_2_dom_other.keys(), [val[0][0] for val in index_2_dom_other.values()])
+        ind_vals2.sort(key=lambda x: x[1])
+        gamma_transitions2 = [val for ind, val in ind_vals2]
+        gamma_transitions2.append(index_2_dom_other[ind_vals2[-1][0]][-1][0])
+    else:
+        ind_vals2 = ind_vals
+        gamma_transitions2=gamma_transitions
+        partitions_other=partitions
 
 
-
-    #Take the x coordinate of first point in each domain
-    gamma_transitions = [val for ind,val in ind_vals ]
-    gamma_transitions.append(index_2_domain[ind_vals[-1][0]][-1][0]) #Append last point of last partition
-
-    G1S, G2S = np.meshgrid(gamma_transitions, gamma_transitions)
-
+    # G2S, G1S = np.meshgrid(gamma_transitions2, gamma_transitions)
+    G1S, G2S = np.meshgrid(gamma_transitions2, gamma_transitions)
     if sim_mat is None:
-        AMI_mat = np.zeros((len(ind_vals), len(ind_vals)))
+        AMI_mat = np.zeros((len(ind_vals), len(ind_vals2)))
         for i  in range(len(ind_vals)):
-            for j in range(i, len(ind_vals)):
+            for j in range(len(ind_vals2)):
                 partition1=partitions[ind_vals[i][0]]
-                partition2=partitions[ind_vals[j][0]]
+                partition2=partitions_other[ind_vals2[j][0]]
 
                 AMI_mat[i][j] = adjusted_mutual_info_score(partition1,
                                                             partition2)
-                AMI_mat[j][i] = AMI_mat[i][j] #symmetric
+                # AMI_mat[j][i] = AMI_mat[i][j] #symmetric
     else:
         AMI_mat = sim_mat
 
@@ -226,11 +235,11 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, sim_mat=Non
 
     for gm in gamma_transitions:
         ax.axhline(gm, color='k', linestyle='dashed')
-    for gm in gamma_transitions:
+    for gm in gamma_transitions2:
         ax.axvline(gm, color='k', linestyle='dashed')
 
     ax.set_ylim(gamma_transitions[0], max(gamma_transitions))
-    ax.set_xlim(gamma_transitions[0], max(gamma_transitions))
+    ax.set_xlim(gamma_transitions2[0], max(gamma_transitions2))
     if not title is None:
         if title is True:
             ax.set_title('Adjusted Mutual Information between Partitions')
