@@ -6,7 +6,7 @@
 Welcome to CHAMP's documentation!
 =================================
 
-.. figure::  _static/images/graphs_all_three.png
+.. figure::  docs/_static/images/graphs_all_three.png
    :align:   center
    :figwidth: 95%
 
@@ -60,5 +60,5 @@ Please cite\:
 
 William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J Mucha. Post-processing partitions to identify domains of modularity optimization. arXiv.org, 2017. arXiv:1706.03675
 
-`bibtex <_static/champ.bib>`_
+`bibtex <docs/_static/champ.bib>`_
 
