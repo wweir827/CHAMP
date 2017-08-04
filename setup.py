@@ -12,7 +12,7 @@ options=dict( name='champ',
     zip_safe=False,
     classifiers=["Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3.3"],
-    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy>1.13',
+    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy>1.13','h5py',
                       'scipy','sklearn','louvain','python-igraph']
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]
