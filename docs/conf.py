@@ -69,14 +69,14 @@ if on_rtd:
                     'matplotlib.path',
                     'sklearn.metrics',
                     'sklearn', 'h5py',
-                    'scipy', 'scipy.sparse', 'ipython']
+                    'scipy', 'scipy.sparse', 'ipython','cython']
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 else:
     html_theme = 'sphinx_rtd_theme'
 
 #Have to specify all modules
 #These are for local mocks.
-autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py',
+autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py','cython',
                       'matplotlib.cm','matplotlib.colors','matplotlib.patches',
                       'matplotlib.path','matplotlib.lines','matplotlib.pyplot','matplotlib.patheffects',
                       'sklearn.metrics','numpy.random','sklearn','ipython','scipy']
