@@ -17,17 +17,17 @@ finds *local* optima.
 
 
 
-.. autofunction:: champ.louvain_ext.parallel_louvain
+.. autofunction:: champ.parallel_louvain
 
 
 We also have created a convenient class for managing and merging groups of partitions \
-called :mod:`champ.louvain_ext.PartitionEnsemble` .  This class stores the partitions in membership vector form \
+called :mod:`champ.PartitionEnsemble` .  This class stores the partitions in membership vector form \
 ( i.e. a list of N community assignments), as well as the coefficients for the partitions.  As part of its \
 constructor, the PartitionEnsemble applies CHAMP to all of its partitions, and stores the domains of dominance.
 
 
 .. _`louvain_ext.PartitionEnsemble`:
-.. autoclass:: champ.louvain_ext.PartitionEnsemble
+.. autoclass:: champ.PartitionEnsemble
 
 
 
@@ -190,7 +190,6 @@ larger of the two to merge into.  In addition, if either PartitionEnsemble has a
 the merger will just expand the contents of the file and keep the same PartitionEnsemble object.
 
 .. automethod:: champ.louvain_ext.PartitionEnsemble.add_partitions
-.. autoattribute:: champ.louvain_ext.PartitionEnsemble.add_partitions
 .. autoattribute:: champ.louvain_ext.PartitionEnsemble.hdf5_file
 .. automethod:: champ.louvain_ext.PartitionEnsemble.save
 .. automethod:: champ.louvain_ext.PartitionEnsemble.save_graph
