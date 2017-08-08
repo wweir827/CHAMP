@@ -33,20 +33,10 @@ def main():
 
     logging.info("Creating Random ER graph and partitioning")
     np.random.seed(0)
-    test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1,m=None)
-    times = {}
-    run_nums = [100]
-    # ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
-    tst="/Users/whweir/Documents/UNC_SOM_docs/Mucha_Lab/Mucha_Python/UCRF/notebooks/nc_only_updated/graphs_with_parts_no_pcps/MDCR_50000_prtens.hdf5"
-    ensemble= champ.PartitionEnsemble().open(tst)
+    test_graph = ig.Graph.Erdos_Renyi(n=200, p=.1)
+    ensemble = champ.parallel_louvain(test_graph, numprocesses=2, numruns=200, start=0, fin=4, maxpt=4, progress=False)
     print (ensemble.numparts)
-    print ("coefficients: " +str(ensemble.get_coefficient_array()[[3277,2608],:]))
-    print (ensemble.partitions[3277])
-    print (ensemble.partitions[2608])
-    print (np.where(ensemble.partitions[2608]!=ensemble.partitions[3277])[0])
     print (ensemble.twin_partitions)
-
-
     print (ensemble.unique_coeff_indices.shape)
     print (ensemble.unique_partition_indices.shape)
 

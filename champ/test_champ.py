@@ -20,9 +20,6 @@ def main():
     logging.info("Command: %s", " ".join(sys.argv))
     #create random planes
     test_hs=[]
-    # np.random.seed(0)
-    # print test_hs
-    # print test_int_dict
 
     logging.info("Multilayer Test")
     test_hs_arry=champ.get_random_halfspaces(50)
