@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CHAMP's documentation!
-=================================
+CHAMP (Convex Hull of Admissible Modularity Partitions
+=================================================================
+A modularity based tool for screening a set of partitoins.
 
 .. figure::  docs/_static/images/graphs_all_three.png
    :align:   center
@@ -58,8 +59,9 @@ Citation
 ___________
 Please cite\:
 
-William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J Mucha. Post-processing partitions to identify domains of modularity optimization. arXiv.org, 2017. arXiv:1706.03675
-
+| 1.  William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J Mucha. Post-processing partitions to identify domains of modularity optimization. arXiv.org, 2017. arXiv:1706.03675
+|
+| 2.  William H. Weir. Champ python package. 2017. https://github.com/wweir827/CHAMP.
 
 
 `bibtex <docs/_static/champ.bib>`_

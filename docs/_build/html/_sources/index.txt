@@ -13,7 +13,7 @@ Welcome to CHAMP's documentation!
 The CHAMP python package provides two levels of functionality:
 
 * Identifying the subset of partitions from a group of partitions (regardless of how they were discovered) with optimal modularity. See :ref:`running`.
-* Parallelized implementation of modularity based community detection method, `louvain <https://github.com/vtraag/louvain-igraph>`_ with efficient filtering ( *ala* CHAMP), management, and storage of the generated partitions. See :ref:`louvain_ext` .
+* Parallelized implementation of modularity based community detection method, `louvain <https://github.com/vtraag/louvain-igraph>`_ with efficient filtering (*ala* CHAMP), management, and storage of the generated partitions. See :ref:`louvain_ext` .
 
 
 Contents:
