@@ -62,7 +62,7 @@ Please cite\:
 | 1.  William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J Mucha. Post-processing partitions to identify domains of modularity optimization. arXiv.org, 2017. arXiv:1706.03675
 |
 | 2.  William H. Weir. Champ python package. 2017. https://github.com/wweir827/CHAMP.
-
+|
 
 `bibtex <docs/_static/champ.bib>`_
 
