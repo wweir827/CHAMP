@@ -66,6 +66,9 @@ Please cite\:
 
 `bibtex <docs/_static/champ.bib>`_
 
+For more details and results see our `preprint <https://arxiv.org/abs/1706.03675>`_
+
+
 Acknowledgements
 _________________
 
