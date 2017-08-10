@@ -1022,6 +1022,7 @@ class MultiLayerPartitionEnsemble():
     '''
 
     def __init__(self,adj_A=None,adj_P=None,adj_C=None,partitions=None,coef_array=None,maxpt=None,name="unnamed_multilayer_ensemble"):
+        raise  NotImplemented ("work in progress")
         self.adj_A=adj_A
         self.adj_C=adj_C
         self.adj_P=adj_P
