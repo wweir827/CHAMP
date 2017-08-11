@@ -257,12 +257,21 @@ def get_intersection(coef_array, max_pt=None):
     non_inf_vert = np.array([v for v in hs_inter.vertices if v[0] != np.inf])
     mx = np.max(non_inf_vert,axis=0)
 
+    # max intersection on yaxis (x=0) imples there are no intersectiosn in gamma direction.
+    if np.abs(mx[1])<np.power(10.0,-15) and np.abs(mx[1])<np.power(10.0,-15):
+        raise ValueError("Max intersection detected at (0,0).  Invalid input set.")
+
+    if np.abs(mx[1])<np.power(10.0,-15):
+        mx[1]=mx[0]
+    if np.abs(mx[0])<np.power(10.0,-15):
+        mx[0]=mx[1]
+
     #At this point we inlude max boundary planes and recalculate the intersection
     #to correct inf points.  We only do this for single layer
     if max_pt is None:
         if not singlelayer:
             halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0])),
-                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0* (mx[0]) )])
+                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0* (mx[1]) )])
             num2rm += 2
 
     if not singlelayer:

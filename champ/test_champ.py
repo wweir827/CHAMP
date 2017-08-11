@@ -26,9 +26,19 @@ def main():
     logging.info("Coefficent array: "+str(test_hs_arry.shape))
 
     test_hs=champ.create_halfspaces_from_array(test_hs_arry)
+    test_hs_array= np.array([[ 0.01952282, -0.31423295,  0.7157867 ],
+       [-0.25143036,  0.01881523,  0.50600329],
+       [ 0.35820641, -0.39882791,  0.50962841],
+       [ 0.29615668, -0.01859933,  0.39495284],
+       [ 0.28248495, -0.3065654 ,  0.53979975],
+       [ 0.19956666, -0.04699647,  0.41592189],
+       [-0.22016126,  0.00506596,  0.74269582],
+       [ 0.03799577, -0.04149145,  0.38461615],
+       [-0.28777492,  0.21594638,  0.65241822],
+       [ 0.01847376,  0.28849111,  0.17194509]])
 
     logging.info("Number of Initial Partitions: %d" %(len(test_hs)) )
-    ind_2_doms=champ.get_intersection(test_hs_arry)
+    ind_2_doms=champ.get_intersection(test_hs_array)
     logging.info("Number of Admissible Partitions: %d" %(len(ind_2_doms.keys())))
     #plot domain by domain
     # for i,dom in ind_2_doms.items():
