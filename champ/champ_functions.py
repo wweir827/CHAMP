@@ -258,7 +258,7 @@ def get_intersection(coef_array, max_pt=None):
     mx = np.max(non_inf_vert,axis=0)
 
     # max intersection on yaxis (x=0) imples there are no intersectiosn in gamma direction.
-    if np.abs(mx[1])<np.power(10.0,-15) and np.abs(mx[1])<np.power(10.0,-15):
+    if np.abs(mx[0])<np.power(10.0,-15) and np.abs(mx[1])<np.power(10.0,-15):
         raise ValueError("Max intersection detected at (0,0).  Invalid input set.")
 
     if np.abs(mx[1])<np.power(10.0,-15):
