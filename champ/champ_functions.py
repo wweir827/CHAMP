@@ -270,8 +270,8 @@ def get_intersection(coef_array, max_pt=None):
     #to correct inf points.  We only do this for single layer
     if max_pt is None:
         if not singlelayer:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[0])),
-                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0* (mx[1]) )])
+            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[1])),
+                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0 * (mx[0]) )])
             num2rm += 2
 
     if not singlelayer:
