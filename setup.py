@@ -1,7 +1,7 @@
 from setuptools import setup
 
 options=dict( name='champ',
-    version='1.0.6',
+    version='1.0.7',
     packages=['champ'],
     url='http://github.com/wweir827/champ',
     license='GPLv3+',
