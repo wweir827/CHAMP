@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CHAMP's documentation!
-=================================
+CHAMP (Convex Hull of Admissible Modularity Partitions
+=================================================================
+A modularity based tool for screening a set of partitoins.
 
 .. figure::  _static/images/graphs_all_three.png
    :align:   center
@@ -74,8 +75,17 @@ Please cite\:
 
 `bibtex <_static/champ.bib>`_
 
+For more details and results see our `preprint <https://arxiv.org/abs/1706.03675>`_
+
 
 
 * :ref:`genindex`
 * :ref:`search`
 
+Acknowledgements
+_________________
+This project was supported by the James S. McDonnell Foundation 21st Century Science Initiative -\
+ Complex Systems Scholar Award grant #220020315, by the National Institutes of Health through Award \
+ Numbers R01HD075712, R56DK111930 and T32GM067553, and by the CDC Prevention Epicenter Program. The \
+ content is solely the responsibility of the authors and does not necessarily represent the official \
+ views of the funding agencies.
