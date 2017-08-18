@@ -86,8 +86,8 @@ For more details and results see our `preprint <https://arxiv.org/abs/1706.03675
 Acknowledgements
 _________________
 
-This project was supported by the James S. McDonnell Foundation 21st Century Science Initiative -\
-Complex Systems Scholar Award grant #220020315, by the National Institutes of Health through Award \
+This project was supported by the James S. McDonnell Foundation 21st Century Science\
+Initiative-Complex Systems Scholar Award grant #220020315, by the National Institutes of Health through Award \
 Numbers R01HD075712, R56DK111930 and T32GM067553, and by the CDC Prevention Epicenter Program. The \
 content is solely the responsibility of the authors and does not necessarily represent the official \
 views of the funding agencies.
