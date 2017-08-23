@@ -51,7 +51,7 @@ Most of the dependencies for CHAMP are fairly standard tools for data analysis i
 + `python-igraph <http://igraph.org/python/#downloads>`_ \:igraph python version for manipulation of networks.
 + `matplotlib <https://matplotlib.org/users/installing.html>`_ \:Python data visualization library.
 + `louvain <https://github.com/vtraag/louvain-igraph>`_ \:Vincent Traag's implementation of louvain algorithm.
-+ `h5py <https://pypi.python.org/pypi/h5py>`_ \: HDF5 file format library for ptyhon.
++ `h5py <https://pypi.python.org/pypi/h5py>`_ \: HDF5 file format library for python.
 
 These should all be handled automatically if using pip to install.
 
