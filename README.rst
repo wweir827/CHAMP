@@ -59,7 +59,7 @@ Citation
 ___________
 Please cite\:
 
-| 1.  William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J Mucha. Post-processing partitions to identify domains of modularity optimization. arXiv.org, 2017. arXiv:1706.03675
+| 1.  William H. Weir, Scott Emmons, Ryan Gibson, Dane Taylor, and Peter J. Mucha. Post-processing partitions to identify domains of modularity optimization. Algorithms, 2017. URL: http://www.mdpi.com/1999-4893/10/3/93, doi:10.3390/a10030093.
 |
 | 2.  William H. Weir, Ryan Gibson, and Peter J Mucha. Champ package: Convex Hull of Admissible Modularity Partitions in python and matlab. 2017. https://github.com/wweir827/CHAMP.
 |

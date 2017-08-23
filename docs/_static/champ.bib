@@ -1,14 +1,15 @@
-@Article{champPaper,
+@article{weir::champ,
 AUTHOR = {Weir, William H. and Emmons, Scott and Gibson, Ryan and Taylor, Dane and Mucha, Peter J.},
 TITLE = {Post-Processing Partitions to Identify Domains of Modularity Optimization},
 JOURNAL = {Algorithms},
 VOLUME = {10},
 YEAR = {2017},
 NUMBER = {3},
-ARTICLE NUMBER = {93},
+ARTICLE-NUMBER = {93},
 URL = {http://www.mdpi.com/1999-4893/10/3/93},
 ISSN = {1999-4893},
-DOI = {10.3390/a10030093}
+ABSTRACT = {We introduce the Convex Hull of Admissible Modularity Partitions (CHAMP) algorithm to prune and prioritize different network community structures identified across multiple runs of possibly various computational heuristics. Given a set of partitions, CHAMP identifies the domain of modularity optimization for each partition—i.e., the parameter-space domain where it has the largest modularity relative to the input set—discarding partitions with empty domains to obtain the subset of partitions that are “admissible” candidate community structures that remain potentially optimal over indicated parameter domains. Importantly, CHAMP can be used for multi-dimensional parameter spaces, such as those for multilayer networks where one includes a resolution parameter and interlayer coupling. Using the results from CHAMP, a user can more appropriately select robust community structures by observing the sizes of domains of optimization and the pairwise comparisons between partitions in the admissible subset. We demonstrate the utility of CHAMP with several example networks. In these examples, CHAMP focuses attention onto pruned subsets of admissible partitions that are 20-to-1785 times smaller than the sets of unique partitions obtained by community detection heuristics that were input into CHAMP.},
+DOI = {10.3390/a10030093},
 }
 
 @misc{WeirCHAMP,
