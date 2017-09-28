@@ -786,7 +786,7 @@ class PartitionEnsemble():
                 filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
         if hdf5:
-            with h5py.File(filename,'w') as outfile:
+            with h5py.File(os.path.join(dir,filename),'w') as outfile:
 
                 for k,val in iteritems(self.__dict__):
                     #store dictionary type object as its own group

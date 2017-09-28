@@ -15,7 +15,7 @@ options=dict( name='champ',
                  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                  "Topic :: Scientific/Engineering :: Information Analysis",
                  ],
-    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy>1.13',
+    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy>1.13','h5py',
                       'scipy','sklearn','louvain','python-igraph']
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]
