@@ -22,6 +22,7 @@ import igraph as ig
 import louvain
 import numpy as np
 import h5py
+import sklearn.metrics as skm
 
 
 try:
@@ -116,6 +117,7 @@ class PartitionEnsemble():
         self._uniq_coeff_indices=None
         self._uniq_partition_indices=None
         self._twin_partitions=None
+        self._sim_mat=None
 
         if listofparts!=None:
             self.add_partitions(listofparts,maxpt=self.maxpt)
@@ -410,6 +412,7 @@ class PartitionEnsemble():
                 self.numparts=len(self.partitions)
             #update the pruned set
         self.apply_CHAMP(maxpt=self.maxpt)
+        self.sim_mat #set the sim_mat
 
     def get_champ_gammas(self):
         '''
@@ -544,8 +547,20 @@ class PartitionEnsemble():
             self._twin_partitions,self._uniq_partition_indices=self._get_unique_twins_and_partition_indices()
         return self._twin_partitions
 
+    @property
+    def sim_mat(self):
+        if self._sim_mat is None:
+            sim_mat = np.zeros((len(self.ind2doms), len(self.ind2doms)))
+            for i in range(len(len(self.ind2doms))):
+                for j in range(i,len(len(self.ind2doms))):
+                    partition1 = self.partitions[self.ind2doms[i]]
+                    partition2 = self.partitions[self.ind2doms[j]]
 
-
+                    sim_mat[i][j] = skm.adjusted_mutual_info_score(partition1,
+                                                               partition2)
+                    sim_mat[j][i] = sim_mat[j][i]
+            self._sim_mat=sim_mat
+        return self._sim_mat
 
 
     def get_unique_coeff_indices(self):
@@ -723,8 +738,6 @@ class PartitionEnsemble():
         :type file: h5py.File
 
         '''
-
-
 
         grph=file['graph']
         directed=bool(grph['directed'].value)
