@@ -411,7 +411,26 @@ class PartitionEnsemble():
             #update the pruned set
         self.apply_CHAMP(maxpt=self.maxpt)
 
+    def get_champ_gammas(self):
+        '''
+        Return the first coordinate for each range in the dominante domain, sorted by increasing gamma
+        :return: sorted list
+        '''
+        allgams = sorted(set([pt[0] for pts in self.ind2doms.values() for pt in pts]))
+        return allgams
 
+    def get_broadedst_domains(self, n=4):
+        '''
+        Return the starting $\gamma$ for the top n domains by the length of the domain \
+        (i.e. $\gamma_{i+1}-\gamma_{i}$)
+
+        :param n: number of top starting values to return
+        :return: list of n $\gamma$ values
+        '''
+        prune_gammas=self.get_champ_gammas()
+        gam_ind = zip(np.diff(prune_gammas), range(len(prune_gammas) - 1))
+        gam_ind.sort(key=lambda (x): x[0], reverse=True)
+        return [(prune_gammas[gam_ind[i][1]], gam_ind[i][0]) for i in range(n)]
 
     def get_partition_dictionary(self, ind=None):
         '''
