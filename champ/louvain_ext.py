@@ -1140,7 +1140,7 @@ def get_sum_internal_edges(partobj,weight=None):
        '''
     sumA=0
     for subg in partobj.subgraphs():
-        if weight!=None:
+        if weight is not None:
             sumA+= np.sum(subg.es[weight])
         else:
             sumA+= subg.ecount()
@@ -1272,6 +1272,8 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
         #delete from graph
         g.delete_vertices(gdel)
 
+    if weight is True:
+        weight='weight'
 
     outparts=[]
     for i in range(nruns):
@@ -1347,6 +1349,8 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
     if numprocesses is None:
         numprocesses=cpu_count()
 
+    if weight is True:
+        weight='weight'
 
     tempf=tempfile.NamedTemporaryFile('wb')
     graphfile=tempf.name
