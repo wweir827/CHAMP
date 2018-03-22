@@ -432,7 +432,7 @@ class PartitionEnsemble():
         '''
         prune_gammas=self.get_champ_gammas()
         gam_ind = zip(np.diff(prune_gammas), range(len(prune_gammas) - 1))
-        gam_ind.sort(key=lambda (x): x[0], reverse=True)
+        gam_ind.sort(key=lambda x: x[0], reverse=True)
         return [(prune_gammas[gam_ind[i][1]], gam_ind[i][0]) for i in range(n)]
 
     def get_partition_dictionary(self, ind=None):
@@ -551,10 +551,10 @@ class PartitionEnsemble():
     def sim_mat(self):
         if self._sim_mat is None:
             sim_mat = np.zeros((len(self.ind2doms), len(self.ind2doms)))
-            for i in range(len(len(self.ind2doms))):
-                for j in range(i,len(len(self.ind2doms))):
-                    partition1 = self.partitions[self.ind2doms[i]]
-                    partition2 = self.partitions[self.ind2doms[j]]
+            for i in range(len(self.ind2doms)):
+                for j in range(i,len(self.ind2doms)):
+                    partition1 = self.partitions[i]
+                    partition2 = self.partitions[j]
 
                     sim_mat[i][j] = skm.adjusted_mutual_info_score(partition1,
                                                                partition2)
@@ -1278,7 +1278,13 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
         rand_perm = list(np.random.permutation(g.vcount()))
         rperm = rev_perm(rand_perm)
         gr=g.permute_vertices(rand_perm) #This is just a labelling switch.  internal properties maintined.
-        rp = louvain.find_partition(gr, method='RBConfiguration',weight=weight,  resolution_parameter=gamma)
+
+        #In louvain > 0.6, change in the way the different methods are called.
+        #modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
+        rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,resolution_parameter=gamma)
+
+        #old way of calling
+        # rp = louvain.find_partition(gr, method='RBConfiguration',weight=weight,  resolution_parameter=gamma)
 
         #store the coefficients in return object.
         A=get_sum_internal_edges(rp,weight)
@@ -1286,7 +1292,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
         outparts.append({'partition': get_orig_ordered_mem_vec(rperm, rp.membership),
                          'resolution':gamma,
-                         'orig_mod': rp.quality,
+                         'orig_mod': rp.quality(),
                          'int_edges':A,
                          'exp_edges':P})
 
