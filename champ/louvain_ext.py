@@ -102,7 +102,7 @@ class PartitionEnsemble():
 
     def __init__(self,graph=None,listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
 
-        self.hdf5_file=None
+        self._hdf5_file=None
         self.int_edges = np.array([])
         self.exp_edges = np.array([])
         self.resolutions = np.array([])
@@ -191,10 +191,10 @@ class PartitionEnsemble():
     class _PartitionOnFile():
 
         def __init__(self,file=None):
-            self.hdf5_file=file
+            self._hdf5_file=file
 
         def __getitem__(self, item):
-            with h5py.File(self.hdf5_file, 'r') as openfile:
+            with h5py.File(self._hdf5_file, 'r') as openfile:
                 try:
                     return  openfile['_partitions'].__getitem__(item)
                 except TypeError:
@@ -203,11 +203,11 @@ class PartitionEnsemble():
 
 
         def __len__(self):
-            with h5py.File(self.hdf5_file, 'r') as openfile:
+            with h5py.File(self._hdf5_file, 'r') as openfile:
                 return  openfile['_partitions'].shape[0]
 
         def __str__(self):
-            return "%d partitions saved on %s" %(len(self),self.hdf5_file)
+            return "%d partitions saved on %s" %(len(self),self._hdf5_file)
 
     @property
     def partitions(self):
@@ -215,9 +215,9 @@ class PartitionEnsemble():
         has an associated hdf5 file (PartitionEnsemble.hdf5_file), then partitions will be \
         read and added to on the file, and not as an object in memory.'''
 
-        if not self.hdf5_file is None:
+        if not self._hdf5_file is None:
 
-            return PartitionEnsemble._PartitionOnFile(file=self.hdf5_file)
+            return PartitionEnsemble._PartitionOnFile(file=self._hdf5_file)
 
         else:
             return self._partitions
@@ -226,12 +226,12 @@ class PartitionEnsemble():
     def hdf5_file(self):
         '''Default location for saving/loading PartitionEnsemble if hdf5 format is used.  When this is set\
         it will automatically resave the PartitionEnsemble into the file specified.'''
-        return self.hdf5_file
+        return self._hdf5_file
 
     @hdf5_file.setter
     def hdf5_file(self,value):
         '''Set new value for hdf5_file and automatically save to this file.'''
-        self.hdf5_file=value
+        self._hdf5_file=value
         self.save()
 
 
@@ -244,8 +244,8 @@ class PartitionEnsemble():
         :return: boolean indicating states varaible lengths are equal
 
         '''
-        if not self.hdf5_file is None:
-            with h5py.File(self.hdf5_file) as openfile:
+        if not self._hdf5_file is None:
+            with h5py.File(self._hdf5_file) as openfile:
                 if openfile['_partitions'].shape[0] == len(self.int_edges) and \
                     openfile['_partitions'].shape[0] == len(self.resolutions) and \
                     openfile['_partitions'].shape[0] == len(self.exp_edges):
@@ -262,10 +262,10 @@ class PartitionEnsemble():
 
 
     def _combine_partitions_hdf5_files(self,otherfile):
-        if self.hdf5_file is None or otherfile is None:
+        if self._hdf5_file is None or otherfile is None:
             raise IOError("PartitionEnsemble does not have hdf5 file currently defined")
 
-        with h5py.File(self.hdf5_file,'a') as myfile:
+        with h5py.File(self._hdf5_file,'a') as myfile:
             with h5py.File(otherfile,'r') as file_2_add:
 
                 for attribute in ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges']:
@@ -286,7 +286,7 @@ class PartitionEnsemble():
         :type partitions: dict
 
         '''
-        with h5py.File(self.hdf5_file,'a') as openfile:
+        with h5py.File(self._hdf5_file,'a') as openfile:
             #Resize all of the arrays in the file
             orig_shape=openfile['_partitions'].shape
             for attribute in ['_partitions','resolutions','orig_mods',"int_edges",'exp_edges']:
@@ -362,7 +362,7 @@ class PartitionEnsemble():
         if not hasattr(partitions,'__iter__'):
             partitions=[partitions]
 
-        if self.hdf5_file is not None:
+        if self._hdf5_file is not None:
             # essential same as below, but everything is written to file and partitions \
             #aren't kept in object memory
             self._append_partitions_hdf5_file(partitions)
@@ -490,11 +490,11 @@ class PartitionEnsemble():
                 #reverse order of merging
                 return otherEnsemble.merge_ensemble(self,new=False)
             else:
-                if not self.hdf5_file is None and not otherEnsemble.hdf5_file is None:
+                if not self._hdf5_file is None and not otherEnsemble.hdf5_file is None:
                     #merge the second hdf5_file onto the other and then reopen it to
                     #reload everything.
                     self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
-                    self.open(self.hdf5_file)
+                    self.open(self._hdf5_file)
                     return self
                 else:
                     self.add_partitions(otherEnsemble.get_partition_dictionary())
@@ -769,7 +769,7 @@ class PartitionEnsemble():
         '''
 
         if hdf5 is None:
-            if self.hdf5_file is None:
+            if self._hdf5_file is None:
                 hdf5 is False
             else:
                 hdf5 is True
@@ -778,10 +778,10 @@ class PartitionEnsemble():
 
         if filename is None:
             if hdf5:
-                if self.hdf5_file is None:
+                if self._hdf5_file is None:
                     filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
                 else:
-                    filename=self.hdf5_file
+                    filename=self._hdf5_file
             else:
                 filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
@@ -818,7 +818,7 @@ class PartitionEnsemble():
                             cdset = outfile.create_dataset(k,data=val)
 
 
-            self.hdf5_file=filename
+            self._hdf5_file=filename
 
         else:
             with gzip.open(os.path.join(dir,filename),'wb') as fh:
@@ -878,7 +878,7 @@ class PartitionEnsemble():
 
             #store this for accessing partitions
 
-            self.hdf5_file=filename
+            self._hdf5_file=filename
             return self
 
         except IOError:
