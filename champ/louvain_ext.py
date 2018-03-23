@@ -677,7 +677,7 @@ class PartitionEnsemble():
 
         '''
 
-        inds=zip(self.ind2doms.keys(),[val[0][0] for val in self.ind2doms.values()])
+        inds=list(zip(self.ind2doms.keys(),[val[0][0] for val in self.ind2doms.values()]))
         #asscending sort by last value of domain
         inds.sort(key=lambda x: x[1])
 
@@ -1042,7 +1042,7 @@ class PartitionEnsemble():
 
         return ax
 
-            
+
 
 
 class MultiLayerPartitionEnsemble():
