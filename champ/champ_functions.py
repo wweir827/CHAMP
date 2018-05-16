@@ -72,12 +72,14 @@ def create_halfspaces_from_array(coef_array):
     :return: list of halfspaces with 4 boundary halfspaces appended to the end.
 
     '''
-    singlelayer=False
-    if coef_array.shape[1]==2:
-        singlelayer=True
+    singlelayer = False
+    if coef_array.shape[1] == 2:
+        singlelayer = True
 
-
-    halfspaces=[]
+    # array of shape (number of halfspaces, dimension+1)
+    # Each row represents a halfspace by [normal; offset]
+    # I.e. Ax + b <= 0 is represented by [A; b]
+    halfspaces = np.zeros((coef_array.shape[0], coef_array.shape[1] + 1))
     for i in np.arange(coef_array.shape[0]):
         cconst = coef_array[i, 0]
         cgamma = coef_array[i, 1]
@@ -85,20 +87,16 @@ def create_halfspaces_from_array(coef_array):
             comega = coef_array[i, 2]
 
         if singlelayer:
-            nv=np.array([cgamma, 1.0])
-            pt = np.array([0 , cconst])
-
+            nv = np.array([cgamma, 1.0])
+            pt = np.array([0, cconst])
         else:
-            nv=np.array([cgamma, -1 * comega, 1.0])
+            nv = np.array([cgamma, -1 * comega, 1.0])
             pt = np.array([0, 0, cconst])
 
-        nv = nv/np.linalg.norm(nv)
+        nv = nv / np.linalg.norm(nv)
         off = np.dot(nv, pt)
 
-        halfspace = hs.Halfspace(-1.0 * nv, off)
-        halfspaces.append(halfspace)
-
-
+        halfspaces[i, :] = np.append(-1.0 * nv, off)
 
     return halfspaces
 
@@ -127,14 +125,15 @@ def get_interior_point(hs_list):
 
     '''
 
-    z_vals=[ -1.0*hs.offset/hs.normal[-1] for hs in hs_list if
-             np.abs(hs.normal[-1]-0)>np.power(10.0,-15)]
+    normals, offsets = np.split(hs_list, [-1], axis=1)
+    z_vals = [-1.0 * offset / normal[-1] for normal, offset in zip(normals, offsets) if
+              np.abs(normal[-1]) > np.power(10.0, -15)]
 
-    #take a small step into interior from 1st plane.
-    dim = hs_list[0].normal.shape[0]
-    intpt=np.array([0 for _ in range(dim-1)]+[np.max(z_vals)])
-    internal_step=np.array([.000001 for _ in range(dim)])
-    return intpt+internal_step
+    # take a small step into interior from 1st plane.
+    dim = hs_list.shape[1] - 1  # hs_list has shape (number of halfspaces, dimension+1)
+    intpt = np.array([0 for _ in range(dim - 1)] + [np.max(z_vals)])
+    internal_step = np.array([.000001 for _ in range(dim)])
+    return intpt + internal_step
 
 
 
