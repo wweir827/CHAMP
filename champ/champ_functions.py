@@ -3,12 +3,11 @@ from future.utils import iteritems,iterkeys
 from future.utils import lmap
 
 from multiprocessing import Pool
-from collections import Hashable
+from collections import Hashable, Iterable
 from contextlib import contextmanager
 import numpy as np
 from numpy.random import uniform
-from pyhull import halfspace as hs
-
+from scipy.spatial import HalfspaceIntersection
 
 @contextmanager
 def terminating(obj):
@@ -218,91 +217,106 @@ def get_intersection(coef_array, max_pt=None):
     of the domain
     '''
 
+    halfspaces = create_halfspaces_from_array(coef_array)
+    num_input_halfspaces = len(halfspaces)
 
-    halfspaces=create_halfspaces_from_array(coef_array)
-
-    interior_pt=get_interior_point(halfspaces)
-    singlelayer=False
-    if halfspaces[0].normal.shape[0]==2:
-        singlelayer=True
-
+    interior_pt = get_interior_point(halfspaces)
+    singlelayer = False
+    if halfspaces.shape[1] - 1 == 2:  # 2D case, halfspaces.shape is (number of halfspaces, dimension+1)
+        singlelayer = True
 
     # Create Boundary Halfspaces - These will always be included in the convex hull
     # and need to be removed before returning dictionary
 
-    num2rm=0
+    boundary_halfspaces = []
     if not singlelayer:
         # origin boundaries
-        halfspaces.extend([hs.Halfspace(normal=(0, -1.0, 0), offset=0), hs.Halfspace(normal=(-1.0, 0, 0), offset=0)])
-        num2rm +=2
+        boundary_halfspaces.extend([np.array([0, -1.0, 0, 0]), np.array([-1.0, 0, 0, 0])])
         if max_pt is not None:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * max_pt[0]),
-                           hs.Halfspace(normal=(1.0, 0, 0), offset=-1 * max_pt[1])])
-            num2rm +=2
-
+            boundary_halfspaces.extend([np.array([0, 1.0, 0, -1.0 * max_pt[0]]),
+                                        np.array([1.0, 0, 0, -1.0 * max_pt[1]])])
     else:
-        halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0)) # y-axis
-        halfspaces.append(hs.Halfspace(normal=(0,-1), offset=0)) # x-axis
-
-        num2rm +=2
+        boundary_halfspaces.extend([np.array([-1.0, 0, 0]),  # y-axis
+                                    np.array([0, -1.0, 0])])  # x-axis
         if max_pt is not None:
-            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt))
-            num2rm+=1
+            boundary_halfspaces.append(np.array([1.0, 0, -1.0 * max_pt]))
 
+    # We expect infinite vertices in the halfspace intersection, so we can ignore numpy's floating point warnings
+    old_settings = np.seterr(divide='ignore', invalid='ignore')
 
-    hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
-    ind_2_domain = {}
+    # Find boundary intersection of half spaces
+    hs_inter = HalfspaceIntersection(np.vstack([halfspaces] + boundary_halfspaces), interior_pt)
 
-    non_inf_vert = np.array([v for v in hs_inter.vertices if v[0] != np.inf])
-    mx = np.max(non_inf_vert,axis=0)
+    non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v[0])])
+    mx = np.max(non_inf_vert, axis=0)
 
-    # max intersection on yaxis (x=0) imples there are no intersectiosn in gamma direction.
-    if np.abs(mx[0])<np.power(10.0,-15) and np.abs(mx[1])<np.power(10.0,-15):
+    # max intersection on y-axis (x=0) implies there are no intersections in gamma direction.
+    if np.abs(mx[0]) < np.power(10.0, -15) and np.abs(mx[1]) < np.power(10.0, -15):
         raise ValueError("Max intersection detected at (0,0).  Invalid input set.")
 
-    if np.abs(mx[1])<np.power(10.0,-15):
-        mx[1]=mx[0]
-    if np.abs(mx[0])<np.power(10.0,-15):
-        mx[0]=mx[1]
+    if np.abs(mx[1]) < np.power(10.0, -15):
+        mx[1] = mx[0]
+    if np.abs(mx[0]) < np.power(10.0, -15):
+        mx[0] = mx[1]
 
-    #At this point we inlude max boundary planes and recalculate the intersection
-    #to correct inf points.  We only do this for single layer
+    # At this point we include max boundary planes and recalculate the intersection
+    # to correct inf points.  We only do this for single layer
     if max_pt is None:
         if not singlelayer:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[1])),
-                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0 * (mx[0]) )])
-            num2rm += 2
+            boundary_halfspaces.extend([np.array([0, 1.0, 0, -1.0 * mx[1]]),
+                                        np.array([1.0, 0, 0, -1.0 * mx[0]])])
 
     if not singlelayer:
-        hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
+        # Find boundary intersection of half spaces
+        hs_inter = HalfspaceIntersection(np.vstack((halfspaces,) + tuple(boundary_halfspaces)), interior_pt)
 
-    # assert not any([ coord==np.inf  for v in hs_inter.vertices for coord in v ])
+    # revert numpy floating point warnings
+    np.seterr(**old_settings)
 
+    # assert not any([coord == np.inf for v in hs_inter.vertices for coord in v])
 
-    rep_verts = [v if v[0] != np.inf else mx for v in hs_inter.vertices]
+    rep_verts = [v if np.isfinite(v[0]) else mx for v in hs_inter.intersections]
     # rep_verts=hs_inter.vertices
 
-    for i, vlist in enumerate(hs_inter.facets_by_halfspace):
-        #Empty domains
+    # scipy does not support facets by halfspace directly, so we must compute them
+    # this may be very slow if the number of facets in the dual convex hull is large
+    def flatten(container):
+        for l in container:
+            if isinstance(l, Iterable):
+                for x in flatten(l):
+                    yield x
+            else:
+                yield l
+
+    enclosing_halfspace_indices = set(flatten(hs_inter.dual_facets))
+    normals, offsets = np.split(hs_inter.halfspaces, [-1], axis=1)
+    facets_by_halfspace = ([v for v in rep_verts if np.linalg.norm(np.dot(normal, v) + offset) < 1e-10]
+                           if i in enclosing_halfspace_indices else []
+                           for i, (normal, offset) in enumerate(zip(normals, offsets)))
+
+    ind_2_domain = {}
+
+    for i, vlist in enumerate(facets_by_halfspace):
+        # Empty domains
         if len(vlist) == 0:
             continue
 
         # these are the boundary planes appended on end
-        if not i < len(hs_inter.facets_by_halfspace) - num2rm :
+        if not i < num_input_halfspaces:
             continue
 
-        pts=sort_points([rep_verts[v] for v in vlist])
-        pt2rm=[]
-        for j in range(len(pts)-1):
-            if comp_points(pts[j],pts[j+1]):
+        pts = sort_points(vlist)
+        pt2rm = []
+        for j in range(len(pts) - 1):
+            if comp_points(pts[j], pts[j + 1]):
                 pt2rm.append(j)
         pt2rm.reverse()
         for j in pt2rm:
             pts.pop(j)
-        if len(pts)>=len(rep_verts[0]): #must be at least 2 pts in 2D , 3 pt in 3D, etc.
-            ind_2_domain[i]=pts
+        if len(pts) >= len(rep_verts[0]):  # must be at least 2 pts in 2D, 3 pt in 3D, etc.
+            ind_2_domain[i] = pts
 
-        #use non-inf vertices to return
+    # use non-inf vertices to return
     return ind_2_domain
 
 
