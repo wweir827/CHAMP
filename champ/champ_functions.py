@@ -8,6 +8,8 @@ from contextlib import contextmanager
 import numpy as np
 from numpy.random import uniform
 from scipy.spatial import HalfspaceIntersection
+from scipy.optimize import linprog
+import warnings
 
 @contextmanager
 def terminating(obj):
@@ -68,7 +70,7 @@ def create_halfspaces_from_array(coef_array):
     Where each row represents the coefficients for a particular partition.
     For single Layer network, omit C_i's.
 
-    :return: list of halfspaces with 4 boundary halfspaces appended to the end.
+    :return: list of halfspaces.
 
     '''
     singlelayer = False
@@ -118,11 +120,26 @@ def get_interior_point(hs_list):
     '''
     Find interior point to calculate intersections
     :param hs_list: list of halfspaces
-    :return: interior point of intersections at (0+.001,0+.001,max(A_ij)) the
-    maximum modularity value of any of the partitions at 0,0 needed to calculate
-    interior intersection.
-
+    :return: the point most interior to the halfspace intersection polyhedron (Chebyshev center) if this computation is
+    feasible. Otherwise, a point a small step towards the interior from the first plane in hs_list.
     '''
+
+    if len(hs_list) < 500:  # For performance reasons, limit to small inputs for now
+        norm_vector = np.reshape(np.linalg.norm(hs_list[:, :-1], axis=1), (hs_list.shape[0], 1))
+        c = np.zeros((hs_list.shape[1],))
+        c[-1] = -1
+        A = np.hstack((hs_list[:, :-1], norm_vector))
+        b = -hs_list[:, -1:]
+
+        try:
+            res = linprog(c, A_ub=A, b_ub=b)
+            if res.success:
+                return res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
+        except MemoryError:
+            # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
+            warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)
+
+        warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
 
     normals, offsets = np.split(hs_list, [-1], axis=1)
     z_vals = [-1.0 * offset / normal[-1] for normal, offset in zip(normals, offsets) if
@@ -212,7 +229,7 @@ def get_intersection(coef_array, max_pt=None):
    :type coef_array: array
    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
     to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).
-   :type max_pt: (float,float)
+   :type max_pt: (float,float) or float
    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''
@@ -220,7 +237,6 @@ def get_intersection(coef_array, max_pt=None):
     halfspaces = create_halfspaces_from_array(coef_array)
     num_input_halfspaces = len(halfspaces)
 
-    interior_pt = get_interior_point(halfspaces)
     singlelayer = False
     if halfspaces.shape[1] - 1 == 2:  # 2D case, halfspaces.shape is (number of halfspaces, dimension+1)
         singlelayer = True
@@ -244,8 +260,18 @@ def get_intersection(coef_array, max_pt=None):
     # We expect infinite vertices in the halfspace intersection, so we can ignore numpy's floating point warnings
     old_settings = np.seterr(divide='ignore', invalid='ignore')
 
+    halfspaces = np.vstack((halfspaces, ) + tuple(boundary_halfspaces))
+
+    if not singlelayer and max_pt is None:
+        # in this case, we will calculate max boundary planes later, so we'll impose x, y <= 10.0
+        # for the interior point calculation here.
+        interior_pt = get_interior_point(np.vstack((halfspaces,) +
+                                                   (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))))
+    else:
+        interior_pt = get_interior_point(halfspaces)
+
     # Find boundary intersection of half spaces
-    hs_inter = HalfspaceIntersection(np.vstack([halfspaces] + boundary_halfspaces), interior_pt)
+    hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
 
     non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v[0])])
     mx = np.max(non_inf_vert, axis=0)
@@ -265,10 +291,12 @@ def get_intersection(coef_array, max_pt=None):
         if not singlelayer:
             boundary_halfspaces.extend([np.array([0, 1.0, 0, -1.0 * mx[1]]),
                                         np.array([1.0, 0, 0, -1.0 * mx[0]])])
+            halfspaces = np.vstack((halfspaces, ) + tuple(boundary_halfspaces[-2:]))
 
     if not singlelayer:
         # Find boundary intersection of half spaces
-        hs_inter = HalfspaceIntersection(np.vstack((halfspaces,) + tuple(boundary_halfspaces)), interior_pt)
+        interior_pt = get_interior_point(halfspaces)
+        hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
 
     # revert numpy floating point warnings
     np.seterr(**old_settings)
