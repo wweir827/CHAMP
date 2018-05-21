@@ -71,35 +71,31 @@ def create_halfspaces_from_array(coef_array):
     For single Layer network, omit C_i's.
 
     :return: list of halfspaces.
-
     '''
+
     singlelayer = False
     if coef_array.shape[1] == 2:
         singlelayer = True
 
+    cconsts = coef_array[:, 0]
+    cgammas = coef_array[:, 1]
+    if not singlelayer:
+        comegas = coef_array[:, 2]
+
+    if singlelayer:
+        nvs = np.vstack((cgammas, np.ones(coef_array.shape[0])))
+        pts = np.vstack((np.zeros(coef_array.shape[0]), cconsts))
+    else:
+        nvs = np.vstack((cgammas, -comegas, np.ones(coef_array.shape[0])))
+        pts = np.vstack((np.zeros(coef_array.shape[0]), np.zeros(coef_array.shape[0]), cconsts))
+
+    nvs = nvs / np.linalg.norm(nvs, axis=0)
+    offs = np.sum(nvs * pts, axis=0)  # dot product on each column
+
     # array of shape (number of halfspaces, dimension+1)
     # Each row represents a halfspace by [normal; offset]
     # I.e. Ax + b <= 0 is represented by [A; b]
-    halfspaces = np.zeros((coef_array.shape[0], coef_array.shape[1] + 1))
-    for i in np.arange(coef_array.shape[0]):
-        cconst = coef_array[i, 0]
-        cgamma = coef_array[i, 1]
-        if not singlelayer:
-            comega = coef_array[i, 2]
-
-        if singlelayer:
-            nv = np.array([cgamma, 1.0])
-            pt = np.array([0, cconst])
-        else:
-            nv = np.array([cgamma, -1 * comega, 1.0])
-            pt = np.array([0, 0, cconst])
-
-        nv = nv / np.linalg.norm(nv)
-        off = np.dot(nv, pt)
-
-        halfspaces[i, :] = np.append(-1.0 * nv, off)
-
-    return halfspaces
+    return np.vstack((-nvs, offs)).T
 
 def sort_points(points):
     '''
