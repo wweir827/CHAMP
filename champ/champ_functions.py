@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from collections import Hashable, Iterable
 from contextlib import contextmanager
 import numpy as np
-from numpy.random import uniform
+from numpy.random import choice, uniform
 from scipy.spatial import HalfspaceIntersection
 from scipy.optimize import linprog
 import warnings
@@ -120,28 +120,38 @@ def get_interior_point(hs_list):
     '''
     Find interior point to calculate intersections
     :param hs_list: list of halfspaces
-    :return: the point most interior to the halfspace intersection polyhedron (Chebyshev center) if this computation is
-    feasible. Otherwise, a point a small step towards the interior from the first plane in hs_list.
+    :return: an approximation to the point most interior to the halfspace intersection polyhedron (Chebyshev center) if
+    this computation succeeds. Otherwise, a point a small step towards the interior from the first plane in hs_list.
     '''
 
-    if len(hs_list) < 500:  # For performance reasons, limit to small inputs for now
-        norm_vector = np.reshape(np.linalg.norm(hs_list[:, :-1], axis=1), (hs_list.shape[0], 1))
-        c = np.zeros((hs_list.shape[1],))
-        c[-1] = -1
-        A = np.hstack((hs_list[:, :-1], norm_vector))
-        b = -hs_list[:, -1:]
-
-        try:
-            res = linprog(c, A_ub=A, b_ub=b)
-            if res.success:
-                return res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
-        except MemoryError:
-            # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
-            warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)
-
-        warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
-
     normals, offsets = np.split(hs_list, [-1], axis=1)
+    # in our case, the last four halfspaces may be boundary halfspaces
+    interior_hs, boundaries = np.split(hs_list, [-4], axis=0)
+
+    # randomly sample up to 50 of the halfspaces
+    sample_len = min(50, len(interior_hs))
+    sampled_hs = np.vstack((interior_hs[choice(interior_hs.shape[0], sample_len, replace=False)], boundaries))
+
+    # compute the Chebyshev center of the sampled halfspaces' intersection
+    norm_vector = np.reshape(np.linalg.norm(sampled_hs[:, :-1], axis=1), (sampled_hs.shape[0], 1))
+    c = np.zeros((sampled_hs.shape[1],))
+    c[-1] = -1
+    A = np.hstack((sampled_hs[:, :-1], norm_vector))
+    b = -sampled_hs[:, -1:]
+
+    try:
+        res = linprog(c, A_ub=A, b_ub=b)
+        intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
+
+        # ensure that the computed point is actually interior to all halfspaces
+        if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
+            return intpt
+    except MemoryError:
+        # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
+        warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)
+
+    warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
+
     z_vals = [-1.0 * offset / normal[-1] for normal, offset in zip(normals, offsets) if
               np.abs(normal[-1]) > np.power(10.0, -15)]
 
@@ -262,11 +272,15 @@ def get_intersection(coef_array, max_pt=None):
 
     halfspaces = np.vstack((halfspaces, ) + tuple(boundary_halfspaces))
 
-    if not singlelayer and max_pt is None:
-        # in this case, we will calculate max boundary planes later, so we'll impose x, y <= 10.0
-        # for the interior point calculation here.
-        interior_pt = get_interior_point(np.vstack((halfspaces,) +
-                                                   (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))))
+    if max_pt is None:
+        if not singlelayer:
+            # in this case, we will calculate max boundary planes later, so we'll impose x, y <= 10.0
+            # for the interior point calculation here.
+            interior_pt = get_interior_point(np.vstack((halfspaces,) +
+                                                       (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))))
+        else:
+            # similarly, in the 2D case, we impose x <= 10.0 for the interior point calculation
+            interior_pt = get_interior_point(np.vstack((halfspaces,) + (np.array([1.0, 0, -10.0]),)))
     else:
         interior_pt = get_interior_point(halfspaces)
 
