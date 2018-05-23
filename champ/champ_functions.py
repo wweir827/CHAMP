@@ -3,12 +3,13 @@ from future.utils import iteritems,iterkeys
 from future.utils import lmap
 
 from multiprocessing import Pool
-from collections import Hashable
+from collections import defaultdict, Hashable
 from contextlib import contextmanager
 import numpy as np
-from numpy.random import uniform
-from pyhull import halfspace as hs
-
+from numpy.random import choice, uniform
+from scipy.spatial import HalfspaceIntersection
+from scipy.optimize import linprog
+import warnings
 
 @contextmanager
 def terminating(obj):
@@ -69,38 +70,32 @@ def create_halfspaces_from_array(coef_array):
     Where each row represents the coefficients for a particular partition.
     For single Layer network, omit C_i's.
 
-    :return: list of halfspaces with 4 boundary halfspaces appended to the end.
-
+    :return: list of halfspaces.
     '''
-    singlelayer=False
-    if coef_array.shape[1]==2:
-        singlelayer=True
 
+    singlelayer = False
+    if coef_array.shape[1] == 2:
+        singlelayer = True
 
-    halfspaces=[]
-    for i in np.arange(coef_array.shape[0]):
-        cconst = coef_array[i, 0]
-        cgamma = coef_array[i, 1]
-        if not singlelayer:
-            comega = coef_array[i, 2]
+    cconsts = coef_array[:, 0]
+    cgammas = coef_array[:, 1]
+    if not singlelayer:
+        comegas = coef_array[:, 2]
 
-        if singlelayer:
-            nv=np.array([cgamma, 1.0])
-            pt = np.array([0 , cconst])
+    if singlelayer:
+        nvs = np.vstack((cgammas, np.ones(coef_array.shape[0])))
+        pts = np.vstack((np.zeros(coef_array.shape[0]), cconsts))
+    else:
+        nvs = np.vstack((cgammas, -comegas, np.ones(coef_array.shape[0])))
+        pts = np.vstack((np.zeros(coef_array.shape[0]), np.zeros(coef_array.shape[0]), cconsts))
 
-        else:
-            nv=np.array([cgamma, -1 * comega, 1.0])
-            pt = np.array([0, 0, cconst])
+    nvs = nvs / np.linalg.norm(nvs, axis=0)
+    offs = np.sum(nvs * pts, axis=0)  # dot product on each column
 
-        nv = nv/np.linalg.norm(nv)
-        off = np.dot(nv, pt)
-
-        halfspace = hs.Halfspace(-1.0 * nv, off)
-        halfspaces.append(halfspace)
-
-
-
-    return halfspaces
+    # array of shape (number of halfspaces, dimension+1)
+    # Each row represents a halfspace by [normal; offset]
+    # I.e. Ax + b <= 0 is represented by [A; b]
+    return np.vstack((-nvs, offs)).T
 
 def sort_points(points):
     '''
@@ -121,20 +116,46 @@ def get_interior_point(hs_list):
     '''
     Find interior point to calculate intersections
     :param hs_list: list of halfspaces
-    :return: interior point of intersections at (0+.001,0+.001,max(A_ij)) the
-    maximum modularity value of any of the partitions at 0,0 needed to calculate
-    interior intersection.
-
+    :return: an approximation to the point most interior to the halfspace intersection polyhedron (Chebyshev center) if
+    this computation succeeds. Otherwise, a point a small step towards the interior from the first plane in hs_list.
     '''
 
-    z_vals=[ -1.0*hs.offset/hs.normal[-1] for hs in hs_list if
-             np.abs(hs.normal[-1]-0)>np.power(10.0,-15)]
+    normals, offsets = np.split(hs_list, [-1], axis=1)
+    # in our case, the last four halfspaces may be boundary halfspaces
+    interior_hs, boundaries = np.split(hs_list, [-4], axis=0)
 
-    #take a small step into interior from 1st plane.
-    dim = hs_list[0].normal.shape[0]
-    intpt=np.array([0 for _ in range(dim-1)]+[np.max(z_vals)])
-    internal_step=np.array([.000001 for _ in range(dim)])
-    return intpt+internal_step
+    # randomly sample up to 50 of the halfspaces
+    sample_len = min(50, len(interior_hs))
+    sampled_hs = np.vstack((interior_hs[choice(interior_hs.shape[0], sample_len, replace=False)], boundaries))
+
+    # compute the Chebyshev center of the sampled halfspaces' intersection
+    norm_vector = np.reshape(np.linalg.norm(sampled_hs[:, :-1], axis=1), (sampled_hs.shape[0], 1))
+    c = np.zeros((sampled_hs.shape[1],))
+    c[-1] = -1
+    A = np.hstack((sampled_hs[:, :-1], norm_vector))
+    b = -sampled_hs[:, -1:]
+
+    try:
+        res = linprog(c, A_ub=A, b_ub=b)
+        intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
+
+        # ensure that the computed point is actually interior to all halfspaces
+        if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
+            return intpt
+    except MemoryError:
+        # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
+        warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)
+
+    warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
+
+    z_vals = [-1.0 * offset / normal[-1] for normal, offset in zip(normals, offsets) if
+              np.abs(normal[-1]) > np.power(10.0, -15)]
+
+    # take a small step into interior from 1st plane.
+    dim = hs_list.shape[1] - 1  # hs_list has shape (number of halfspaces, dimension+1)
+    intpt = np.array([0 for _ in range(dim - 1)] + [np.max(z_vals)])
+    internal_step = np.array([.000001 for _ in range(dim)])
+    return intpt + internal_step
 
 
 
@@ -214,96 +235,113 @@ def get_intersection(coef_array, max_pt=None):
    :type coef_array: array
    :param max_pt: Upper bound for the domains (in the xy plane). This will restrict the convex hull \
     to be within the specified range of gamma/omega (such as the range of parameters originally searched using Louvain).
-   :type max_pt: (float,float)
+   :type max_pt: (float,float) or float
    :return: dictionary mapping the index of the elements in the convex hull to the points defining the boundary
     of the domain
     '''
 
+    halfspaces = create_halfspaces_from_array(coef_array)
+    num_input_halfspaces = len(halfspaces)
 
-    halfspaces=create_halfspaces_from_array(coef_array)
-
-    interior_pt=get_interior_point(halfspaces)
-    singlelayer=False
-    if halfspaces[0].normal.shape[0]==2:
-        singlelayer=True
-
+    singlelayer = False
+    if halfspaces.shape[1] - 1 == 2:  # 2D case, halfspaces.shape is (number of halfspaces, dimension+1)
+        singlelayer = True
 
     # Create Boundary Halfspaces - These will always be included in the convex hull
     # and need to be removed before returning dictionary
 
-    num2rm=0
+    boundary_halfspaces = []
     if not singlelayer:
         # origin boundaries
-        halfspaces.extend([hs.Halfspace(normal=(0, -1.0, 0), offset=0), hs.Halfspace(normal=(-1.0, 0, 0), offset=0)])
-        num2rm +=2
+        boundary_halfspaces.extend([np.array([0, -1.0, 0, 0]), np.array([-1.0, 0, 0, 0])])
         if max_pt is not None:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * max_pt[0]),
-                           hs.Halfspace(normal=(1.0, 0, 0), offset=-1 * max_pt[1])])
-            num2rm +=2
-
+            boundary_halfspaces.extend([np.array([0, 1.0, 0, -1.0 * max_pt[0]]),
+                                        np.array([1.0, 0, 0, -1.0 * max_pt[1]])])
     else:
-        halfspaces.append(hs.Halfspace(normal=(-1,0), offset=0)) # y-axis
-        halfspaces.append(hs.Halfspace(normal=(0,-1), offset=0)) # x-axis
-
-        num2rm +=2
+        boundary_halfspaces.extend([np.array([-1.0, 0, 0]),  # y-axis
+                                    np.array([0, -1.0, 0])])  # x-axis
         if max_pt is not None:
-            halfspaces.append(hs.Halfspace(normal=(1.0, 0), offset=-1 * max_pt))
-            num2rm+=1
+            boundary_halfspaces.append(np.array([1.0, 0, -1.0 * max_pt]))
 
+    # We expect infinite vertices in the halfspace intersection, so we can ignore numpy's floating point warnings
+    old_settings = np.seterr(divide='ignore', invalid='ignore')
 
-    hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
-    ind_2_domain = {}
+    halfspaces = np.vstack((halfspaces, ) + tuple(boundary_halfspaces))
 
-    non_inf_vert = np.array([v for v in hs_inter.vertices if v[0] != np.inf])
-    mx = np.max(non_inf_vert,axis=0)
-
-    # max intersection on yaxis (x=0) imples there are no intersectiosn in gamma direction.
-    if np.abs(mx[0])<np.power(10.0,-15) and np.abs(mx[1])<np.power(10.0,-15):
-        raise ValueError("Max intersection detected at (0,0).  Invalid input set.")
-
-    if np.abs(mx[1])<np.power(10.0,-15):
-        mx[1]=mx[0]
-    if np.abs(mx[0])<np.power(10.0,-15):
-        mx[0]=mx[1]
-
-    #At this point we inlude max boundary planes and recalculate the intersection
-    #to correct inf points.  We only do this for single layer
     if max_pt is None:
         if not singlelayer:
-            halfspaces.extend([hs.Halfspace(normal=(0, 1.0, 0), offset=-1.0 * (mx[1])),
-                               hs.Halfspace(normal=(1.0, 0, 0), offset=-1.0 * (mx[0]) )])
-            num2rm += 2
+            # in this case, we will calculate max boundary planes later, so we'll impose x, y <= 10.0
+            # for the interior point calculation here.
+            interior_pt = get_interior_point(np.vstack((halfspaces,) +
+                                                       (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))))
+        else:
+            # similarly, in the 2D case, we impose x <= 10.0 for the interior point calculation
+            interior_pt = get_interior_point(np.vstack((halfspaces,) + (np.array([1.0, 0, -10.0]),)))
+    else:
+        interior_pt = get_interior_point(halfspaces)
+
+    # Find boundary intersection of half spaces
+    hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
+
+    non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v[0])])
+    mx = np.max(non_inf_vert, axis=0)
+
+    # max intersection on y-axis (x=0) implies there are no intersections in gamma direction.
+    if np.abs(mx[0]) < np.power(10.0, -15) and np.abs(mx[1]) < np.power(10.0, -15):
+        raise ValueError("Max intersection detected at (0,0).  Invalid input set.")
+
+    if np.abs(mx[1]) < np.power(10.0, -15):
+        mx[1] = mx[0]
+    if np.abs(mx[0]) < np.power(10.0, -15):
+        mx[0] = mx[1]
+
+    # At this point we include max boundary planes and recalculate the intersection
+    # to correct inf points.  We only do this for single layer
+    if max_pt is None:
+        if not singlelayer:
+            boundary_halfspaces.extend([np.array([0, 1.0, 0, -1.0 * mx[1]]),
+                                        np.array([1.0, 0, 0, -1.0 * mx[0]])])
+            halfspaces = np.vstack((halfspaces, ) + tuple(boundary_halfspaces[-2:]))
 
     if not singlelayer:
-        hs_inter = hs.HalfspaceIntersection(halfspaces, interior_pt)  # Find boundary intersection of half spaces
+        # Find boundary intersection of half spaces
+        interior_pt = get_interior_point(halfspaces)
+        hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
 
-    # assert not any([ coord==np.inf  for v in hs_inter.vertices for coord in v ])
+    # revert numpy floating point warnings
+    np.seterr(**old_settings)
 
+    # scipy does not support facets by halfspace directly, so we must compute them
+    facets_by_halfspace = defaultdict(list)
+    for v, idx in zip(hs_inter.intersections, hs_inter.dual_facets):
+        if np.isfinite(v).all():
+            for i in idx:
+                facets_by_halfspace[i].append(v)
 
-    rep_verts = [v if v[0] != np.inf else mx for v in hs_inter.vertices]
-    # rep_verts=hs_inter.vertices
+    ind_2_domain = {}
+    dimension = 2 if singlelayer else 3
 
-    for i, vlist in enumerate(hs_inter.facets_by_halfspace):
-        #Empty domains
+    for i, vlist in facets_by_halfspace.items():
+        # Empty domains
         if len(vlist) == 0:
             continue
 
         # these are the boundary planes appended on end
-        if not i < len(hs_inter.facets_by_halfspace) - num2rm :
+        if not i < num_input_halfspaces:
             continue
 
-        pts=sort_points([rep_verts[v] for v in vlist])
-        pt2rm=[]
-        for j in range(len(pts)-1):
-            if comp_points(pts[j],pts[j+1]):
+        pts = sort_points(vlist)
+        pt2rm = []
+        for j in range(len(pts) - 1):
+            if comp_points(pts[j], pts[j + 1]):
                 pt2rm.append(j)
         pt2rm.reverse()
         for j in pt2rm:
             pts.pop(j)
-        if len(pts)>=len(rep_verts[0]): #must be at least 2 pts in 2D , 3 pt in 3D, etc.
-            ind_2_domain[i]=pts
+        if len(pts) >= dimension:  # must be at least 2 pts in 2D, 3 pt in 3D, etc.
+            ind_2_domain[i] = pts
 
-        #use non-inf vertices to return
+    # use non-inf vertices to return
     return ind_2_domain
 
 
