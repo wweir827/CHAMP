@@ -3,7 +3,7 @@ from future.utils import iteritems,iterkeys
 from future.utils import lmap
 
 from multiprocessing import Pool
-from collections import Hashable, Iterable
+from collections import defaultdict, Hashable
 from contextlib import contextmanager
 import numpy as np
 from numpy.random import choice, uniform
@@ -311,30 +311,17 @@ def get_intersection(coef_array, max_pt=None):
     # revert numpy floating point warnings
     np.seterr(**old_settings)
 
-    # assert not any([coord == np.inf for v in hs_inter.vertices for coord in v])
-
-    rep_verts = [v if np.isfinite(v[0]) else mx for v in hs_inter.intersections]
-    # rep_verts=hs_inter.vertices
-
     # scipy does not support facets by halfspace directly, so we must compute them
-    # this may be very slow if the number of facets in the dual convex hull is large
-    def flatten(container):
-        for l in container:
-            if isinstance(l, Iterable):
-                for x in flatten(l):
-                    yield x
-            else:
-                yield l
-
-    enclosing_halfspace_indices = set(flatten(hs_inter.dual_facets))
-    normals, offsets = np.split(hs_inter.halfspaces, [-1], axis=1)
-    facets_by_halfspace = ([v for v in rep_verts if np.linalg.norm(np.dot(normal, v) + offset) < 1e-10]
-                           if i in enclosing_halfspace_indices else []
-                           for i, (normal, offset) in enumerate(zip(normals, offsets)))
+    facets_by_halfspace = defaultdict(list)
+    for v, idx in zip(hs_inter.intersections, hs_inter.dual_facets):
+        if np.isfinite(v).all():
+            for i in idx:
+                facets_by_halfspace[i].append(v)
 
     ind_2_domain = {}
+    dimension = 2 if singlelayer else 3
 
-    for i, vlist in enumerate(facets_by_halfspace):
+    for i, vlist in facets_by_halfspace.items():
         # Empty domains
         if len(vlist) == 0:
             continue
@@ -351,7 +338,7 @@ def get_intersection(coef_array, max_pt=None):
         pt2rm.reverse()
         for j in pt2rm:
             pts.pop(j)
-        if len(pts) >= len(rep_verts[0]):  # must be at least 2 pts in 2D, 3 pt in 3D, etc.
+        if len(pts) >= dimension:  # must be at least 2 pts in 2D, 3 pt in 3D, etc.
             ind_2_domain[i] = pts
 
     # use non-inf vertices to return
