@@ -10,6 +10,9 @@ from numpy.random import choice, uniform
 from scipy.spatial import HalfspaceIntersection
 from scipy.optimize import linprog
 import warnings
+from pyhull import halfspace as hs
+import igraph as ig
+import louvain
 
 @contextmanager
 def terminating(obj):

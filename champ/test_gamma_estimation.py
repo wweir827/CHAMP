@@ -22,7 +22,7 @@ for q in range(3, 16):
     true_omega_out = p_out * (2 * G.ecount()) / (k * k)
     true_gamma = (true_omega_in - true_omega_out) / (log(true_omega_in) - log(true_omega_out))
 
-    print("#" * 10 + " {} communities, true gamma={:0.4f} ".format(q, true_gamma) + "#" * 10, end="\n")
+    print("#" * 10 + " {} communities, true gamma={:0.4f} ".format(q, true_gamma) + "#" * 10)
     gamma, _ = iterative_resolution_parameter_estimation(G, gamma=1.0, tol=1e-3, debug=True)
 
     xs.append(q)
@@ -38,7 +38,7 @@ plt.show()
 G = ig.Graph.Famous("Zachary")
 current_gamma = 0.0
 while current_gamma < 2.0:
-    print("#" * 10 + " initial gamma: {:.2f} ".format(current_gamma) + "#" * 10, end="\n")
+    print("#" * 10 + " initial gamma: {:.2f} ".format(current_gamma) + "#" * 10)
     try:
         iterative_resolution_parameter_estimation(G, gamma=current_gamma, tol=1e-3, debug=True)
     except ValueError:

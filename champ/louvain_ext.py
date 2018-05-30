@@ -23,6 +23,10 @@ import louvain
 import numpy as np
 import h5py
 import sklearn.metrics as skm
+from time import time
+import logging
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+
 
 
 try:
@@ -1167,7 +1171,7 @@ def get_number_of_communities(partition,min_com_size=0):
             tot_coms+=1
     return tot_coms
 
-def get_expected_edges(partobj,weight=None):
+def get_expected_edges(partobj,weight='weight'):
     '''
     Get the expected internal edges under configuration models
 
@@ -1182,7 +1186,11 @@ def get_expected_edges(partobj,weight=None):
     if weight==None:
         m = partobj.graph.ecount()
     else:
-        m=np.sum(partobj.graph.es['weight'])
+        try:
+            m=np.sum(partobj.graph.es['weight'])
+        except:
+            m=partobj.graph.ecount()
+
     kk=0
     #Hashing this upfront is alot faster (factor of 10).
     if weight==None:
@@ -1380,11 +1388,399 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 
 
     all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
-
+    tempf.close()
     outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
     return outensemble
 
 
+
+#### MULTI-LAYER Louvain
+
+#MUTLILAYER GRAPH CREATION
+
+def _create_interslice(interlayer_edges, layer_vec, directed=False):
+    """
+
+
+    """
+    weights=[]
+    layers = np.unique(layer_vec)
+    layer_edges = set()
+    for e in interlayer_edges:
+        ei,ej=e[0],e[1]
+        lay_i = layer_vec[ei]
+        lay_j = layer_vec[ej]
+        if len(e)>2:
+            weights.append(e[2])
+        assert lay_i != lay_j #these shoudl be interlayer edges
+        if lay_i < lay_j:
+            layer_edges.add((lay_i, lay_j))
+        else:
+            layer_edges.add((lay_j, lay_i))
+
+
+    slice_couplings = ig.Graph(n=len(layers), edges=list(layer_edges), directed=directed)
+    if len(weights) == 0:
+        weights=1
+    slice_couplings.es['weight']=weights
+    return slice_couplings
+
+def _create_all_layer_igraphs(intralayer_edges, layer_vec, directed=False):
+    """
+    """
+    #create a single igraph
+    layers, cnts = np.unique(layer_vec, return_counts=True)
+    layer_elists = []
+    layer_weights=[ ]
+    # we divide up the edges by layer
+    for e in intralayer_edges:
+        ei,ej=e[0],e[1]
+        if not directed: #switch order to preserve uniqness
+            if ei>ej:
+                ei,ej=e[1],e[0]
+
+        layer_elists.append((ei, ej))
+        if len(e)>2:
+            layer_weights.append(e[2])
+
+    layer_graphs = []
+    cgraph = ig.Graph(n=len(layer_vec), edges=layer_elists, directed=directed)
+    if len(layer_weights) > 0:  # attempt to set the intralayer weights
+        cgraph.es['weight'] = layer_weights
+    cgraph.vs['nid']=range(cgraph.vcount())
+    return cgraph
+    # layer_graphs.append(cgraph)
+    # return layer_graphs
+
+def _create_all_layer_igraphs_multi(intralayer_edges, layer_vec, directed=False):
+    """
+    """
+
+    layers, cnts = np.unique(layer_vec, return_counts=True)
+    layer_elists = [[] for _ in range(len(layers))]
+    layer_weights=[[] for _ in range(len(layers))]
+    # we divide up the edges by layer
+    for e in intralayer_edges:
+        ei,ej=e[0],e[1]
+        if not directed: #switch order to preserve uniqness
+            if ei>ej:
+                ei,ej=e[1],e[0]
+
+        # these should all be intralayer edges
+        lay_i, lay_j = layer_vec[ei], layer_vec[ej]
+        assert lay_i == lay_j
+
+        coffset=np.sum(cnts[:lay_i])#indexing for edges must start with 0 for igraph
+
+        layer_elists[lay_i].append((ei-coffset, ej-coffset))
+        if len(e)>2:
+            layer_weights[lay_i].append(e[2])
+
+    layer_graphs = []
+    tot = 0
+    for i, layer_elist in enumerate(layer_elists):
+        if not directed:
+            layer_elist=list(set(layer_elist)) #prune out non-unique
+        #you have adjust the elist to start with 0 for first node
+        cnts[i]
+        cgraph = ig.Graph(n=cnts[i], edges=layer_elist, directed=directed)
+        assert cgraph.vcount()==cnts[i],'edges indicated more nodes within graph than the layer_vec'
+        cgraph.vs['nid'] = range(tot , tot +cnts[i])  # each node in each layer gets a unique id
+        if len(layer_weights[i])>0: #attempt to set the intralayer weights
+            cgraph.es['weight']=layer_weights[i]
+        tot += cnts[i]
+        layer_graphs.append(cgraph)
+
+    return layer_graphs
+
+
+def _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec):
+    """Go through each of the nodes and determine which ones are shared across multiple slices.\
+    We create an attribute on each of the graphs to indicate the shared identity \
+    of that node.  This is done through tracking the predecessors of the node vi the interlayer\
+    connections
+
+    """
+
+    namedict = {}
+    backedges = {}
+
+    # For each node we hash if it has any neighbors in the layers behind it.
+
+    for e in interlayer_edges:
+        ei,ej=e[0],e[1]
+        if ei < ej:
+            backedges[ej] = backedges.get(ej, []) + [ei]
+        else:
+            backedges[ei] = backedges.get(ei, []) + [ej]
+
+    offset = 0  # duplicate names used
+    for i, lay in enumerate(layer_vec):
+
+        if i not in backedges:  # node doesn't have a predecessor
+            namedict[i] = i - offset
+        else:
+            pred = backedges[i][0] #get one of the predecessors
+            namedict[i] = namedict[pred]  # get the id of the predecessor
+            offset += 1
+
+    for graph in intralayer_graphs:
+        graph.vs['shared_id'] = map(lambda x: namedict[x], graph.vs['nid'])
+        assert len(set(graph.vs['shared_id']))==len(graph.vs['shared_id']), "IDs within a slice must all be unique"
+
+
+def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, layer_vec, directed=False):
+    """
+       We create an igraph representation used by the louvain package to represents multi-slice graphs.  For this method A
+
+    :param intralayer_edges:
+    :param interlayer_edges:
+    :param layer_vec:
+    :param directed:
+    :return:
+    """
+    t=time()
+    interlayer_graph = _create_all_layer_igraphs(interlayer_edges,layer_vec=layer_vec, directed=directed)
+    # interlayer_graph=interlayer_graph[0]
+    logging.debug("create interlayer : {:.4f}".format(time()-t))
+    t=time()
+    intralayer_graph = _create_all_layer_igraphs(intralayer_edges, layer_vec, directed=directed)
+    logging.debug("create intrallayer : {:.4f}".format(time()-t))
+    t=time()
+    return intralayer_graph,interlayer_graph
+
+    # _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec)
+    # logging.debug("label nodes : {:.4f}".format(time()-t))
+    # t=time()
+    # interlayer_graph.vs['slice'] = intralayer_graphs
+    # layers, interslice_layer, G_full = louvain.slices_to_layers(interlayer_graph, vertex_id_attr='shared_id')
+    # logging.debug("louvain call : {:.4f}".format(time()-t))
+    # t=time()
+    # return layers, interslice_layer, G_full
+
+def call_slices_to_layers_from_edge_list(intralayer_edges, interlayer_edges, layer_vec, directed=False):
+    """
+       We create an igraph representation used by the louvain package to represents multi-slice graphs.  For this method A
+
+    :param intralayer_edges:
+    :param interlayer_edges:
+    :param layer_vec:
+    :param directed:
+    :return:
+    """
+    t=time()
+    interlayer_graph = _create_interslice(interlayer_edges,layer_vec=layer_vec, directed=directed)
+    # interlayer_graph=interlayer_graph[0]
+    logging.debug("create interlayer : {:.4f}".format(time()-t))
+    t=time()
+    intralayer_graphs = _create_all_layer_igraphs_multi(intralayer_edges, layer_vec, directed=directed)
+    logging.debug("create intrallayer : {:.4f}".format(time()-t))
+    t=time()
+
+    _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec)
+    logging.debug("label nodes : {:.4f}".format(time()-t))
+    t=time()
+    interlayer_graph.vs['slice'] = intralayer_graphs
+    layers, interslice_layer, G_full = louvain.slices_to_layers(interlayer_graph, vertex_id_attr='shared_id')
+    logging.debug("louvain call : {:.4f}".format(time()-t))
+    t=time()
+    return layers, interslice_layer, G_full
+
+def adjacency_to_edges(A):
+    nnz_inds = np.nonzero(A)
+    nnzvals = np.array(A[nnz_inds])
+    if len(nnzvals.shape)>1:
+        nnzvals=nnzvals[0] #handle scipy sparse types
+    return zip(nnz_inds[0], nnz_inds[1], nnzvals)
+
+
+def create_multilayer_igraph_from_adjacency(A,C,layer_vec,directed=False):
+    """
+    Create the multilayer igraph representation necessary to call igraph-louvain \
+    in the multilayer context.  Edge list are formed and champ_fucntions.create_multilayer_igraph_from_edgelist \
+    is called.  Each edge list includes the weight of the edge \
+    as indicated in the appropriate adjacency matrix.
+
+    :param A:
+    :param C:
+    :param layer_vec:
+    :return:
+    """
+
+    nnz_inds = np.nonzero(A)
+    nnzvals = np.array(A[nnz_inds])
+    if len(nnzvals.shape)>1:
+        nnzvals=nnzvals[0] #handle scipy sparse types
+
+    intra_edgelist = adjacency_to_edges(A)
+    inter_edgelist = adjacency_to_edges(C)
+
+
+    return create_multilayer_igraph_from_edgelist(intralayer_edges=intra_edgelist,
+                                                  interlayer_edges=inter_edgelist,
+                                                  layer_vec=layer_vec,directed=directed)
+
+# def _save_ml_graph(intralayer_edges,interlayer_edges,layer_vec,filename=None):
+#     if filename is None:
+#         file=tempfile.NamedTemporaryFile()
+#     filename=file.name
+#
+#     outdict={"interlayer_edges":interlayer_edges,
+#              'intralayer_edges':intralayer_edges,
+#              'layer_vec':layer_vec}
+#
+#     with gzip.open(filename,'w') as fh:
+#         pickle.dump(outdict,fh)
+#     return file #returns the filehandle
+
+
+def _save_ml_graph(slice_layers,interslice_layer):
+    """
+    We save the layers of the graph as graphml.gz files here
+    :param slice_layers:
+    :param interslice_layer:
+    :param layer_vec:
+    :return:
+    """
+    filehandles=[]
+    filenames=[]
+    #interslice couplings will be last
+    for layer in slice_layers+[interslice_layer]: #save each graph in it's own file handle
+        fh=tempfile.NamedTemporaryFile(mode='wb',suffix='.graphml.gz')
+        layer.write_graphmlz(fh.name)
+        filehandles.append(fh)
+        filenames.append(fh.name)
+    return filehandles,filenames
+
+
+def _get_sum_internal_edges_from_partobj_list(part_obj_list,weight='weight'):
+    A=0
+    for part_obj in part_obj_list:
+        A+=get_sum_internal_edges(part_obj,weight=weight)
+    return A
+
+def _get_sum_expected_edges_from_partobj_list(part_obj_list,weight='weight'):
+    P=0
+    for part_obj in part_obj_list:
+        P+=get_expected_edges(part_obj,weight=weight)
+    return P
+
+
+def _get_modularity_from_partobj_list(part_obj_list):
+    finmod=0
+    for part_obj in part_obj_list:
+        finmod+=part_obj.quality()
+    return finmod
+
+def run_louvain_multilayer(multilayer_files, weight='weight',
+                           resolution=1.0, omega=1.0,nruns=1):
+    logging.debug('loading igraphs')
+    t=time()
+    layers=[]
+    mu=0 #total degrees (intra + inter)
+    for i,filename in enumerate(multilayer_files): #assume last is interslice
+        if i==len(multilayer_files)-1:
+            interslice_layer=ig.load(filename)
+            interslice_layer.es['weight']=omega #set coupling strength
+            mu+=np.sum(interslice_layer.es['weight'])
+        else:
+            layers.append(ig.load(filename))
+            try:
+                mu += np.sum(layers[-1].es[weight])
+            except:
+                mu += np.sum(layers[-1].ecount()) #not weighted
+    logging.debug('time: {:.4f}'.format(time() - t))
+    logging.debug('Shuffling node ids')
+    t=time()
+
+
+
+    outparts=[]
+    for run in range(nruns):
+        rand_perm = list(np.random.permutation(interslice_layer.vcount()))
+        rperm = rev_perm(rand_perm)
+        interslice_layer_rand = interslice_layer.permute_vertices(rand_perm)
+        offset=0
+        #create permutation vectors for each of these igraphs
+        rlayers=[]
+        for layer in layers:
+            rlayers.append(layer.permute_vertices(rand_perm))
+        logging.debug('time: {:.4f}'.format(time()-t))
+
+        t=time()
+
+        #create the partition objects
+        layer_partition_objs=[]
+
+        logging.debug('creating partition objects')
+        t=time()
+        for i,layer in enumerate(rlayers): #these are the shuffled igraph slice objects
+            try:
+                res=resolution[i]
+            except:
+                res=resolution
+
+            cpart=louvain.RBConfigurationVertexPartition(layer, weights=weight,
+                                                         resolution_parameter=resolution)
+            layer_partition_objs.append(cpart)
+
+        coupling_partition=louvain.RBConfigurationVertexPartition(interslice_layer_rand,
+                                                                  weights='weight',resolution_parameter=0)
+        all_layer_partobjs=layer_partition_objs+[coupling_partition]
+        optimiser=louvain.Optimiser()
+        logging.debug('time: {:.4f}'.format(time()-t))
+        logging.debug('running optimiser')
+        t=time()
+        improvement=optimiser.optimise_partition_multiplex(all_layer_partobjs)
+
+        #the membership for each of the partitions is tied together.
+        finalpartition=get_orig_ordered_mem_vec(rperm,all_layer_partobjs[0].membership)
+        #use only the intralayer part objs
+        A=_get_sum_internal_edges_from_partobj_list(layer_partition_objs,weight=weight)
+        P=_get_sum_expected_edges_from_partobj_list(layer_partition_objs,weight=weight)
+        C=get_sum_internal_edges(coupling_partition,weight=weight)
+        outparts.append({'partition': np.array(finalpartition),
+                         'resolution': resolution,
+                         'coupling':omega,
+                         'orig_mod': (.5/mu)*_get_modularity_from_partobj_list(all_layer_partobjs),
+                         'int_edges': A,
+                         'exp_edges': P,
+                        'int_coupling_edges':C})
+
+    logging.debug('time: {:.4f}'.format(time()-t))
+    return outparts
+
+def _parallel_run_louvain_multimodularity(layers_interlayer_vec_gamma_omega):
+    logging.debug('running parallel')
+    layers,interlayer_graph,gamma,omega=layers_interlayer_vec_gamma_omega
+    logging.debug('graph to file')
+    t=time()
+    fhandles,fnames=_save_ml_graph(slice_layers=layers,
+                                   interslice_layer=interlayer_graph)
+    logging.debug('time {:.4f}'.format(time()-t))
+    partition=run_louvain_multilayer(fnames, resolution=gamma, omega=omega)
+
+    for fh in fhandles: #close open files
+        fh.close()
+
+    return partition
+
+def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
+                                gamma_range,omega_range,nruns):
+
+    """"""
+
+
+
+def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_vec,
+                                         gamma_range, omega_range):
+
+    """Call parallel multilayer louvain with adjacency matrices"""
+    intralayer_edges=adjacency_to_edges(intralayer_adj)
+    interlayer_edges=adjacency_to_edges(interlayer_adj)
+    return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
+                                       layer_vec=layer_vec,
+                                       gamma_range=gamma_range,omega_range=omega_range)
 
 
 def main():
