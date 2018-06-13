@@ -88,7 +88,7 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
     if ax==None:
         f=plt.figure()
         ax=f.add_subplot(111)
-    if widths==None:
+    if widths==None: #we use different line widths for distinguishablity
         widths = np.random.sample(len(ind_2_domains))*3 + 1
     if col==None:
         cnorm=mcolors.Normalize(vmin=0,vmax=len(ind_2_domains))

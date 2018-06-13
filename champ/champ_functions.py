@@ -101,12 +101,13 @@ def create_halfspaces_from_array(coef_array):
     return np.vstack((-nvs, offs)).T
 
 def sort_points(points):
-    '''
+    '''For 2D case we sort the points along the gamma axis in assending order. \
+    For the 3D case we sort the points clockwise around the center of mass .
 
     :param points:
     :return:
     '''
-    if len(points[0])>2:
+    if len(points[0])>2: #pts are 3D
         cent = (sum([p[0] for p in points]) / len(points), sum([p[1] for p in points]) / len(points))
         points.sort(key=lambda x: np.arctan2(x[1] - cent[1], x[0] - cent[0]))
     else:
@@ -228,6 +229,22 @@ def comp_points(pt1,pt2):
             return False
 
     return True
+
+def point_comparator(pt1, pt2):
+    assert len(pt1)==len(pt2),"dimension of points must match"
+    origin=np.zeros(len(pt1))
+    assert len(pt1)==len(origin), "dimension of supplied origin must match points"
+
+    v1=pt1-origin
+    d1=np.dot(v1,v1)
+    v2 = pt2 - origin
+    d2 = np.dot(v2, v2)
+    if d1==d2 :
+        return 0
+    elif d1>d2:
+        return 1
+    elif d2<d1:
+        return -1
 
 
 def get_intersection(coef_array, max_pt=None):
@@ -400,3 +417,22 @@ def get_random_halfspaces(n=100,dim=3):
             raise NotImplementedError("Only 2D or 3D Random Halfspaces implemented")
     return np.array(test_hs)
     # return test_hs
+
+def PolyArea(pts):
+    """Calculate the area of a set of pts (assumes that the points are sorted in \
+     order clockwise around exterior"""
+    x=np.array([pt[0] for pt in pts])
+    y=np.array([pt[1] for pt in pts])
+    return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+
+
+def min_dist_origin(pts,origin=None):
+    """return the point that is closets to the origin (0,0,0 if none is supplied)
+    """
+    if origin is None:
+        origin=np.zeros(len(pts[0]))
+    else:
+        assert len(origin)==len(pts[0]) , "Origin supplied must be same dimension as points"
+
+    min_ind=np.argmin([ np.dot(pt-origin,pt-origin)  for pt in pts ])
+    return pts[min_ind]
