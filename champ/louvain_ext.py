@@ -844,7 +844,7 @@ class PartitionEnsemble():
 			inds=zip(self.ind2doms.keys(),[ min_dist_origin(val) for val in self.ind2doms.values()])
 
 			inds.sort(key=lambda x: x[0],
-					  cmp=lambda(x,y): point_comparator(x,y) )
+					  cmp=lambda x,y: point_comparator(x,y) )
 
 		# retreive index
 		return [ind[0] for ind in inds]
@@ -914,6 +914,7 @@ class PartitionEnsemble():
 			grph=file['graph']
 			directed = bool(grph['directed'].value)
 			num_nodes=grph['num_nodes'].value
+			# print ('num_nodes read: {:d}'.format(num_nodes))
 			self.graph = ig.Graph(n=num_nodes).TupleList(grph['edge_list'], directed=directed)
 			for attrib in grph['edge_attributes'].keys():
 				self.graph.es[attrib] = grph['edge_attributes'][attrib][:]
@@ -922,6 +923,7 @@ class PartitionEnsemble():
 		else:
 			grph=file['interlayer_graph']
 			num_nodes = grph['num_nodes'].value
+			# print ('num_nodes read: {:d}'.format(num_nodes))
 			directed = bool(grph['directed'].value)
 			self.interlayer_graph = ig.Graph(n=num_nodes).TupleList(grph['edge_list'], directed=directed)
 			for attrib in grph['edge_attributes'].keys():
