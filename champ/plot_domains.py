@@ -8,6 +8,7 @@ from sklearn.metrics import adjusted_mutual_info_score,normalized_mutual_info_sc
 from .champ_functions import create_halfspaces_from_array
 from future.utils import iteritems,iterkeys
 from future.utils import lmap
+import seaborn as sbn
 
 def plot_line_coefficients(coef_array,ax=None,colors=None):
     '''
@@ -27,7 +28,7 @@ def plot_line_coefficients(coef_array,ax=None,colors=None):
     ax=plot_line_halfspaces(halfspaces,ax=ax,colors=colors)
     return ax
 
-def plot_line_halfspaces(halfspaces, ax=None, colors=None,labels=None):
+def plot_line_halfspaces(halfspaces, ax=None, colors=None, labels=None):
     '''
     Plot a list of halfspaces (lines) in 2D plane.  Each line is drawn from y-intercept to x-intercept.
 
@@ -40,24 +41,26 @@ def plot_line_halfspaces(halfspaces, ax=None, colors=None,labels=None):
 
     '''
 
-    if ax == None:
+    if ax is None:
         f = plt.figure()
         ax = f.add_subplot(111)
 
-    if colors==None:
-        cnorm=mcolors.Normalize(vmin=0,vmax=len(halfspaces))
-        cmap=cm.get_cmap("Set1")
-        pal=lmap(lambda i: cmap(cnorm(i)),range(len(halfspaces)))
+    if colors is None:
+        cnorm = mcolors.Normalize(vmin=0, vmax=len(halfspaces))
+        cmap = cm.get_cmap("Set1")
+        pal = lmap(lambda i: cmap(cnorm(i)), range(len(halfspaces)))
 
-    for i,hs in enumerate(halfspaces):
+    normals, offsets = np.split(halfspaces, [-1], axis=1)
+
+    for i, (normal, offset) in enumerate(zip(normals, offsets)):
         if hasattr(colors, "__iter__"):
-            c = colors[i%len(colors)]  # must match length
+            c = colors[i % len(colors)]  # must match length
         else:
-            c = pal[i] if colors == None else colors
+            c = pal[i] if colors is None else colors
 
-        A=-1.0*hs.offset/hs.normal[0]
-        B=-1.0*hs.offset/hs.normal[1]
-        ax.plot( [0,A],[B,0],color=c )
+        A = -1.0 * offset / normal[0]
+        B = -1.0 * offset / normal[1]
+        ax.plot([0, A], [B, 0], color=c)
 
     if labels is not None:
         if labels is True:
@@ -66,7 +69,6 @@ def plot_line_halfspaces(halfspaces, ax=None, colors=None,labels=None):
         else:
             ax.set_xlabel(labels[0])
             ax.set_ylabel(labels[1])
-
 
     return ax
 
@@ -247,3 +249,33 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, partitions_
             ax.set_title(title)
     plt.colorbar(pmap, ax=ax)
     return ax, AMI_mat
+
+def _get_partition_matrix(partition, layer_vec):
+    # assumes partiton in same ordering for each layer
+    vals = np.unique(layer_vec)
+    nodeperlayer = len(layer_vec) / len(vals)
+    com_matrix = np.zeros((nodeperlayer, len(vals)))
+    for i, val in enumerate(vals):
+        cind = np.where(layer_vec == val)[0]
+        ccoms = partition[cind]
+        com_matrix[:, i] = ccoms
+    return com_matrix
+
+def plot_multilayer_community(partition,layer_vec,ax=None,cmap=None):
+    part_mat = _get_partition_matrix(partition, layer_vec)
+    layers=np.unique(layer_vec)
+    if ax is None:
+        ax = plt.axes()
+
+    if cmap is None:
+        cmap = sbn.cubehelix_palette(as_cmap=True)
+
+    ax.grid('off')
+    ax.pcolormesh(part_mat, cmap=cmap)
+
+    ax.set_xticks(range(0, len(layers)))
+    ax.set_xticklabels(layers)
+    return ax
+
+
+
