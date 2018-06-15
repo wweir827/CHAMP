@@ -253,7 +253,7 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, partitions_
 def _get_partition_matrix(partition, layer_vec):
     # assumes partiton in same ordering for each layer
     vals = np.unique(layer_vec)
-    nodeperlayer = len(layer_vec) / len(vals)
+    nodeperlayer = len(layer_vec) // len(vals) #integerdevision
     com_matrix = np.zeros((nodeperlayer, len(vals)))
     for i, val in enumerate(vals):
         cind = np.where(layer_vec == val)[0]
@@ -261,7 +261,9 @@ def _get_partition_matrix(partition, layer_vec):
         com_matrix[:, i] = ccoms
     return com_matrix
 
-def plot_multilayer_community(partition,layer_vec,ax=None,cmap=None):
+def plot_multiplex_community(partition, layer_vec, ax=None, cmap=None):
+
+    """ This is for visualizing community of mutliplex """
     part_mat = _get_partition_matrix(partition, layer_vec)
     layers=np.unique(layer_vec)
     if ax is None:

@@ -19,9 +19,12 @@ from .champ_functions import PolyArea
 from .champ_functions import min_dist_origin
 from .champ_functions import point_comparator
 from .plot_domains import plot_2d_domains
+from .plot_domains import plot_multiplex_community as plot_multilayer_pd
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.colors as mc
+import matplotlib.colorbar as mcb
 from matplotlib import rc
 import igraph as ig
 import louvain
@@ -33,7 +36,7 @@ from time import time
 import warnings
 import logging
 logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-
+import seaborn as sbn
 
 
 try:
@@ -1258,6 +1261,45 @@ class PartitionEnsemble():
 		"""
 		return plot_2d_domains(self.ind2doms,ax=ax,col=col)
 
+	def plot_multiplex_communities(self, ind, ax=None):
+		"""
+		This only works well if the network is multiplex.  Plots the square with
+		each layer representing a column
+		:return: matplotlib.Axes
+		"""
+
+		assert self.ismultilayer,"Can only plot with multilayer PartitionEnsemble"
+		return plot_multilayer_pd(self.partitions[ind],self.layer_vec,ax=ax,cmap=None)
+
+
+
+	def plot_2d_modularity_domains_with_AMI(self,true_part,ax=None,cmap=None,colorbar_ax=None):
+		"""
+
+		:param true_part:
+		:param ax:
+		:param cmap: color map withwhich to depcit the AMI of the partions with the t
+		:param colorbar_ax: In case a color bar is desired the user can provide a seperate axes\
+		on which to plot the color bar.
+		:return:
+		"""
+		nmis=[]
+		if cmap is None:
+			cmap=sbn.cubehelix_palette(as_cmap=True)
+		cnorm=mc.Normalize(vmin=0,vmax=1.0)
+
+		for ind in self.ind2doms:
+			nmis.append(skm.adjusted_mutual_info_score(self.partitions[ind],
+													   true_part))
+		print(nmis)
+		colors=list(map(lambda x : cmap(cnorm(x)),nmis))
+		a= self.plot_2d_modularity_domains(ax=ax,col=colors)
+		if not colorbar_ax is None:
+			cb1 = mcb.ColorbarBase(colorbar_ax, cmap=cmap,
+								   norm=cnorm,
+								   orientation='vertical')
+		return a
+
 ##### STATIC METHODS ######
 
 def get_sum_internal_edges(partobj,weight=None):
@@ -1937,9 +1979,9 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	np.random.seed() #reset seed in forked process
 	# louvain.set_rng_seed(int(np.random.get_state()[1][0]))
 	louvain.set_rng_seed(np.random.randint(2147483647)) #max value for unsigned long
-
 	intralayer_graph,interlayer_graph,layer_vec,gamma,omega=files_layervec_gamma_omega
-
+	#SET THE INTERLAYER COUPLING
+	interlayer_graph.es['weight']=omega
 	partition=run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec=layer_vec, resolution=gamma, omega=omega)
 
 
@@ -1963,6 +2005,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	# fhandles, fnames = _save_ml_graph(slice_layers=[intralayer_graph],
 	#								   interslice_layer=interlayer_graph)
 	# logging.debug('time {:.4f}'.format(time() - t))
+
 	gammas=np.linspace(gamma_range[0],gamma_range[1],num=ngamma)
 	omegas=np.linspace(omega_range[0],omega_range[1],num=nomega)
 

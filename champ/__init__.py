@@ -8,7 +8,7 @@ from .plot_domains import plot_single_layer_modularity_domains
 from .plot_domains import plot_line_halfspaces
 from .plot_domains import plot_line_coefficients
 from .plot_domains import plot_similarity_heatmap_single_layer
-from .plot_domains import plot_multilayer_community
+from .plot_domains import plot_multiplex_community
 
 from .champ_functions import create_coefarray_from_partitions
 from .champ_functions import create_halfspaces_from_array
