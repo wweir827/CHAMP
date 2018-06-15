@@ -1969,10 +1969,10 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
 
-	# with terminating(Pool(numprocesses)) as pool:
-	# 	parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
+	with terminating(Pool(numprocesses)) as pool:
+		parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
 
-	parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
 
 

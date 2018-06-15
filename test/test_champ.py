@@ -111,9 +111,9 @@ def test_time_multilayer():
 	# plt.show()
 
 def test_multilayer_louvain():
-	n = 500
+	n = 250
 	q = 2
-	nlayers = 2
+	nlayers = 10
 	nblocks = q
 	c = 8
 	ep = .1
@@ -144,7 +144,7 @@ def test_multilayer_louvain():
 	# print (skm.adjusted_mutual_info_score(mgraph.comm_vec,part[0]['partition']))
 	#test parallel version
 
-	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[0,1],ngamma=5,omega_range=[0,1],nomega=5,numprocesses=3,maxpt=(1,1))
+	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[0,1],ngamma=20,omega_range=[0,2],nomega=10,numprocesses=4,maxpt=(1,1))
 	print("Size of CHAMP: {:d} of {:d} runs".format(len(ML_PartEnsemble.ind2doms),ML_PartEnsemble.numparts))
 	print('number unique parititons : {:d}'.format(len(ML_PartEnsemble.get_unique_coeff_indices())))
 
