@@ -607,7 +607,7 @@ class PartitionEnsemble():
 			newEnsemble.ind2doms.update(self.ind2doms)
 			newEnsemble.ind2doms.update(self._offset_keys_new_dict(newEnsemble.ind2doms))
 			# newEnsemble.apply_CHAMP(subset=newEnsemble.ind2doms.keys(),maxpt=newEnsemble.maxpt)
-			newEnsemble.apply_CHAMP(subset=newEnsemble.ind2doms.keys())
+			newEnsemble.apply_CHAMP(subset=list(newEnsemble.ind2doms))
 
 			return newEnsemble
 			# old way not as efficient and doens't handle merging champ sets correctly.
@@ -635,7 +635,7 @@ class PartitionEnsemble():
 					#just add the partitions from the other file
 					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
-					self.apply_CHAMP(subset=self.ind2doms.keys(),maxpt=self.maxpt)
+					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
 					return self
 
 	def get_coefficient_array(self,subset=None):
@@ -672,8 +672,6 @@ class PartitionEnsemble():
 							self.exp_edges[ind],
 							self.int_inter_edges[ind]
 						]], axis=0)
-
-
 		return outlist
 
 	@property
@@ -822,7 +820,12 @@ class PartitionEnsemble():
 
 		'''
 
-		self.ind2doms=get_intersection(self.get_coefficient_array(subset=subset),max_pt=maxpt)
+		if subset is None:
+			self.ind2doms=get_intersection(self.get_coefficient_array(),max_pt=maxpt)
+		else:
+			cind2doms=get_intersection(self.get_coefficient_array(subset=subset),max_pt=maxpt)
+			#map it back to the subset values
+			self.ind2doms={ subset[k]:val for k,val in cind2doms.items() }
 
 	def get_CHAMP_indices(self):
 
@@ -1966,10 +1969,10 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
 
-	with terminating(Pool(numprocesses)) as pool:
-		parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
+	# with terminating(Pool(numprocesses)) as pool:
+	# 	parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
 
-	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
 
 

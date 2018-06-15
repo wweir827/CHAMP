@@ -146,6 +146,7 @@ def get_interior_point(hs_list):
         # ensure that the computed point is actually interior to all halfspaces
         if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
             return intpt
+
     except MemoryError:
         # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
         warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)

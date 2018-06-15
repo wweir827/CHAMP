@@ -149,12 +149,13 @@ def test_multilayer_louvain():
 	print('number unique parititons : {:d}'.format(len(ML_PartEnsemble.get_unique_coeff_indices())))
 
 	filename=ML_PartEnsemble.save()
-	ML_PartEnsemble2=champ.PartitionEnsemble().open(filename)
-	ML_PartEnsemble2=ML_PartEnsemble.merge_ensemble(ML_PartEnsemble2,new=True)
-	ML_PartEnsemble2.save(filename='test2_partensemble.hdf5')
+	print(filename)
+	# ML_PartEnsemble2=champ.PartitionEnsemble().open(filename)
+	# ML_PartEnsemble2=ML_PartEnsemble.merge_ensemble(ML_PartEnsemble2,new=True)
+	# ML_PartEnsemble2.save(filename='test2_partensemble.hdf5')
 
-	print("Size of CHAMP: {:d} of {:d} runs".format(len(ML_PartEnsemble2.ind2doms),ML_PartEnsemble2.numparts))
-	print('number unique parititons : {:d}'.format(len(ML_PartEnsemble2.get_unique_coeff_indices())))
+	# print("Size of CHAMP: {:d} of {:d} runs".format(len(ML_PartEnsemble2.ind2doms),ML_PartEnsemble2.numparts))
+	# print('number unique parititons : {:d}'.format(len(ML_PartEnsemble2.get_unique_coeff_indices())))
 
 
 	print()
@@ -162,9 +163,13 @@ def test_multilayer_louvain():
 	f,a=plt.subplots(1,2,figsize=(14,7))
 	a=plt.subplot(1,2,1)
 	a=ML_PartEnsemble.plot_2d_modularity_domains(ax=a)
+	print (ML_PartEnsemble.ind2doms.keys())
 	a=plt.subplot(1,2,2)
-	a=ML_PartEnsemble2.plot_2d_modularity_domains(ax=a)
+	ML_PartEnsemble.apply_CHAMP(subset=list(ML_PartEnsemble.ind2doms),maxpt=None)
+	print(ML_PartEnsemble.ind2doms.keys())
+	print("Size of CHAMP : {:d} of {:d} runs".format(len(ML_PartEnsemble.ind2doms),ML_PartEnsemble.numparts))
 
+	a=ML_PartEnsemble.plot_2d_modularity_domains(ax=a)
 	plt.show()
 
 
