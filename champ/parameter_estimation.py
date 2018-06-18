@@ -1,6 +1,5 @@
 import louvain
 from math import log
-import numpy as np
 
 
 def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, max_iter=25, verbose=False):
@@ -43,6 +42,8 @@ def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, 
         return omega_in, omega_out
 
     def update_gamma(omega_in, omega_out):
+        if omega_out == 0:
+            return omega_in / log(omega_in)
         return (omega_in - omega_out) / (log(omega_in) - log(omega_out))
 
     part, last_gamma = None, None
@@ -50,7 +51,7 @@ def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, 
         part = maximize_modularity(gamma)
         omega_in, omega_out = estimate_SBM_parameters(part)
 
-        if omega_in == 0 or omega_in == 1 or omega_out == 0 or omega_in == 1:
+        if omega_in == 0 or omega_in == 1 or omega_in == 1:
             raise ValueError("gamma={:0.3f} resulted in degenerate partition".format(gamma))
 
         last_gamma = gamma
@@ -175,6 +176,8 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         return theta_in, theta_out, p, K
 
     def update_gamma(theta_in, theta_out):
+        if theta_out == 0:
+            return theta_in / log(theta_in)
         return (theta_in - theta_out) / (log(theta_in) - log(theta_out))
 
     part, K, last_gamma, last_omega = (None,) * 4
@@ -182,7 +185,7 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         part = maximize_modularity(gamma, omega)
         theta_in, theta_out, p, K = estimate_SBM_parameters(part)
 
-        if theta_in == 0 or theta_in == 1 or theta_out == 0 or theta_out == 1:
+        if theta_in == 0 or theta_in == 1 or theta_out == 1:
             raise ValueError("gamma={:0.3f}, omega={:0.3f} resulted in degenerate partition".format(gamma, omega))
 
         last_gamma, last_omega = gamma, omega
