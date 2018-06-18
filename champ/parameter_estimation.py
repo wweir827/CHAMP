@@ -1,5 +1,6 @@
 import louvain
 from math import log
+import numpy as np
 
 
 def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, max_iter=25, verbose=False):
@@ -93,16 +94,23 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
     :return: gamma, omega to which the iteration converged and the resulting partition
     """
 
+    # TODO: non-uniform cases
     # model affects SBM parameter estimation and the updating of omega
-    if model is 'temporal':
+    if model is 'temporal' or model is 'multilevel':
         def calculate_persistence(community):
             return sum(community[e.source] == community[e.target] for e in G_interlayer.es)
 
         def update_omega(theta_in, theta_out, p, K):
             # if p is 1, the optimal omega is infinite (here, omega_max)
             return log(1 + p * K / (1 - p)) / (log(theta_in) - log(theta_out)) if p < 1.0 else omega_max
+    elif model is 'multiplex':
+        # TODO: persistence calculation requires nonlinear root finding
+        def update_omega(theta_in, theta_out, p, K):
+            # if p is 1, the optimal omega is infinite (here, omega_max)
+            return log(1 + p * K / (1 - p)) / (T * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
+
+        raise ValueError("Model {} not yet fully implemented".format(model))
     else:
-        # TODO: multilevel, multiplex
         raise ValueError("Model {} not yet implemented".format(model))
 
     if 'weight' not in G_intralayer.es:
