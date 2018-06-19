@@ -116,10 +116,7 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
 
     if 'weight' not in G_intralayer.es:
         G_intralayer.es['weight'] = [1.0] * G_intralayer.ecount()
-    if 'weight' not in G_interlayer.es:
-        G_interlayer.es['weight'] = [1.0] * G_interlayer.ecount()
 
-    m = sum(G_intralayer.es['weight']) + sum(G_interlayer.es['weight'])
     T = max(layer_vec) + 1  # layer count
     N = G_interlayer.vcount() // T
     G_interlayer.es['weight'] = [omega] * G_interlayer.ecount()
@@ -165,7 +162,7 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
 
         theta_in = sum(2 * m_t_in[t] for t in range(T)) / sum(sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T))
         # guard for div by zero with single community partition
-        theta_out = sum(2 * m - 2 * m_t_in[t] for t in range(T)) / \
+        theta_out = sum(2 * m_t[t] - 2 * m_t_in[t] for t in range(T)) / \
                     sum(2 * m_t[t] - sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T)) if len(partition) > 1 else 0
 
         pers = calculate_persistence(community)
