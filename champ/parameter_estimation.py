@@ -52,24 +52,24 @@ def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, 
         omega_in, omega_out = estimate_SBM_parameters(part)
 
         if omega_in == 0 or omega_in == 1 or omega_in == 1:
-            raise ValueError("gamma={:0.3f} resulted in degenerate partition".format(gamma))
+            raise ValueError("gamma={:.3f} resulted in degenerate partition".format(gamma))
 
         last_gamma = gamma
         gamma = update_gamma(omega_in, omega_out)
 
         if verbose:
-            print("Iter {:>2}: {} communities with Q={:0.3f} and "
-                  "gamma={:0.3f}->{:0.3f}".format(iteration, len(part), part.q, last_gamma, gamma))
+            print("Iter {:>2}: {} communities with Q={:.3f} and "
+                  "gamma={:.3f}->{:.3f}".format(iteration, len(part), part.q, last_gamma, gamma))
 
         if abs(gamma - last_gamma) < tol:
             break  # gamma converged
     else:
         if verbose:
             print("Gamma failed to converge within {} iterations. "
-                  "Final move of {:0.3f} was not within tolerance {}".format(max_iter, abs(gamma - last_gamma), tol))
+                  "Final move of {:.3f} was not within tolerance {}".format(max_iter, abs(gamma - last_gamma), tol))
 
     if verbose:
-        print("Returned {} communities with Q={:0.3f} and gamma={:0.3f}".format(len(part), part.q, gamma))
+        print("Returned {} communities with Q={:.3f} and gamma={:.3f}".format(len(part), part.q, gamma))
 
     return gamma, part
 
@@ -102,14 +102,13 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
             return sum(community[e.source] == community[e.target] for e in G_interlayer.es)
 
         def update_omega(theta_in, theta_out, p, K):
+            if theta_out == 0:
+                return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
             # if p is 1, the optimal omega is infinite (here, omega_max)
-            return log(1 + p * K / (1 - p)) / (log(theta_in) - log(theta_out)) if p < 1.0 else omega_max
+            return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
     elif model is 'multiplex':
         # TODO: persistence calculation requires nonlinear root finding
-        def update_omega(theta_in, theta_out, p, K):
-            # if p is 1, the optimal omega is infinite (here, omega_max)
-            return log(1 + p * K / (1 - p)) / (T * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
-
+        # TODO: omega calculation normalizes with number of layers
         raise ValueError("Model {} not yet fully implemented".format(model))
     else:
         raise ValueError("Model {} not yet implemented".format(model))
@@ -121,6 +120,9 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
     N = G_interlayer.vcount() // T
     G_interlayer.es['weight'] = [omega] * G_interlayer.ecount()
 
+    assert T > 1, "Graph must have multiple layers"
+    assert G_interlayer.ecount() == N * (T - 1), \
+        "Interlayer graph has {} edges, but should have N(T-1)={} edges".format(G_interlayer.ecount(), N * (T - 1))
     assert G_interlayer.vcount() == G_intralayer.vcount() and G_interlayer.vcount() % T == 0 \
            and G_intralayer.vcount() % T == 0, "All layers of graph must be of the same size"
 
@@ -151,7 +153,6 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         for e in G_intralayer.es:
             if community[e.source] == community[e.target] and layer_vec[e.source] == layer_vec[e.target]:
                 m_t_in[layer_vec[e.source]] += e['weight']
-                m_t_in[layer_vec[e.target]] += e['weight']
 
         kappa_t_r_list = [[0] * K for _ in range(T)]
         for e in G_intralayer.es:
@@ -165,10 +166,10 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         theta_out = sum(2 * m_t[t] - 2 * m_t_in[t] for t in range(T)) / \
                     sum(2 * m_t[t] - sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T)) if len(partition) > 1 else 0
 
-        pers = calculate_persistence(community)
+        pers = calculate_persistence(community) / (N * (T - 1))
         # guard for div by zero with single community partition
         # (in this case, all community assignments persist across layers)
-        p = max((pers / (N * (T - 1)) - 1 / K) / (1 - 1 / K), 0) if K > 1 else 1
+        p = max((K * pers - 1) / (K - 1), 0) if K > 1 else 1
 
         return theta_in, theta_out, p, K
 
@@ -183,14 +184,14 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         theta_in, theta_out, p, K = estimate_SBM_parameters(part)
 
         if theta_in == 0 or theta_in == 1 or theta_out == 1:
-            raise ValueError("gamma={:0.3f}, omega={:0.3f} resulted in degenerate partition".format(gamma, omega))
+            raise ValueError("gamma={:.3f}, omega={:.3f} resulted in degenerate partition".format(gamma, omega))
 
         last_gamma, last_omega = gamma, omega
         gamma = update_gamma(theta_in, theta_out)
         omega = update_omega(theta_in, theta_out, p, K)
 
         if verbose:
-            print("Iter {:>2}: {} communities with Q={:0.3f}, gamma={:0.3f}->{:0.3f}, and omega={:0.3f}->{:0.3f}"
+            print("Iter {:>2}: {} communities with Q={:.3f}, gamma={:.3f}->{:.3f}, and omega={:.3f}->{:.3f}"
                   "".format(iteration, K, part.q, last_gamma, gamma, last_omega, omega))
 
         if abs(gamma - last_gamma) < gamma_tol and abs(omega - last_omega) < omega_tol:
@@ -198,11 +199,11 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
     else:
         if verbose:
             print("Parameters failed to converge within {} iterations. "
-                  "Final move of ({:0.3f}, {:0.3f}) was not within tolerance ({}, {})"
+                  "Final move of ({:.3f}, {:.3f}) was not within tolerance ({}, {})"
                   "".format(max_iter, abs(gamma - last_gamma), abs(omega - last_omega), gamma_tol, omega_tol))
 
     if verbose:
-        print("Returned {} communities with Q={:0.3f}, gamma={:0.3f}, "
-              "and omega={:0.3f}".format(K, part.q, gamma, omega))
+        print("Returned {} communities with Q={:.3f}, gamma={:.3f}, "
+              "and omega={:.3f}".format(K, part.q, gamma, omega))
 
     return gamma, omega, part
