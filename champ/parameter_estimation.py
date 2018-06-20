@@ -51,7 +51,7 @@ def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, 
         part = maximize_modularity(gamma)
         omega_in, omega_out = estimate_SBM_parameters(part)
 
-        if omega_in == 0 or omega_in == 1 or omega_in == 1:
+        if omega_in == 0 or omega_in == 1:
             raise ValueError("gamma={:.3f} resulted in degenerate partition".format(gamma))
 
         last_gamma = gamma
@@ -183,7 +183,7 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         part = maximize_modularity(gamma, omega)
         theta_in, theta_out, p, K = estimate_SBM_parameters(part)
 
-        if theta_in == 0 or theta_in == 1 or theta_out == 1:
+        if theta_in == 0 or theta_in == 1:
             raise ValueError("gamma={:.3f}, omega={:.3f} resulted in degenerate partition".format(gamma, omega))
 
         last_gamma, last_omega = gamma, omega
