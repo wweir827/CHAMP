@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import numpy as np
 from numpy.random import choice, uniform
 from scipy.spatial import HalfspaceIntersection
+from scipy.spatial.qhull import QhullError
 from scipy.optimize import linprog
 import warnings
 from pyhull import halfspace as hs
@@ -116,6 +117,7 @@ def sort_points(points):
 
     return points
 
+
 def get_interior_point(hs_list):
     '''
     Find interior point to calculate intersections
@@ -139,17 +141,20 @@ def get_interior_point(hs_list):
     A = np.hstack((sampled_hs[:, :-1], norm_vector))
     b = -sampled_hs[:, -1:]
 
-    try:
-        res = linprog(c, A_ub=A, b_ub=b)
+    res = linprog(c, A_ub=A, b_ub=b)
+
+    if res.status == 0:
         intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
 
         # ensure that the computed point is actually interior to all halfspaces
         if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
             return intpt
-
-    except MemoryError:
-        # with hundreds of thousands of halfspaces, linprog fails to allocate initial memory
-        warnings.warn("Interior point calculation: scipy.optimize.linprog ran out of memory.", RuntimeWarning)
+    else:
+        warnings.warn({1: "Interior point calculation: scipy.optimize.linprog exceeded iteration limit",
+                       2: "Interior point calculation: scipy.optimize.linprog problem is infeasible. "
+                          "Fallback will fail.",
+                       3: "Interior point calculation: scipy.optimize.linprog problem is unbounded"}[res.status],
+                      RuntimeWarning)
 
     warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
 
@@ -163,9 +168,7 @@ def get_interior_point(hs_list):
     return intpt + internal_step
 
 
-
-
-def calculate_coefficient(com_vec,adj_matrix):
+def calculate_coefficient(com_vec, adj_matrix):
     '''
     For a given connection matrix and set of community labels, calculate the coeffcient
     for plane/line associated with that connectivity matrix
@@ -302,7 +305,11 @@ def get_intersection(coef_array, max_pt=None):
         interior_pt = get_interior_point(halfspaces)
 
     # Find boundary intersection of half spaces
-    hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
+    try:
+        hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
+    except QhullError:
+        warnings.warn("Qhull input might be sub-dimensional, attempting to fix...")
+        hs_inter = HalfspaceIntersection(halfspaces, interior_pt, qhull_options="QJ")
 
     non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v[0])])
     mx = np.max(non_inf_vert, axis=0)
