@@ -141,7 +141,7 @@ def get_interior_point(hs_list):
     A = np.hstack((sampled_hs[:, :-1], norm_vector))
     b = -sampled_hs[:, -1:]
 
-    res = linprog(c, A_ub=A, b_ub=b)
+    res = linprog(c, A_ub=A, b_ub=b, bounds=None)
 
     if res.status == 0:
         intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
@@ -305,14 +305,28 @@ def get_intersection(coef_array, max_pt=None):
         interior_pt = get_interior_point(halfspaces)
 
     # Find boundary intersection of half spaces
+    joggled = False
     try:
         hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
     except QhullError:
-        warnings.warn("Qhull input might be sub-dimensional, attempting to fix...")
+        warnings.warn("Qhull input might be sub-dimensional, attempting to fix...", RuntimeWarning)
+
+        # move the offset of the the first two boundary halfspaces (x >= 0 and y >= 0) so that
+        # the joggled intersections are not outside our boundaries.
+        joggled = True
+        halfspaces[num_input_halfspaces][-1] = -1e-5
+        halfspaces[num_input_halfspaces + 1][-1] = -1e-5
         hs_inter = HalfspaceIntersection(halfspaces, interior_pt, qhull_options="QJ")
 
-    non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v[0])])
+    non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v).all()])
     mx = np.max(non_inf_vert, axis=0)
+
+    if joggled:
+        # find largest (x,y) values of halfspace intersections and refuse to continue if too close to (0,0)
+        max_xy_intersections = mx[:2]
+        if max(max_xy_intersections) < 1e-2:
+            raise ValueError("All intersections are less than ({:.3f},{:.3f}). "
+                             "Invalid input set.".format(*max_xy_intersections))
 
     # max intersection on y-axis (x=0) implies there are no intersections in gamma direction.
     if np.abs(mx[0]) < np.power(10.0, -15) and np.abs(mx[1]) < np.power(10.0, -15):
