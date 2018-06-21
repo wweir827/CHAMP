@@ -326,7 +326,7 @@ def get_intersection(coef_array, max_pt=None):
         max_xy_intersections = mx[:2]
         if max(max_xy_intersections) < 1e-2:
             raise ValueError("All intersections are less than ({:.3f},{:.3f}). "
-                             "Invalid input set.".format(*max_xy_intersections))
+                             "Invalid input set, try setting max_pt.".format(*max_xy_intersections))
 
     # max intersection on y-axis (x=0) implies there are no intersections in gamma direction.
     if np.abs(mx[0]) < np.power(10.0, -15) and np.abs(mx[1]) < np.power(10.0, -15):
