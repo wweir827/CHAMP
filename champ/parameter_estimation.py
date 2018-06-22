@@ -95,36 +95,61 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
     :return: gamma, omega to which the iteration converged and the resulting partition
     """
 
+    if 'weight' not in G_intralayer.es:
+        G_intralayer.es['weight'] = [1.0] * G_intralayer.ecount()
+
+    T = max(layer_vec) + 1  # layer count
+    G_interlayer.es['weight'] = [omega] * G_interlayer.ecount()
+
+    assert T > 1, "Graph must have multiple layers"
+    assert G_interlayer.vcount() == G_intralayer.vcount(), "Inter-layer and intra-layer graphs must be of the same size"
+    assert len(layer_vec) == G_intralayer.vcount(), \
+        "Layer membership vector must have be of length {}".format(G_intralayer.vcount())
+
     # TODO: non-uniform cases
     # model affects SBM parameter estimation and the updating of omega
-    if model is 'temporal' or model is 'multilevel':
+    if model is 'temporal':
+        N = G_interlayer.vcount() // T
+        assert G_interlayer.ecount() == N * (T - 1), \
+            "Interlayer graph has {} edges, but should have N(T-1)={} edges".format(G_interlayer.ecount(), N * (T - 1))
+        assert G_interlayer.vcount() % T == 0 and G_intralayer.vcount() % T == 0, \
+            "Vertex count should be a multiple of the number of layers"
+
         def calculate_persistence(community):
-            return sum(community[e.source] == community[e.target] for e in G_interlayer.es)
+            return sum(community[e.source] == community[e.target] for e in G_interlayer.es) / (N * (T - 1))
 
         def update_omega(theta_in, theta_out, p, K):
             if theta_out == 0:
                 return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
             # if p is 1, the optimal omega is infinite (here, omega_max)
             return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
+    elif model is 'multilevel':
+        Nt = [0] * T
+        for l in layer_vec:
+            Nt[l] += 1
+
+        def calculate_persistence(community):
+            pers_per_layer = [0] * T
+            for e in G_interlayer.es:
+                pers_per_layer[layer_vec[e.target]] += (community[e.source] == community[e.target])
+
+            pers_per_layer = [pers_per_layer[l] / Nt[l] for l in range(T)]
+            return sum(pers_per_layer) / (T - 1)
+
+        def update_omega(theta_in, theta_out, p, K):
+            if theta_out == 0:
+                return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
+            # if p is 1, the optimal omega is infinite (here, omega_max)
+            return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
+
+        # TODO: multilevel results are inconsistent with MATLAB implementation, degree appears to be handled differently
+        raise ValueError("Model {} not yet fully implemented".format(model))
     elif model is 'multiplex':
         # TODO: persistence calculation requires nonlinear root finding
         # TODO: omega calculation normalizes with number of layers
         raise ValueError("Model {} not yet fully implemented".format(model))
     else:
         raise ValueError("Model {} not yet implemented".format(model))
-
-    if 'weight' not in G_intralayer.es:
-        G_intralayer.es['weight'] = [1.0] * G_intralayer.ecount()
-
-    T = max(layer_vec) + 1  # layer count
-    N = G_interlayer.vcount() // T
-    G_interlayer.es['weight'] = [omega] * G_interlayer.ecount()
-
-    assert T > 1, "Graph must have multiple layers"
-    assert G_interlayer.ecount() == N * (T - 1), \
-        "Interlayer graph has {} edges, but should have N(T-1)={} edges".format(G_interlayer.ecount(), N * (T - 1))
-    assert G_interlayer.vcount() == G_intralayer.vcount() and G_interlayer.vcount() % T == 0 \
-           and G_intralayer.vcount() % T == 0, "All layers of graph must be of the same size"
 
     optimiser = louvain.Optimiser()
 
@@ -164,9 +189,9 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         theta_in = sum(2 * m_t_in[t] for t in range(T)) / sum(sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T))
         # guard for div by zero with single community partition
         theta_out = sum(2 * m_t[t] - 2 * m_t_in[t] for t in range(T)) / \
-                    sum(2 * m_t[t] - sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T)) if len(partition) > 1 else 0
+                    sum(2 * m_t[t] - sum_kappa_t_sqr[t] / (2 * m_t[t]) for t in range(T)) if K > 1 else 0
 
-        pers = calculate_persistence(community) / (N * (T - 1))
+        pers = calculate_persistence(community)
         # guard for div by zero with single community partition
         # (in this case, all community assignments persist across layers)
         p = max((K * pers - 1) / (K - 1), 0) if K > 1 else 1
