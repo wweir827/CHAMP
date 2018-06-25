@@ -141,9 +141,6 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
                 return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
             # if p is 1, the optimal omega is infinite (here, omega_max)
             return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
-
-        # TODO: multilevel results are inconsistent with MATLAB implementation, degree appears to be handled differently
-        raise ValueError("Model {} not yet fully implemented".format(model))
     elif model is 'multiplex':
         # TODO: persistence calculation requires nonlinear root finding
         # TODO: omega calculation normalizes with number of layers
@@ -216,8 +213,8 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         omega = update_omega(theta_in, theta_out, p, K)
 
         if verbose:
-            print("Iter {:>2}: {} communities with Q={:.3f}, gamma={:.3f}->{:.3f}, and omega={:.3f}->{:.3f}"
-                  "".format(iteration, K, part.q, last_gamma, gamma, last_omega, omega))
+            print("Iter {:>2}: {} communities with Q={:.3f}, gamma={:.3f}->{:.3f}, omega={:.3f}->{:.3f}, and p={:.3f}"
+                  "".format(iteration, K, part.q, last_gamma, gamma, last_omega, omega, p))
 
         if abs(gamma - last_gamma) < gamma_tol and abs(omega - last_omega) < omega_tol:
             break  # gamma and omega converged
