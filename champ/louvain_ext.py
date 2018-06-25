@@ -31,11 +31,14 @@ import louvain
 import numpy as np
 import h5py
 import copy
+import tqdm
 import sklearn.metrics as skm
 from time import time
 import warnings
 import logging
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+# logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+
 import seaborn as sbn
 
 
@@ -141,6 +144,7 @@ class PartitionEnsemble():
 		self._uniq_partition_indices=None
 		self._twin_partitions=None
 		self._sim_mat=None
+		self._mu = None
 
 		if listofparts!=None:
 			self.add_partitions(listofparts,maxpt=self.maxpt)
@@ -719,6 +723,16 @@ class PartitionEnsemble():
 			self._sim_mat=sim_mat
 		return self._sim_mat
 
+	@property
+	def mu(self):
+		"""total intralayer edges (and inter if is multilayer)"""
+
+		if self._mu is None:
+			self._mu=self.graph.ecount()
+			if self.ismultilayer:
+				self._mu+=self.interlayer_graph.ecount()
+
+		return self._mu
 
 	def get_unique_coeff_indices(self):
 		''' Get the indices for the partitions with unique coefficient \
@@ -1975,6 +1989,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	logging.debug('running parallel')
+	t=time()
 	# graph_file_names,layer_vec,gamma,omega=files_layervec_gamma_omega
 	np.random.seed() #reset seed in forked process
 	# louvain.set_rng_seed(int(np.random.get_state()[1][0]))
@@ -1983,13 +1998,11 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	#SET THE INTERLAYER COUPLING
 	interlayer_graph.es['weight']=omega
 	partition=run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec=layer_vec, resolution=gamma, omega=omega)
-
-
-
+	logging.debug('time: {:.4f}'.format(time()-t))
 	return partition
 
 def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
-								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2):
+								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True):
 
 	""""""
 	logging.debug('creating graphs from edges')
@@ -2009,11 +2022,22 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	gammas=np.linspace(gamma_range[0],gamma_range[1],num=ngamma)
 	omegas=np.linspace(omega_range[0],omega_range[1],num=nomega)
 
+
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
-
+	tot=ngamma*nomega
 	with terminating(Pool(numprocesses)) as pool:
-		parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
+		parts_list_of_list = []
+		if progress:
+			with tqdm.tqdm(total=tot) as pbar:
+				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+				for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
+					# if i % 100==0:
+					pbar.update()
+					parts_list_of_list.append(res)
+		else:
+			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
+				parts_list_of_list.append(res)
 
 	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
@@ -2027,7 +2051,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	return outensemble
 
 def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_vec,
-										 gamma_range, omega_range):
+										 gamma_range, omega_range,progress=True):
 
 	"""Call parallel multilayer louvain with adjacency matrices """
 	intralayer_edges=adjacency_to_edges(intralayer_adj)
@@ -2035,7 +2059,7 @@ def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_ve
 
 	return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
 									   layer_vec=layer_vec,
-									   gamma_range=gamma_range,omega_range=omega_range)
+									   gamma_range=gamma_range,omega_range=omega_range,progress=progress)
 
 def main():
 	return
