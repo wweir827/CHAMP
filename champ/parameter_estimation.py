@@ -74,6 +74,41 @@ def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, 
     return gamma, part
 
 
+def check_multilayer_graph_consistency(G_intralayer, G_interlayer, layer_vec, model, m_t, T, N=None, Nt=None):
+    """
+    Checks that the structures of the intralayer and interlayer graphs are consistent and match the given model.
+
+    :param G_intralayer: input graph containing all intra-layer edges
+    :param G_interlayer: input graph containing all inter-layer edges
+    :param layer_vec: vector of each vertex's layer membership
+    :param model: network layer topology (temporal, multilevel, multiplex)
+    :param m_t: vector of total edge weights per layer
+    :param T: number of layers in input graph
+    :param N: number of nodes per layer (if model is 'temporal')
+    :param Nt: vector of nodes per layer (if model is 'multilevel')
+    """
+
+    checks = [T > 1,
+              G_interlayer.vcount() == G_intralayer.vcount(),
+              len(layer_vec) == G_intralayer.vcount(),
+              all(m > 0 for m in m_t),
+              all(layer_vec[e.source] == layer_vec[e.target] for e in G_intralayer.es),
+              model is not 'temporal' or G_interlayer.ecount() == N * (T - 1),
+              model is not 'temporal' or (G_interlayer.vcount() % T == 0 and G_intralayer.vcount() % T == 0),
+              model is not 'multilevel' or all(nt > 0 for nt in Nt)]
+    messages = ["Graph must have multiple layers",
+                "Inter-layer and Intra-layer graphs must be of the same size",
+                "Layer membership vector must have length matching graph size",
+                "All layers of graph must contain edges",
+                "Intralayer graph should not contain edges across layers",
+                "Interlayer temporal graph must contain (nodes per layer) * (number of layers - 1) edges",
+                "Vertex count of a temporal graph should be a multiple of the number of layers",
+                "All layers of a multilevel graph must be consecutive and nonempty"]
+
+    if not all(checks):
+        raise ValueError("Input graph is malformed\n" + "\n".join(m for c, m in zip(checks, messages) if not c))
+
+
 def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interlayer, layer_vec, gamma=1.0, omega=1.0,
                                                          gamma_tol=1e-2, omega_tol=5e-2, omega_max=1000, max_iter=25,
                                                          model='temporal', verbose=False):
@@ -98,37 +133,30 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
     if 'weight' not in G_intralayer.es:
         G_intralayer.es['weight'] = [1.0] * G_intralayer.ecount()
 
-    T = max(layer_vec) + 1  # layer count
     G_interlayer.es['weight'] = [omega] * G_interlayer.ecount()
-
-    assert T > 1, "Graph must have multiple layers"
-    assert G_interlayer.vcount() == G_intralayer.vcount(), "Inter-layer and intra-layer graphs must be of the same size"
-    assert len(layer_vec) == G_intralayer.vcount(), \
-        "Layer membership vector must have be of length {}".format(G_intralayer.vcount())
+    T = max(layer_vec) + 1  # layer count
+    optimiser = louvain.Optimiser()
+    m_t = [0] * T
+    for e in G_intralayer.es:
+        m_t[layer_vec[e.source]] += e['weight']
 
     # TODO: non-uniform cases
     # model affects SBM parameter estimation and the updating of omega
     if model is 'temporal':
         N = G_interlayer.vcount() // T
-        assert G_interlayer.ecount() == N * (T - 1), \
-            "Interlayer graph has {} edges, but should have N(T-1)={} edges".format(G_interlayer.ecount(), N * (T - 1))
-        assert G_interlayer.vcount() % T == 0 and G_intralayer.vcount() % T == 0, \
-            "Vertex count should be a multiple of the number of layers"
 
         def calculate_persistence(community):
+            # ordinal persistence
             return sum(community[e.source] == community[e.target] for e in G_interlayer.es) / (N * (T - 1))
 
-        def update_omega(theta_in, theta_out, p, K):
-            if theta_out == 0:
-                return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
-            # if p is 1, the optimal omega is infinite (here, omega_max)
-            return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
+        check_multilayer_graph_consistency(G_intralayer, G_interlayer, layer_vec, model, m_t, T, N=N)
     elif model is 'multilevel':
         Nt = [0] * T
         for l in layer_vec:
             Nt[l] += 1
 
         def calculate_persistence(community):
+            # multilevel persistence
             pers_per_layer = [0] * T
             for e in G_interlayer.es:
                 pers_per_layer[layer_vec[e.target]] += (community[e.source] == community[e.target])
@@ -136,25 +164,13 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
             pers_per_layer = [pers_per_layer[l] / Nt[l] for l in range(T)]
             return sum(pers_per_layer) / (T - 1)
 
-        def update_omega(theta_in, theta_out, p, K):
-            if theta_out == 0:
-                return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
-            # if p is 1, the optimal omega is infinite (here, omega_max)
-            return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
+        check_multilayer_graph_consistency(G_intralayer, G_interlayer, layer_vec, model, m_t, T, Nt=Nt)
     elif model is 'multiplex':
         # TODO: persistence calculation requires nonlinear root finding
         # TODO: omega calculation normalizes with number of layers
         raise ValueError("Model {} not yet fully implemented".format(model))
     else:
         raise ValueError("Model {} not yet implemented".format(model))
-
-    optimiser = louvain.Optimiser()
-
-    m_t = [0] * T
-    for e in G_intralayer.es:
-        assert layer_vec[e.source] == layer_vec[e.target], \
-            "intralayer graph is malformed: edge {}->{} is across layers".format(e.source, e.target)
-        m_t[layer_vec[e.source]] += e['weight']
 
     def maximize_modularity(intralayer_resolution, interlayer_resolution):
         # RBConfigurationVertexPartitionWeightedLayers implements a multilayer version of "standard" modularity (i.e.
@@ -199,6 +215,12 @@ def iterative_multilayer_resolution_parameter_estimation(G_intralayer, G_interla
         if theta_out == 0:
             return theta_in / log(theta_in)
         return (theta_in - theta_out) / (log(theta_in) - log(theta_out))
+
+    def update_omega(theta_in, theta_out, p, K):
+        if theta_out == 0:
+            return log(1 + p * K / (1 - p)) / (2 * log(theta_in)) if p < 1.0 else omega_max
+        # if p is 1, the optimal omega is infinite (here, omega_max)
+        return log(1 + p * K / (1 - p)) / (2 * (log(theta_in) - log(theta_out))) if p < 1.0 else omega_max
 
     part, K, last_gamma, last_omega = (None,) * 4
     for iteration in range(max_iter):
