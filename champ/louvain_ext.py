@@ -31,11 +31,14 @@ import louvain
 import numpy as np
 import h5py
 import copy
+import tqdm
 import sklearn.metrics as skm
 from time import time
 import warnings
 import logging
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+# logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+
 import seaborn as sbn
 
 
@@ -141,6 +144,7 @@ class PartitionEnsemble():
 		self._uniq_partition_indices=None
 		self._twin_partitions=None
 		self._sim_mat=None
+		self._mu = None
 
 		if listofparts!=None:
 			self.add_partitions(listofparts,maxpt=self.maxpt)
@@ -719,6 +723,16 @@ class PartitionEnsemble():
 			self._sim_mat=sim_mat
 		return self._sim_mat
 
+	@property
+	def mu(self):
+		"""total intralayer edges (and inter if is multilayer)"""
+
+		if self._mu is None:
+			self._mu=self.graph.ecount()
+			if self.ismultilayer:
+				self._mu+=self.interlayer_graph.ecount()
+
+		return self._mu
 
 	def get_unique_coeff_indices(self):
 		''' Get the indices for the partitions with unique coefficient \
@@ -1303,82 +1317,87 @@ class PartitionEnsemble():
 ##### STATIC METHODS ######
 
 def get_sum_internal_edges(partobj,weight=None):
-    '''
-       Get the count(strength) of edges that are internal to community:
+	'''
+	   Get the count(strength) of edges that are internal to community:
 
-       :math:`\\hat{A}=\\sum_{ij}{A_{ij}\\delta(c_i,c_j)}`
+	   :math:`\\hat{A}=\\sum_{ij}{A_{ij}\\delta(c_i,c_j)}`
 
-       :param partobj:
-       :type partobj: igraph.VertexClustering
-       :param weight: True uses 'weight' attribute of edges
-       :return: float
-       '''
-    sumA=0
-    for subg in partobj.subgraphs():
-        if weight is not None:
-            sumA+= np.sum(subg.es[weight])
-        else:
-            sumA+= subg.ecount()
-    return 2.0*sumA
+	   :param partobj:
+	   :type partobj: igraph.VertexClustering
+	   :param weight: True uses 'weight' attribute of edges
+	   :return: float
+	   '''
+	sumA=0
+	for subg in partobj.subgraphs():
+		if weight is not None:
+			sumA+= np.sum(subg.es[weight])
+		else:
+			sumA+= subg.ecount()
+	return 2.0*sumA
 
 def get_number_of_communities(partition,min_com_size=0):
-    '''
+	'''
 
-    :param partition: list with community assignments (labels must be of hashable type \
-    e.g. int,string, etc...).
-    :type partition: list
-    :param min_com_size: Minimum size to include community in the total number of communities (default is 0)
-    :type min_com_size: int
-    :return: number of communities
-    :rtype: int
-    '''
-    count_dict={}
-    for label in partition:
-        count_dict[label]=count_dict.get(label,0)+1
+	:param partition: list with community assignments (labels must be of hashable type \
+	e.g. int,string, etc...).
+	:type partition: list
+	:param min_com_size: Minimum size to include community in the total number of communities (default is 0)
+	:type min_com_size: int
+	:return: number of communities
+	:rtype: int
+	'''
+	count_dict={}
+	for label in partition:
+		count_dict[label]=count_dict.get(label,0)+1
 
-    tot_coms=0
-    for k,val in iteritems(count_dict):
-        if val>=min_com_size:
-            tot_coms+=1
-    return tot_coms
+	tot_coms=0
+	for k,val in iteritems(count_dict):
+		if val>=min_com_size:
+			tot_coms+=1
+	return tot_coms
 
 def get_expected_edges(partobj,weight='weight'):
-    '''
-    Get the expected internal edges under configuration models
+	'''
+	Get the expected internal edges under configuration models
 
-    :math:`\\hat{P}=\\sum_{ij}{\\frac{k_ik_j}{2m}\\delta(c_i,c_j)}`
+	:math:`\\hat{P}=\\sum_{ij}{\\frac{k_ik_j}{2m}\\delta(c_i,c_j)}`
 
-    :param partobj:
-    :type partobj: igraph.VertexClustering
-    :param weight: True uses 'weight' attribute of edges
-    :return: float
-    '''
+	:param partobj:
+	:type partobj: igraph.VertexClustering
+	:param weight: True uses 'weight' attribute of edges
+	:return: float
+	'''
 
-    if weight==None:
-        m = partobj.graph.ecount()
-    else:
-        try:
-            m=np.sum(partobj.graph.es['weight'])
-        except:
-            m=partobj.graph.ecount()
 
-    kk=0
-    #Hashing this upfront is alot faster (factor of 10).
-    indices = [ v.index for v in partobj.graph.vs ]
-    if weight==None:
-        strengths=dict(zip(indices,partobj.graph.degree(partobj.graph.vs)))
-    else:
-        strengths=dict(zip(indices,partobj.graph.strength(partobj.graph.vs,weights="weight")))
-    for subg in partobj.subgraphs():
-        # since node ordering on subgraph doesn't match main graph, get vert id's in original graph
-        # verts=map(lambda x: int(re.search("(?<=n)\d+", x['id']).group()),subg.vs) #you have to get full weight from original graph
-        # svec=partobj.graph.strength(verts,weights='weight') #i think is what is slow
+	if weight is None:
+		m = float(partobj.graph.ecount())
+	else:
+		try:
+			m=np.sum(partobj.graph.es[weight])
+		except:
+			m=partobj.graph.ecount()
+	# print(m)
+	if m==0:
+		return 0
+	kk=0
+	#Hashing this upfront is alot faster (factor of 10).
+	partobj.graph.vs['_id']=range(partobj.graph.vcount())
+	indices = [ partobj.graph.vs['_id'][v.index] for v in partobj.graph.vs ]
+	if weight==None:
+		strengths=dict(zip(indices,partobj.graph.degree(indices)))
+	else:
+		strengths=dict(zip(indices,partobj.graph.strength(indices,weights=weight)))
+	for subg in partobj.subgraphs():
+		# since node ordering on subgraph doesn't match main graph, get vert id's in original graph
+		# verts=map(lambda x: int(re.search("(?<=n)\d+", x['id']).group()),subg.vs) #you have to get full weight from original graph
+		# svec=partobj.graph.strength(verts,weights='weight') #i think is what is slow
+		svec=np.array(lmap(lambda x :strengths[subg.vs['_id'][x.index]],subg.vs))
+		# svec=subg.strength(subg.vs,weights='weight')
+		kk+=np.sum(np.outer(svec, svec))
 
-        svec=np.array(lmap(lambda x :strengths[x.index],subg.vs))
-        # svec=subg.strength(subg.vs,weights='weight')
-        kk+=np.sum(np.outer(svec, svec))
 
-    return kk/(2.0*m)
+
+	return kk/(2.0*m)
 
 def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 	"""
@@ -1395,195 +1414,196 @@ def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 	for layer in layers:
 		cind=np.where(layer_vec==layer)[0]
 		subgraph=part_obj.graph.subgraph(cind)
-		submem=part_obj.membership[cind]
+		submem=np.array(part_obj.membership)[cind]
 		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
 		P_tot += get_expected_edges(cpartobj,weight=weight)
 	return P_tot
 
-def rev_perm(perm):
-    '''
-    Calculate the reverse of a permuation vector
 
-    :param perm: permutation vector
-    :type perm: list
-    :return: reverse of permutation
-    '''
-    rperm=list(np.zeros(len(perm)))
-    for i,v in enumerate(perm):
-        rperm[v]=i
-    return rperm
+def rev_perm(perm):
+	'''
+	Calculate the reverse of a permuation vector
+
+	:param perm: permutation vector
+	:type perm: list
+	:return: reverse of permutation
+	'''
+	rperm=list(np.zeros(len(perm)))
+	for i,v in enumerate(perm):
+		rperm[v]=i
+	return rperm
 
 def get_orig_ordered_mem_vec(rev_order, membership):
-    '''
-    Rearrange community membership vector according to permutation
+	'''
+	Rearrange community membership vector according to permutation
 
-    Used to realign community vector output after node permutation.
+	Used to realign community vector output after node permutation.
 
-    :param rev_order: new indices of each nodes
-    :param membership: community membership vector to be rearranged
-    :return: rearranged membership vector.
-    '''
-    new_member=[-1 for i in range(len(rev_order))]
+	:param rev_order: new indices of each nodes
+	:param membership: community membership vector to be rearranged
+	:return: rearranged membership vector.
+	'''
+	new_member=[-1 for i in range(len(rev_order))]
 
-    for i,val in enumerate(rev_order):
-        new_member[val]=membership[i]
-    assert(-1 not in new_member) #Something didn't get switched
+	for i,val in enumerate(rev_order):
+		new_member[val]=membership[i]
+	assert(-1 not in new_member) #Something didn't get switched
 
-    return new_member
+	return new_member
 
 def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False):
-    '''
-    Call the louvain method for a given graph file.
+	'''
+	Call the louvain method for a given graph file.
 
-    This takes as input a graph file (instead of the graph object) to avoid duplicating
-    references in the context of parallelization.  To allow for flexibility, it allows for
-    subsetting of the nodes each time.
+	This takes as input a graph file (instead of the graph object) to avoid duplicating
+	references in the context of parallelization.  To allow for flexibility, it allows for
+	subsetting of the nodes each time.
 
-    :param gfile: igraph file.  Must be GraphMlz (todo: other extensions)
-    :param node_subset: Subeset of nodes to keep (either the indices or list of attributes)
-    :param gamma: resolution parameter to run louvain
-    :param nruns: number of runs to conduct
-    :param weight: optional name of weight attribute for the edges if network is weighted.
-    :param output_dictionary: Boolean - output a dictionary representation without attached graph.
-    :return: list of partition objects
+	:param gfile: igraph file.  Must be GraphMlz (todo: other extensions)
+	:param node_subset: Subeset of nodes to keep (either the indices or list of attributes)
+	:param gamma: resolution parameter to run louvain
+	:param nruns: number of runs to conduct
+	:param weight: optional name of weight attribute for the edges if network is weighted.
+	:param output_dictionary: Boolean - output a dictionary representation without attached graph.
+	:return: list of partition objects
 
-    '''
+	'''
 
-    np.random.seed() #reset seed for each process
+	np.random.seed() #reset seed for each process
 
-    #Load the graph from the file
-    g = ig.Graph.Read_GraphMLz(gfile)
-    #have to have a node identifier to handle permutations.
+	#Load the graph from the file
+	g = ig.Graph.Read_GraphMLz(gfile)
+	#have to have a node identifier to handle permutations.
 
 
-    #Found it easier to load graph from file each time than pass graph object among process
-    #This means you do have to filter out shared nodes and realign graphs.
-    # Can avoid for g1 by passing None
+	#Found it easier to load graph from file each time than pass graph object among process
+	#This means you do have to filter out shared nodes and realign graphs.
+	# Can avoid for g1 by passing None
 
-    #
-    if node_subset!=None:
-        # subset is index of vertices to keep
-        if attribute==None:
-            gdel=node_subset
-        # check to keep nodes with given attribute
-        else:
-            gdel=[ i for i,val in enumerate(g.vs[attribute]) if val not in node_subset]
+	#
+	if node_subset!=None:
+		# subset is index of vertices to keep
+		if attribute==None:
+			gdel=node_subset
+		# check to keep nodes with given attribute
+		else:
+			gdel=[ i for i,val in enumerate(g.vs[attribute]) if val not in node_subset]
 
-        #delete from graph
-        g.delete_vertices(gdel)
+		#delete from graph
+		g.delete_vertices(gdel)
 
-    if weight is True:
-        weight='weight'
+	if weight is True:
+		weight='weight'
 
-    outparts=[]
-    for i in range(nruns):
-        rand_perm = list(np.random.permutation(g.vcount()))
-        rperm = rev_perm(rand_perm)
-        gr=g.permute_vertices(rand_perm) #This is just a labelling switch.  internal properties maintined.
+	outparts=[]
+	for i in range(nruns):
+		rand_perm = list(np.random.permutation(g.vcount()))
+		rperm = rev_perm(rand_perm)
+		gr=g.permute_vertices(rand_perm) #This is just a labelling switch.  internal properties maintined.
 
-        #In louvain > 0.6, change in the way the different methods are called.
-        #modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
-        rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,resolution_parameter=gamma)
+		#In louvain > 0.6, change in the way the different methods are called.
+		#modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
+		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,resolution_parameter=gamma)
 
-        #old way of calling
-        # rp = louvain.find_partition(gr, method='RBConfiguration',weight=weight,  resolution_parameter=gamma)
+		#old way of calling
+		# rp = louvain.find_partition(gr, method='RBConfiguration',weight=weight,  resolution_parameter=gamma)
 
-        #store the coefficients in return object.
-        A=get_sum_internal_edges(rp,weight)
-        P=get_expected_edges(rp,weight)
+		#store the coefficients in return object.
+		A=get_sum_internal_edges(rp,weight)
+		P=get_expected_edges(rp,weight)
 
-        outparts.append({'partition': get_orig_ordered_mem_vec(rperm, rp.membership),
-                         'resolution':gamma,
-                         'orig_mod': rp.quality(),
-                         'int_edges':A,
-                         'exp_edges':P})
+		outparts.append({'partition': get_orig_ordered_mem_vec(rperm, rp.membership),
+						 'resolution':gamma,
+						 'orig_mod': rp.quality(),
+						 'int_edges':A,
+						 'exp_edges':P})
 
-    if not output_dictionary:
-        return PartitionEnsemble(graph=g,listofparts=outparts)
-    else:
-        return outparts
-    return part_ensemble
+	if not output_dictionary:
+		return PartitionEnsemble(graph=g,listofparts=outparts)
+	else:
+		return outparts
+	return part_ensemble
 
 
 
 
 
 def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress):
-    '''
-    Parallel wrapper with single argument input for calling :meth:`louvain_ext.run_louvain`
+	'''
+	Parallel wrapper with single argument input for calling :meth:`louvain_ext.run_louvain`
 
-    :param gfile_att_2_id_dict_shared_gamma_runs_weight: tuple or list of arguments to supply
-    :returns: PartitionEnsemble of graph stored in gfile
-    '''
-    #unpack
-    gfile,gamma,nruns,weight,node_subset,attribute,progress=gfile_gamma_nruns_weight_subset_attribute_progress
-    t=time()
-    outparts=run_louvain(gfile,gamma,nruns=nruns,weight=weight,node_subset=node_subset,attribute=attribute,output_dictionary=True)
+	:param gfile_att_2_id_dict_shared_gamma_runs_weight: tuple or list of arguments to supply
+	:returns: PartitionEnsemble of graph stored in gfile
+	'''
+	#unpack
+	gfile,gamma,nruns,weight,node_subset,attribute,progress=gfile_gamma_nruns_weight_subset_attribute_progress
+	t=time()
+	outparts=run_louvain(gfile,gamma,nruns=nruns,weight=weight,node_subset=node_subset,attribute=attribute,output_dictionary=True)
 
-    if progress is not None:
-        if progress%100==0:
-            print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
+	if progress is not None:
+		if progress%100==0:
+			print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
 
-    return outparts
+	return outparts
 
 def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
-                     numprocesses=None, attribute=None,weight=None,node_subset=None,progress=False):
-    '''
-    Generates arguments for parallel function call of louvain on graph
+					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=False):
+	'''
+	Generates arguments for parallel function call of louvain on graph
 
-    :param graph: igraph object to run Louvain on
-    :param start: beginning of range of resolution parameter :math:`\\gamma` . Default is 0.
-    :param fin: end of range of resolution parameter :math:`\\gamma`.  Default is 1.
-    :param numruns: number of intervals to divide resolution parameter, :math:`\\gamma` range into
-    :param maxpt: Cutoff off resolution for domains when applying CHAMP. Default is None
-    :type maxpt: int
-    :param numprocesses: the number of processes to spawn.  Default is number of CPUs.
-    :param weight: If True will use 'weight' attribute of edges in runnning Louvain and calculating modularity.
-    :param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
-    :param attribute: Which attribute to filter on if node_subset is supplied.  If None, node subset is assumed \
-     to be node indices.
-    :param progress:  Print progress in parallel execution
-    :return: PartitionEnsemble of all partitions identified.
+	:param graph: igraph object to run Louvain on
+	:param start: beginning of range of resolution parameter :math:`\\gamma` . Default is 0.
+	:param fin: end of range of resolution parameter :math:`\\gamma`.  Default is 1.
+	:param numruns: number of intervals to divide resolution parameter, :math:`\\gamma` range into
+	:param maxpt: Cutoff off resolution for domains when applying CHAMP. Default is None
+	:type maxpt: int
+	:param numprocesses: the number of processes to spawn.  Default is number of CPUs.
+	:param weight: If True will use 'weight' attribute of edges in runnning Louvain and calculating modularity.
+	:param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
+	:param attribute: Which attribute to filter on if node_subset is supplied.  If None, node subset is assumed \
+	 to be node indices.
+	:param progress:  Print progress in parallel execution
+	:return: PartitionEnsemble of all partitions identified.
 
-    '''
-    parallel_args=[]
-    if numprocesses is None:
-        numprocesses=cpu_count()
+	'''
+	parallel_args=[]
+	if numprocesses is None:
+		numprocesses=cpu_count()
 
-    if weight is True:
-        weight='weight'
+	if weight is True:
+		weight='weight'
 
-    tempf=tempfile.NamedTemporaryFile('wb')
-    graphfile=tempf.name
-    #filter before calling parallel
-    if node_subset != None:
-        # subset is index of vertices to keep
-        if attribute == None:
-            gdel = node_subset
-        # check to keep nodes with given attribute
-        else:
-            gdel = [i for i, val in enumerate(graph.vs[attribute]) if val not in node_subset]
+	tempf=tempfile.NamedTemporaryFile('wb')
+	graphfile=tempf.name
+	#filter before calling parallel
+	if node_subset != None:
+		# subset is index of vertices to keep
+		if attribute == None:
+			gdel = node_subset
+		# check to keep nodes with given attribute
+		else:
+			gdel = [i for i, val in enumerate(graph.vs[attribute]) if val not in node_subset]
 
-        # delete from graph
-        graph.delete_vertices(gdel)
+		# delete from graph
+		graph.delete_vertices(gdel)
 
-    graph.write_graphmlz(graphfile)
-    for i in range(numruns):
-        prognum = None if not progress else i
-        curg = start + ((fin - start) / (1.0 * numruns)) * i
-        parallel_args.append((graphfile ,curg,1, weight,None,None,prognum))
-
-
-    #use a context manager so pools properly shut down
-
-    with terminating(Pool(processes=numprocesses)) as pool:
-        parts_list_of_list=pool.map(_run_louvain_parallel, parallel_args )
+	graph.write_graphmlz(graphfile)
+	for i in range(numruns):
+		prognum = None if not progress else i
+		curg = start + ((fin - start) / (1.0 * numruns)) * i
+		parallel_args.append((graphfile ,curg,1, weight,None,None,prognum))
 
 
-    all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
-    tempf.close()
-    outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
-    return outensemble
+	#use a context manager so pools properly shut down
+
+	with terminating(Pool(processes=numprocesses)) as pool:
+		parts_list_of_list=pool.map(_run_louvain_parallel, parallel_args )
+
+
+	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
+	tempf.close()
+	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
+	return outensemble
 
 
 
@@ -1859,25 +1879,6 @@ def _get_sum_internal_edges_from_partobj_list(part_obj_list,weight='weight'):
 		A+=get_sum_internal_edges(part_obj,weight=weight)
 	return A
 
-def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
-	"""
-	Multilayer calculation of expected edges.  Breaks up partition object \
-	by layer and calculated expected edges for each layer-subgraph seperately\
-	thus getting the relative weights correct
-	:param part_obj: ig.VertexPartition with the appropriate graph and membership vector.
-	:param layer_vec: array with length equaling number of nodes specifying which layer each node is in.
-	:param weight: weight attribute on network
-	:return:
-	"""
-	P_tot=0
-	layers=np.unique(layer_vec)
-	for layer in layers:
-		cind=np.where(layer_vec==layer)[0]
-		subgraph=part_obj.graph.subgraph(cind)
-		submem=np.array(part_obj.membership)[cind]
-		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
-		P_tot += get_expected_edges(cpartobj,weight=weight)
-	return P_tot
 
 def _get_sum_expected_edges_from_partobj_list(part_obj_list,layer_vec,weight='weight'):
 	P=0
@@ -1975,6 +1976,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	logging.debug('running parallel')
+	t=time()
 	# graph_file_names,layer_vec,gamma,omega=files_layervec_gamma_omega
 	np.random.seed() #reset seed in forked process
 	# louvain.set_rng_seed(int(np.random.get_state()[1][0]))
@@ -1983,13 +1985,11 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	#SET THE INTERLAYER COUPLING
 	interlayer_graph.es['weight']=omega
 	partition=run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec=layer_vec, resolution=gamma, omega=omega)
-
-
-
+	logging.debug('time: {:.4f}'.format(time()-t))
 	return partition
 
 def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
-								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2):
+								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True):
 
 	""""""
 	logging.debug('creating graphs from edges')
@@ -2009,11 +2009,22 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	gammas=np.linspace(gamma_range[0],gamma_range[1],num=ngamma)
 	omegas=np.linspace(omega_range[0],omega_range[1],num=nomega)
 
+
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
-
+	tot=ngamma*nomega
 	with terminating(Pool(numprocesses)) as pool:
-		parts_list_of_list=pool.map(_parallel_run_louvain_multimodularity,args)
+		parts_list_of_list = []
+		if progress:
+			with tqdm.tqdm(total=tot) as pbar:
+				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+				for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
+					# if i % 100==0:
+					pbar.update()
+					parts_list_of_list.append(res)
+		else:
+			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
+				parts_list_of_list.append(res)
 
 	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
@@ -2027,7 +2038,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	return outensemble
 
 def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_vec,
-										 gamma_range, omega_range):
+										 gamma_range, omega_range,progress=True):
 
 	"""Call parallel multilayer louvain with adjacency matrices """
 	intralayer_edges=adjacency_to_edges(intralayer_adj)
@@ -2035,7 +2046,7 @@ def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_ve
 
 	return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
 									   layer_vec=layer_vec,
-									   gamma_range=gamma_range,omega_range=omega_range)
+									   gamma_range=gamma_range,omega_range=omega_range,progress=progress)
 
 def main():
 	return

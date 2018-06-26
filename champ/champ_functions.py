@@ -117,7 +117,6 @@ def sort_points(points):
 
     return points
 
-
 def get_interior_point(hs_list):
     '''
     Find interior point to calculate intersections

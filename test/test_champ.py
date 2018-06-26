@@ -137,29 +137,29 @@ def test_multilayer_louvain():
 
 	#run a sinlge time and compare with ground truth
 	np.random.seed(0)
-	gamma = 1.0
-	omega = 2
-	args = (intralayer,interlayer,mgraph.layer_vec, gamma, omega)
-	part = champ.louvain_ext._parallel_run_louvain_multimodularity(args)
-	print('modularity',part[0]['orig_mod'])
-	print(skm.adjusted_mutual_info_score(mgraph.comm_vec,part[0]['partition']))
-	# test parallel version
-
-	# ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[1,1],ngamma=1,omega_range=[1,1],nomega=1,numprocesses=1,maxpt=(1,1))
-
-	plt.close()
-	f,a=plt.subplots(1,2,figsize=(10,5))
-	a=plt.subplot(1,2,1)
-	champ.plot_multiplex_community(mgraph.comm_vec, mgraph.layer_vec,ax=a)
-	a=plt.subplot(1,2,2)
-	champ.plot_multiplex_community(part[0]['partition'], mgraph.layer_vec,ax=a)
-	# ML_PartEnsemble.plot_multiplex_communities(ind=0,ax=a)
-	plt.show()
+	# gamma = 1.0
+	# omega = 2
+	# args = (intralayer,interlayer,mgraph.layer_vec, gamma, omega)
+	# part = champ.louvain_ext._parallel_run_louvain_multimodularity(args)
+	# print('modularity',part[0]['orig_mod'])
+	# print(skm.adjusted_mutual_info_score(mgraph.comm_vec,part[0]['partition']))
+	# # test parallel version
+	#
+	# # ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[1,1],ngamma=1,omega_range=[1,1],nomega=1,numprocesses=1,maxpt=(1,1))
+	#
+	# plt.close()
+	# f,a=plt.subplots(1,2,figsize=(10,5))
+	# a=plt.subplot(1,2,1)
+	# champ.plot_multiplex_community(mgraph.comm_vec, mgraph.layer_vec,ax=a)
+	# a=plt.subplot(1,2,2)
+	# champ.plot_multiplex_community(part[0]['partition'], mgraph.layer_vec,ax=a)
+	# # ML_PartEnsemble.plot_multiplex_communities(ind=0,ax=a)
+	# plt.show()
 
 
 	#run several
 
-	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[0,1],ngamma=5,omega_range=[0,2],nomega=5,numprocesses=4,maxpt=(1,1))
+	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[0,10],ngamma=30,omega_range=[0,10],nomega=30,numprocesses=4,maxpt=(12,12))
 
 
 
@@ -184,9 +184,16 @@ def test_multilayer_louvain():
 	print (ML_PartEnsemble.ind2doms.keys())
 	a=plt.subplot2grid((1,11),(0,5),colspan=5)
 	a_cb=plt.subplot2grid((1,11),(0,10),colspan=1)
-	ML_PartEnsemble.apply_CHAMP(subset=list(ML_PartEnsemble.ind2doms),maxpt=None)
-	print(ML_PartEnsemble.ind2doms.keys())
-	print("Size of CHAMP : {:d} of {:d} runs".format(len(ML_PartEnsemble.ind2doms),ML_PartEnsemble.numparts))
+	# ML_PartEnsemble.apply_CHAMP(subset=list(ML_PartEnsemble.ind2doms))
+
+	#rescale and see if domains are affected
+	# mu=ML_PartEnsemble.mu
+	# ML_PartEnsemble.int_inter_edges /= (2.0*mu)
+	# ML_PartEnsemble.int_edges /= (2*mu)
+	# ML_PartEnsemble.exp_edges /= (2*mu)
+	# ML_PartEnsemble.apply_CHAMP()
+	# print(ML_PartEnsemble.ind2doms.keys())
+	# print("Size of CHAMP : {:d} of {:d} runs".format(len(ML_PartEnsemble.ind2doms),ML_PartEnsemble.numparts))
 	a=ML_PartEnsemble.plot_2d_modularity_domains_with_AMI(ax=a,true_part=mgraph.comm_vec,colorbar_ax=a_cb)
 	plt.show()
 
