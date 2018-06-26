@@ -17,7 +17,8 @@ from .champ_functions import get_random_halfspaces
 
 from .louvain_ext import create_multilayer_igraph_from_edgelist
 from .louvain_ext import create_multilayer_igraph_from_adjacency
-from .louvain_ext import call_slices_to_layers_from_edge_list
+from .louvain_ext import parallel_multilayer_louvain
+from .louvain_ext import parallel_multilayer_louvain_from_adj
 from .louvain_ext import PartitionEnsemble
 from .louvain_ext import parallel_louvain
 from .louvain_ext import run_louvain
