@@ -1,5 +1,6 @@
 import louvain
 from math import log
+import warnings
 
 
 def iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-2, max_iter=25, verbose=False):
@@ -87,6 +88,12 @@ def check_multilayer_graph_consistency(G_intralayer, G_interlayer, layer_vec, mo
     :param N: number of nodes per layer (if model is 'temporal')
     :param Nt: vector of nodes per layer (if model is 'multilevel')
     """
+
+    if G_intralayer.is_directed() != G_interlayer.is_directed():
+        warnings.warn("Intralayer graph is {}, but Interlayer graph is {}."
+                      "".format("directed" if G_intralayer.is_directed() else "undirected",
+                                "directed" if G_interlayer.is_directed() else "undirected"),
+                      RuntimeWarning)
 
     checks = [T > 1,
               G_interlayer.vcount() == G_intralayer.vcount(),
