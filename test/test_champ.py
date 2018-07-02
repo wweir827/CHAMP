@@ -159,7 +159,10 @@ def test_multilayer_louvain():
 
 	#run several
 
-	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec,gamma_range=[0,10],ngamma=30,omega_range=[0,10],nomega=30,numprocesses=4,maxpt=(12,12))
+	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,
+																  interlayer_edges=mgraph.interlayer_edges,
+																  layer_vec=mgraph.layer_vec,gamma_range=[0,10],
+																  ngamma=20,omega_range=[0,10],nomega=20,numprocesses=4,maxpt=(12,12),progress=True)
 
 
 
@@ -211,7 +214,7 @@ def get_layer_average_ami(labs1,labs2,layer_vec):
 def test_create_coeff_array():
 	n = 200
 	q = 2
-	nlayers = 2
+	nlayers = 3
 	nblocks = q
 	c = 8
 	ep = .1
@@ -241,8 +244,8 @@ def test_create_coeff_array():
 
 	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,
 																  interlayer_edges=mgraph.interlayer_edges,
-																  layer_vec=mgraph.layer_vec,gamma_range=[0,10],
-																  ngamma=10,omega_range=[1,2],nomega=1,
+																  layer_vec=mgraph.layer_vec,gamma_range=[1,5],
+																  ngamma=5,omega_range=[1,2],nomega=1,
 																  numprocesses=4,maxpt=(12,12))
 
 	man_array=champ.create_coefarray_from_partitions(ML_PartEnsemble.partitions,A_mat=ML_PartEnsemble.get_adjacency(),
@@ -250,6 +253,11 @@ def test_create_coeff_array():
 
 	print(man_array)
 	print(ML_PartEnsemble.get_coefficient_array())
+
+	print(champ.get_intersection(man_array,max_pt=(12,12)).keys())
+	print(champ.get_intersection(man_array,max_pt=(12,12)).keys())
+
+	print(ML_PartEnsemble.ind2doms.keys())
 	
 def test_on_senate_data():
 

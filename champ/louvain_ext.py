@@ -1925,6 +1925,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 	outparts=[]
 	for run in range(nruns):
 		rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
+		# rand_perm = list(range(interlayer_graph.vcount()))
 		rperm = rev_perm(rand_perm)
 		interslice_layer_rand = interlayer_graph.permute_vertices(rand_perm)
 		offset=0
@@ -1966,10 +1967,10 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		#the membership for each of the partitions is tied together.
 		finalpartition=get_orig_ordered_mem_vec(rperm,all_layer_partobjs[0].membership)
 		reversed_partobj=[]
-		#go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
+		# #go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
 		for layer in layer_partition_objs:
 			reversed_partobj.append(louvain.RBConfigurationVertexPartitionWeightedLayers(graph=layer.graph.permute_vertices(rperm),
-																 initial_membership=layer.membership,
+																 initial_membership=finalpartition,weights='weight',
 																	 resolution_parameter=layer.resolution_parameter))
 		#use only the intralayer part objs
 		A=_get_sum_internal_edges_from_partobj_list(reversed_partobj,weight=weight)
@@ -2026,20 +2027,20 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
 	tot=ngamma*nomega
-	# with terminating(Pool(numprocesses)) as pool:
-	# 	parts_list_of_list = []
-	# 	if progress:
-	# 		with tqdm.tqdm(total=tot) as pbar:
-	# 			# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
-	# 			for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
-	# 				# if i % 100==0:
-	# 				pbar.update()
-	# 				parts_list_of_list.append(res)
-	# 	else:
-	# 		for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
-	# 			parts_list_of_list.append(res)
+	with terminating(Pool(numprocesses)) as pool:
+		parts_list_of_list = []
+		if progress:
+			with tqdm.tqdm(total=tot) as pbar:
+				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+				for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
+					# if i % 100==0:
+					pbar.update()
+					parts_list_of_list.append(res)
+		else:
+			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
+				parts_list_of_list.append(res)
 
-	parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
 
 
