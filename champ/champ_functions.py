@@ -99,7 +99,7 @@ def create_halfspaces_from_array(coef_array):
     # array of shape (number of halfspaces, dimension+1)
     # Each row represents a halfspace by [normal; offset]
     # I.e. Ax + b <= 0 is represented by [A; b]
-    return np.vstack((-nvs, offs)).T
+    return np.vstack((nvs, -offs)).T
 
 def sort_points(points):
     '''For 2D case we sort the points along the gamma axis in assending order. \

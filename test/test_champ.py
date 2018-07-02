@@ -208,6 +208,47 @@ def get_layer_average_ami(labs1,labs2,layer_vec):
 		allamis.append(cami)
 	return np.sum(allamis)
 
+def test_create_coeff_array():
+	n = 200
+	q = 2
+	nlayers = 2
+	nblocks = q
+	c = 8
+	ep = .1
+	eta = .1
+	pin = (n * c / (2.0)) / ((n / float(q)) * (n / float(q) - 1) / 2.0 * float(q) + ep * (q * (q - 1) / 2.0) * (
+		np.power(n / (q * 1.0), 2.0)))
+
+	pout = ep * pin
+
+	prob_mat = np.identity(nblocks) * pin + (np.ones((nblocks, nblocks)) - np.identity(nblocks)) * pout
+
+	ml_sbm = modbp.MultilayerSBM(n, comm_prob_mat=prob_mat, layers=nlayers, transition_prob=eta)
+	mgraph = modbp.MultilayerGraph(intralayer_edges=ml_sbm.intraedges, interlayer_edges=ml_sbm.interedges,
+								   layer_vec=ml_sbm.layer_vec,
+								   comm_vec=ml_sbm.get_all_layers_block())
+
+	intralayer, interlayer = champ.create_multilayer_igraph_from_edgelist(intralayer_edges=mgraph.intralayer_edges
+																		  ,
+																		  interlayer_edges=mgraph.interlayer_edges,
+																		  layer_vec=mgraph.layer_vec)
+
+	P = np.zeros((nlayers * n, nlayers * n))
+	for i in range(nlayers):
+		c_degrees = np.array(intralayer.degree(list(range(n * i, n * i + n))))
+		c_inds = np.where(mgraph.layer_vec == i)[0]
+		P[np.ix_(c_inds, c_inds)] = np.outer(c_degrees, c_degrees.T) / (1.0 * np.sum(c_degrees))
+
+	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,
+																  interlayer_edges=mgraph.interlayer_edges,
+																  layer_vec=mgraph.layer_vec,gamma_range=[0,10],
+																  ngamma=10,omega_range=[1,2],nomega=1,
+																  numprocesses=4,maxpt=(12,12))
+
+	man_array=champ.create_coefarray_from_partitions(ML_PartEnsemble.partitions,A_mat=ML_PartEnsemble.get_adjacency(),
+													 P_mat=P,C_mat=ML_PartEnsemble.get_adjacency(intra=False))
+	print(man_array)
+	print(ML_PartEnsemble.get_coefficient_array())
 	
 def test_on_senate_data():
 
@@ -250,7 +291,7 @@ def test_on_senate_data():
 	# plt.show()
 
 def main():
-	test_multilayer_louvain()
+	test_create_coeff_array()
 	return 0
 
 if __name__=='__main__':

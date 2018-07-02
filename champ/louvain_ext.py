@@ -163,23 +163,25 @@ class PartitionEnsemble():
 					'intra_adjacency' not in self.__dict__:
 
 				if 'weight' in self.graph.edge_attributes():
-					self.intra_adj=self.graph.get_adjacency(type="GET_ADJACENCY_BOTH",
+					self.intra_adj=self.graph.get_adjacency(type=ig.GET_ADJACENCY_BOTH,
 														attribute='weight')
 				else:
-					self.intra_adj = self.graph.get_adjacency(type="GET_ADJACENCY_BOTH")
+					self.intra_adj = self.graph.get_adjacency(type=ig.GET_ADJACENCY_BOTH)
 				# these are the same thing.  We use two names ot avoid confusion in the sinlge
 				# layer context.
 				self.adjacency = self.intra_adj
+			self.adjacency=np.array(self.adjacency.data)
 			return self.adjacency
 		else:
 			if not self.ismultilayer:
 				raise ValueError ("Cannot get interedge adjacency from single layer graph")
 			if 'inter_adj'  not in self.__dict__:
-				if 'weight' in self.graph.edge_attributes():
-					self.intra_adj=self.graph.get_adjacency(type="GET_ADJACENCY_BOTH",
+				if 'weight' in self.interlayer_graph.edge_attributes():
+					self.inter_adj=self.interlayer_graph.get_adjacency(type=ig.GET_ADJACENCY_BOTH,
 														attribute='weight')
 				else:
-					self.intra_adj = self.inter_graph.get_adjacency(type="GET_ADJACENCY_BOTH")
+					self.inter_adj = self.interlayer_graph.get_adjacency(type=ig.GET_ADJACENCY_BOTH)
+			self.inter_adj=np.array(self.inter_adj.data)
 			return self.inter_adj
 
 
@@ -205,7 +207,7 @@ class PartitionEnsemble():
 			if not self.ismultilayer:
 				raise ValueError ("Cannot get calculate internal interlayer edges from single layer graph")
 			partobj = ig.VertexClustering(graph=self.inter_graph, membership=memvec)
-			weight = "weight" if "weight" in self.intra_graph.edge_attributes() else None
+			weight = "weight" if "weight" in self.inter_graph.edge_attributes() else None
 		return get_sum_internal_edges(partobj=partobj,weight=weight)
 
 	def calc_expected_edges(self, memvec):
@@ -1395,8 +1397,6 @@ def get_expected_edges(partobj,weight='weight'):
 		# svec=subg.strength(subg.vs,weights='weight')
 		kk+=np.sum(np.outer(svec, svec))
 
-
-
 	return kk/(2.0*m)
 
 def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
@@ -1887,10 +1887,13 @@ def _get_sum_expected_edges_from_partobj_list(part_obj_list,layer_vec,weight='we
 	return P
 
 
-def _get_modularity_from_partobj_list(part_obj_list):
+def _get_modularity_from_partobj_list(part_obj_list,resolution=None):
 	finmod=0
 	for part_obj in part_obj_list:
-		finmod+=part_obj.quality()
+		if resolution is None:
+			finmod+=part_obj.quality()
+		else:
+			finmod+=part_obj.quality(resolution_parameter=resolution)
 	return finmod
 
 def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight='weight',
@@ -1920,6 +1923,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 	outparts=[]
 	for run in range(nruns):
 		rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
+		rand_perm = list(range(interlayer_graph.vcount()))
 		rperm = rev_perm(rand_perm)
 		interslice_layer_rand = interlayer_graph.permute_vertices(rand_perm)
 		offset=0
@@ -1958,6 +1962,8 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 		#the membership for each of the partitions is tied together.
 		finalpartition=get_orig_ordered_mem_vec(rperm,all_layer_partobjs[0].membership)
+		for layer in all_layer_partobjs:
+			layer.graph.permute_vertices(rperm)
 		#use only the intralayer part objs
 		A=_get_sum_internal_edges_from_partobj_list(layer_partition_objs,weight=weight)
 		P=_get_sum_expected_edges_from_partobj_list(layer_partition_objs,layer_vec=layer_vec,weight=weight)
@@ -1965,7 +1971,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		outparts.append({'partition': np.array(finalpartition),
 						 'resolution': resolution,
 						 'coupling':omega,
-						 'orig_mod': (.5/mu)*_get_modularity_from_partobj_list(all_layer_partobjs),
+						 'orig_mod': (.5/mu)*(_get_modularity_from_partobj_list(all_layer_partobjs)),
 						 'int_edges': A,
 						 'exp_edges': P,
 						'int_inter_edges':C})
