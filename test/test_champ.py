@@ -247,6 +247,7 @@ def test_create_coeff_array():
 
 	man_array=champ.create_coefarray_from_partitions(ML_PartEnsemble.partitions,A_mat=ML_PartEnsemble.get_adjacency(),
 													 P_mat=P,C_mat=ML_PartEnsemble.get_adjacency(intra=False))
+
 	print(man_array)
 	print(ML_PartEnsemble.get_coefficient_array())
 	
