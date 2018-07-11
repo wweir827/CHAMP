@@ -161,8 +161,8 @@ def test_multilayer_louvain():
 
 	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,
 																  interlayer_edges=mgraph.interlayer_edges,
-																  layer_vec=mgraph.layer_vec,gamma_range=[0,10],
-																  ngamma=20,omega_range=[0,10],nomega=20,numprocesses=4,maxpt=(12,12),progress=True)
+																  layer_vec=mgraph.layer_vec,gamma_range=[0,4],
+																  ngamma=5,omega_range=[0,2],nomega=5,numprocesses=10,maxpt=(4,2),progress=True)
 
 
 
@@ -274,6 +274,10 @@ def test_on_senate_data():
 	layer_vec = np.array(map(lambda x: sess2layer[x], sesid))
 	intralayer,interlayer=champ.create_multilayer_igraph_from_adjacency(A=A,C=C,layer_vec=layer_vec)
 
+	parts = champ.parallel_multilayer_louvain_from_adj(intralayer_adj=A, interlayer_adj=C,
+	                                                   layer_vec=layer_vec, numprocesses=1,
+	                                                   gamma_range=[1, 2], omega_range=[0, 2],
+	                                                   ngamma=2, nomega=1, maxpt=(2, 2))
 	#test single run
 	gamma = .8
 	omega = 1.0
@@ -300,7 +304,7 @@ def test_on_senate_data():
 	# plt.show()
 
 def main():
-	test_create_coeff_array()
+	test_multilayer_louvain()
 	return 0
 
 if __name__=='__main__':

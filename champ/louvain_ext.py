@@ -36,8 +36,8 @@ import sklearn.metrics as skm
 from time import time
 import warnings
 import logging
-# logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 import seaborn as sbn
 
@@ -206,8 +206,8 @@ class PartitionEnsemble():
 		else:
 			if not self.ismultilayer:
 				raise ValueError ("Cannot get calculate internal interlayer edges from single layer graph")
-			partobj = ig.VertexClustering(graph=self.inter_graph, membership=memvec)
-			weight = "weight" if "weight" in self.inter_graph.edge_attributes() else None
+			partobj = ig.VertexClustering(graph=self.interlayer_graph, membership=memvec)
+			weight = "weight" if "weight" in self.interlayer_graph.edge_attributes() else None
 		return get_sum_internal_edges(partobj=partobj,weight=weight)
 
 	def calc_expected_edges(self, memvec):
@@ -224,8 +224,8 @@ class PartitionEnsemble():
 		'''
 
 		#create temporary VC object
-		partobj=ig.VertexClustering(graph=self.intra_graph,membership=memvec)
-		weight = "weight" if "weight" in self.intra_graph.edge_attributes() else None
+		partobj=ig.VertexClustering(graph=self.graph,membership=memvec)
+		weight = "weight" if "weight" in self.graph.edge_attributes() else None
 		if self.ismultilayer: #takes into account the different layers
 			Phat=get_expected_edges_ml(partobj,self.layer_vec,weight=weight)
 		else:
@@ -504,6 +504,19 @@ class PartitionEnsemble():
 					else:
 						cint_inter_edges = self.calc_internal_edges(part['partition'],intra=False)
 						self.int_inter_edges = np.append(self.int_inter_edges, cint_inter_edges)
+
+					print("{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition'])))
+					print("{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition'])))
+					print("{} != {}".format(part['exp_edges'], self.calc_expected_edges(part['partition'])))
+
+				# assert part['exp_edges']==self.calc_expected_edges(part['partition']),\
+					# 	"{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition']))
+					#
+					# assert part['int_edges']==self.calc_internal_edges(part['partition'],intra=True), \
+					# 	"{} != {}".format(part['int_edges'], self.calc_internal_edges(part['partition'],intra=True))
+					#
+					# assert part['int_inter_edges']==self.calc_internal_edges(part['partition'],intra=True), \
+					# 	"{} != {}".format(part['int_inter_edges'], self.calc_internal_edges(part['partition'],intra=False))
 
 
 				self.numcoms=np.append(self.numcoms,get_number_of_communities(part['partition'],
@@ -2027,20 +2040,20 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
 	tot=ngamma*nomega
-	with terminating(Pool(numprocesses)) as pool:
-		parts_list_of_list = []
-		if progress:
-			with tqdm.tqdm(total=tot) as pbar:
-				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
-				for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
-					# if i % 100==0:
-					pbar.update()
-					parts_list_of_list.append(res)
-		else:
-			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
-				parts_list_of_list.append(res)
+	# with terminating(Pool(numprocesses)) as pool:
+	# 	parts_list_of_list = []
+	# 	if progress:
+	# 		with tqdm.tqdm(total=tot) as pbar:
+	# 			# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+	# 			for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
+	# 				# if i % 100==0:
+	# 				pbar.update()
+	# 				parts_list_of_list.append(res)
+	# 	else:
+	# 		for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
+	# 			parts_list_of_list.append(res)
 
-	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
 
 
@@ -2051,16 +2064,16 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 
 	return outensemble
 
-def parallel_multilayer_louvain_from_adj(intralayer_adj, interlayer_adj,layer_vec,
-										 gamma_range, omega_range,progress=True):
+def parallel_multilayer_louvain_from_adj(intralayer_adj,interlayer_adj,layer_vec,
+								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True):
 
 	"""Call parallel multilayer louvain with adjacency matrices """
 	intralayer_edges=adjacency_to_edges(intralayer_adj)
 	interlayer_edges=adjacency_to_edges(interlayer_adj)
 
 	return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
-									   layer_vec=layer_vec,
-									   gamma_range=gamma_range,omega_range=omega_range,progress=progress)
+									   layer_vec=layer_vec,numprocesses=numprocesses,ngamma=ngamma,nomega=nomega,
+									   gamma_range=gamma_range,omega_range=omega_range,progress=progress,maxpt=maxpt)
 
 def main():
 	return
