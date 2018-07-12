@@ -130,10 +130,7 @@ def test_multilayer_louvain():
 								   layer_vec=ml_sbm.layer_vec,
 								   comm_vec=ml_sbm.get_all_layers_block())
 
-	intralayer, interlayer = champ.create_multilayer_igraph_from_edgelist(intralayer_edges=mgraph.intralayer_edges
-																			  ,
-																			  interlayer_edges=mgraph.interlayer_edges,
-																			  layer_vec=mgraph.layer_vec)
+	intralayer, interlayer = champ.create_multilayer_igraph_from_edgelist(intralayer_edges=mgraph.intralayer_edges,interlayer_edges=mgraph.interlayer_edges,layer_vec=mgraph.layer_vec)
 
 	#run a sinlge time and compare with ground truth
 	np.random.seed(0)
@@ -162,7 +159,7 @@ def test_multilayer_louvain():
 	ML_PartEnsemble=champ.louvain_ext.parallel_multilayer_louvain(intralayer_edges=mgraph.intralayer_edges,
 																  interlayer_edges=mgraph.interlayer_edges,
 																  layer_vec=mgraph.layer_vec,gamma_range=[0,4],
-																  ngamma=5,omega_range=[0,2],nomega=5,numprocesses=10,maxpt=(4,2),progress=True)
+																  ngamma=2,omega_range=[0,2],nomega=2,numprocesses=2,maxpt=(4,2),progress=True)
 
 
 
@@ -271,13 +268,14 @@ def test_on_senate_data():
 	parties = sendata['Sparty'][:, 0]
 	sessions = np.unique(sesid)
 	sess2layer = dict(zip(sessions, range(len(sessions))))
-	layer_vec = np.array(map(lambda x: sess2layer[x], sesid))
+	layer_vec = np.array(list(map(lambda x: sess2layer[x], sesid)))
 	intralayer,interlayer=champ.create_multilayer_igraph_from_adjacency(A=A,C=C,layer_vec=layer_vec)
 
 	parts = champ.parallel_multilayer_louvain_from_adj(intralayer_adj=A, interlayer_adj=C,
-	                                                   layer_vec=layer_vec, numprocesses=1,
+	                                                   layer_vec=layer_vec, numprocesses=10,
 	                                                   gamma_range=[1, 2], omega_range=[0, 2],
-	                                                   ngamma=2, nomega=1, maxpt=(2, 2))
+	                                                   ngamma=4, nomega=4, maxpt=(2, 2))
+
 	#test single run
 	gamma = .8
 	omega = 1.0
@@ -304,7 +302,7 @@ def test_on_senate_data():
 	# plt.show()
 
 def main():
-	test_multilayer_louvain()
+	test_on_senate_data()
 	return 0
 
 if __name__=='__main__':

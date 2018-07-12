@@ -505,9 +505,9 @@ class PartitionEnsemble():
 						cint_inter_edges = self.calc_internal_edges(part['partition'],intra=False)
 						self.int_inter_edges = np.append(self.int_inter_edges, cint_inter_edges)
 
-					print("{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition'])))
-					print("{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition'])))
-					print("{} != {}".format(part['exp_edges'], self.calc_expected_edges(part['partition'])))
+					# print("{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition'])))
+					# print("{} != {}".format(part['int_edges'],self.calc_internal_edges(part['partition'],intra=True)))
+					# print("{} != {}".format(part['int_inter_edges'], self.calc_internal_edges(part['partition'],intra=False)))
 
 				# assert part['exp_edges']==self.calc_expected_edges(part['partition']),\
 					# 	"{} != {}".format(part['exp_edges'],self.calc_expected_edges(part['partition']))
@@ -1348,7 +1348,7 @@ def get_sum_internal_edges(partobj,weight=None):
 			sumA+= np.sum(subg.es[weight])
 		else:
 			sumA+= subg.ecount()
-	return 2.0*sumA
+	return (2.0-partobj.graph.is_directed())*sumA
 
 def get_number_of_communities(partition,min_com_size=0):
 	'''
@@ -1465,6 +1465,13 @@ def get_orig_ordered_mem_vec(rev_order, membership):
 	assert(-1 not in new_member) #Something didn't get switched
 
 	return new_member
+
+def permute_memvec(permutation,membership):
+	outvec=np.array([-1 for _ in range(len(membership))])
+	for i,val in enumerate(permutation):
+		outvec[val]=membership[i]
+
+	return outvec
 
 def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False):
 	'''
@@ -1760,7 +1767,8 @@ def _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec):
 		assert len(set(graph.vs['shared_id']))==len(graph.vs['shared_id']), "IDs within a slice must all be unique"
 
 
-def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, layer_vec, directed=False):
+def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, layer_vec, inter_directed=False,
+                                           intra_directed=False):
 	"""
 	   We create an igraph representation used by the louvain package to represents multi-slice graphs.  \
 	   For this method only two graphs are created :
@@ -1777,11 +1785,11 @@ def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, l
 	:return: intralayer_graph,interlayer_graph
 	"""
 	t=time()
-	interlayer_graph = _create_all_layers_single_igraph(interlayer_edges, layer_vec=layer_vec, directed=directed)
+	interlayer_graph = _create_all_layers_single_igraph(interlayer_edges, layer_vec=layer_vec, directed=inter_directed)
 	# interlayer_graph=interlayer_graph[0]
 	logging.debug("create interlayer : {:.4f}".format(time()-t))
 	t=time()
-	intralayer_graph = _create_all_layers_single_igraph(intralayer_edges, layer_vec, directed=directed)
+	intralayer_graph = _create_all_layers_single_igraph(intralayer_edges, layer_vec, directed=intra_directed)
 	logging.debug("create intrallayer : {:.4f}".format(time()-t))
 	t=time()
 	return intralayer_graph,interlayer_graph
@@ -1829,7 +1837,7 @@ def adjacency_to_edges(A):
 	return zip(nnz_inds[0], nnz_inds[1], nnzvals)
 
 
-def create_multilayer_igraph_from_adjacency(A,C,layer_vec,directed=False):
+def create_multilayer_igraph_from_adjacency(A,C,layer_vec,inter_directed=False,intra_directed=False):
 	"""
 	Create the multilayer igraph representation necessary to call igraph-louvain \
 	in the multilayer context.  Edge list are formed and champ_fucntions.create_multilayer_igraph_from_edgelist \
@@ -1853,7 +1861,8 @@ def create_multilayer_igraph_from_adjacency(A,C,layer_vec,directed=False):
 
 	return create_multilayer_igraph_from_edgelist(intralayer_edges=intra_edgelist,
 												  interlayer_edges=inter_edgelist,
-												  layer_vec=layer_vec,directed=directed)
+												  layer_vec=layer_vec,intra_directed=intra_directed,
+												  inter_directed=inter_directed)
 
 # def _save_ml_graph(intralayer_edges,interlayer_edges,layer_vec,filename=None):
 #	 if filename is None:
@@ -1937,8 +1946,8 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 	outparts=[]
 	for run in range(nruns):
-		rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
-		# rand_perm = list(range(interlayer_graph.vcount()))
+		# rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
+		rand_perm = list(range(interlayer_graph.vcount()))
 		rperm = rev_perm(rand_perm)
 		interslice_layer_rand = interlayer_graph.permute_vertices(rand_perm)
 		offset=0
@@ -1966,8 +1975,8 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 														 resolution_parameter=resolution)
 			layer_partition_objs.append(cpart)
 
-		coupling_partition=louvain.RBConfigurationVertexPartition(interslice_layer_rand,
-																  weights='weight',resolution_parameter=0)
+		coupling_partition=louvain.CPMVertexPartition(interslice_layer_rand,
+																  weights=weight,resolution_parameter=0)
 
 		all_layer_partobjs=layer_partition_objs+[coupling_partition]
 
@@ -1983,17 +1992,20 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		# #go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
 		for layer in layer_partition_objs:
 			reversed_partobj.append(louvain.RBConfigurationVertexPartitionWeightedLayers(graph=layer.graph.permute_vertices(rperm),
-																 initial_membership=finalpartition,weights='weight',
+																 initial_membership=finalpartition,weights=weight,
 																	 resolution_parameter=layer.resolution_parameter))
+		coupling_partition_rev=louvain.RBConfigurationVertexPartition(graph=coupling_partition.graph.permute_vertices(rperm),
+		                                                              initial_membership=finalpartition,weights=weight,
+		                                                              resolution_parameter=0)
 		#use only the intralayer part objs
 		A=_get_sum_internal_edges_from_partobj_list(reversed_partobj,weight=weight)
 		P=_get_sum_expected_edges_from_partobj_list(reversed_partobj,layer_vec=layer_vec,weight=weight)
-		C=get_sum_internal_edges(coupling_partition,weight=weight)
+		C=get_sum_internal_edges(coupling_partition_rev,weight=weight)
 		outparts.append({'partition': np.array(finalpartition),
 						 'resolution': resolution,
 						 'coupling':omega,
 						 'orig_mod': (.5/mu)*(_get_modularity_from_partobj_list(reversed_partobj)\
-											  +omega*all_layer_partobjs[-1].quality()),
+											  +omega*coupling_partition_rev.quality()),
 						 'int_edges': A,
 						 'exp_edges': P,
 						'int_inter_edges':C})
@@ -2007,8 +2019,7 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	t=time()
 	# graph_file_names,layer_vec,gamma,omega=files_layervec_gamma_omega
 	np.random.seed() #reset seed in forked process
-	# louvain.set_rng_seed(int(np.random.get_state()[1][0]))
-	louvain.set_rng_seed(np.random.randint(2147483647)) #max value for unsigned long
+	# louvain.set_rng_seed(np.random.randint(2147483647)) #max value for unsigned long
 	intralayer_graph,interlayer_graph,layer_vec,gamma,omega=files_layervec_gamma_omega
 
 	partition=run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec=layer_vec, resolution=gamma, omega=omega)
@@ -2016,14 +2027,16 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	return partition
 
 def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
-								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True):
+								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True,
+								intra_directed=False,inter_directed=False):
 
 	""""""
 	logging.debug('creating graphs from edges')
 	t=time()
 	intralayer_graph,interlayer_graph=create_multilayer_igraph_from_edgelist(intralayer_edges=intralayer_edges,
 																			 interlayer_edges=interlayer_edges,
-																			 layer_vec=layer_vec)
+																			 layer_vec=layer_vec,inter_directed=inter_directed,
+	                                                                         intra_directed=intra_directed)
 
 
 	logging.debug('time {:.4f}'.format(time() - t))
@@ -2040,20 +2053,20 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	args = itertools.product([intralayer_graph],[interlayer_graph], [layer_vec],
 							 gammas,omegas)
 	tot=ngamma*nomega
-	# with terminating(Pool(numprocesses)) as pool:
-	# 	parts_list_of_list = []
-	# 	if progress:
-	# 		with tqdm.tqdm(total=tot) as pbar:
-	# 			# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
-	# 			for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
-	# 				# if i % 100==0:
-	# 				pbar.update()
-	# 				parts_list_of_list.append(res)
-	# 	else:
-	# 		for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
-	# 			parts_list_of_list.append(res)
+	with terminating(Pool(numprocesses)) as pool:
+		parts_list_of_list = []
+		if progress:
+			with tqdm.tqdm(total=tot) as pbar:
+				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+				for i,res in tqdm.tqdm(enumerate(pool.imap(_parallel_run_louvain_multimodularity,args)),miniters=tot):
+					# if i % 100==0:
+					pbar.update()
+					parts_list_of_list.append(res)
+		else:
+			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
+				parts_list_of_list.append(res)
 
-	parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
 
 
 
@@ -2065,7 +2078,8 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	return outensemble
 
 def parallel_multilayer_louvain_from_adj(intralayer_adj,interlayer_adj,layer_vec,
-								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True):
+								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True,
+								intra_directed=False, inter_directed=False):
 
 	"""Call parallel multilayer louvain with adjacency matrices """
 	intralayer_edges=adjacency_to_edges(intralayer_adj)
@@ -2073,7 +2087,8 @@ def parallel_multilayer_louvain_from_adj(intralayer_adj,interlayer_adj,layer_vec
 
 	return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
 									   layer_vec=layer_vec,numprocesses=numprocesses,ngamma=ngamma,nomega=nomega,
-									   gamma_range=gamma_range,omega_range=omega_range,progress=progress,maxpt=maxpt)
+									   gamma_range=gamma_range,omega_range=omega_range,progress=progress,maxpt=maxpt,
+	                                   intra_directed=intra_directed,inter_directed=inter_directed)
 
 def main():
 	return
