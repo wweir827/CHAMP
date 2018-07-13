@@ -1448,7 +1448,7 @@ def rev_perm(perm):
 		rperm[v]=i
 	return rperm
 
-def get_orig_ordered_mem_vec(rev_order, membership):
+def permute_vector(rev_order, membership):
 	'''
 	Rearrange community membership vector according to permutation
 
@@ -1534,7 +1534,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 		A=get_sum_internal_edges(rp,weight)
 		P=get_expected_edges(rp,weight)
 
-		outparts.append({'partition': get_orig_ordered_mem_vec(rperm, rp.membership),
+		outparts.append({'partition': permute_vector(rperm, rp.membership),
 						 'resolution':gamma,
 						 'orig_mod': rp.quality(),
 						 'int_edges':A,
@@ -1922,22 +1922,6 @@ def _get_modularity_from_partobj_list(part_obj_list,resolution=None):
 
 def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight='weight',
 						   resolution=1.0, omega=1.0,nruns=1):
-	# logging.debug('loading igraphs')
-	# t=time()
-	# layers=[]
-	# mu=0 #total degrees (intra + inter)
-	# for i,filename in enumerate(multilayer_files): #assume last is interslice
-	#	 if i==len(multilayer_files)-1:
-	#		 interslice_layer=ig.load(filename)
-	#		 interslice_layer.es['weight']=omega #set coupling strength
-	#		 mu+=np.sum(interslice_layer.es['weight'])
-	#	 else:
-	#		 layers.append(ig.load(filename))
-	#		 try:
-	#			 mu += np.sum(layers[-1].es[weight])
-	#		 except:
-	#			 mu += np.sum(layers[-1].ecount()) #not weighted
-	# logging.debug('time: {:.4f}'.format(time() - t))
 	logging.debug('Shuffling node ids')
 	t=time()
 	mu=np.sum(intralayer_graph.es[weight])+interlayer_graph.ecount()
@@ -1946,11 +1930,11 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 	outparts=[]
 	for run in range(nruns):
-		# rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
-		rand_perm = list(range(interlayer_graph.vcount()))
+		rand_perm = list(np.random.permutation(interlayer_graph.vcount()))
+		# rand_perm = list(range(interlayer_graph.vcount()))
 		rperm = rev_perm(rand_perm)
 		interslice_layer_rand = interlayer_graph.permute_vertices(rand_perm)
-		offset=0
+		rlayer_vec=permute_vector(rand_perm,layer_vec)
 		#create permutation vectors for each of these igraphs
 		rlayers=[]
 		for layer in layers:
@@ -1970,12 +1954,12 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 			except:
 				res=resolution
 
-			cpart=louvain.RBConfigurationVertexPartitionWeightedLayers(layer,layer_vec=layer_vec,
+			cpart=louvain.RBConfigurationVertexPartitionWeightedLayers(layer,layer_vec=rlayer_vec,
 														 weights=weight,
 														 resolution_parameter=resolution)
 			layer_partition_objs.append(cpart)
 
-		coupling_partition=louvain.CPMVertexPartition(interslice_layer_rand,
+		coupling_partition=louvain.RBConfigurationVertexPartition(interslice_layer_rand,
 																  weights=weight,resolution_parameter=0)
 
 		all_layer_partobjs=layer_partition_objs+[coupling_partition]
@@ -1987,12 +1971,12 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		improvement=optimiser.optimise_partition_multiplex(all_layer_partobjs,layer_weights=[1,omega])
 
 		#the membership for each of the partitions is tied together.
-		finalpartition=get_orig_ordered_mem_vec(rperm,all_layer_partobjs[0].membership)
+		finalpartition=permute_vector(rperm, all_layer_partobjs[0].membership)
 		reversed_partobj=[]
 		# #go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
 		for layer in layer_partition_objs:
 			reversed_partobj.append(louvain.RBConfigurationVertexPartitionWeightedLayers(graph=layer.graph.permute_vertices(rperm),
-																 initial_membership=finalpartition,weights=weight,
+																 initial_membership=finalpartition,weights=weight,layer_vec=layer_vec,
 																	 resolution_parameter=layer.resolution_parameter))
 		coupling_partition_rev=louvain.RBConfigurationVertexPartition(graph=coupling_partition.graph.permute_vertices(rperm),
 		                                                              initial_membership=finalpartition,weights=weight,
