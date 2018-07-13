@@ -16,7 +16,8 @@ options=dict( name='champ',
                  "Topic :: Scientific/Engineering :: Information Analysis",
                  ],
     install_requires=['ipython<5.9','matplotlib','future','numpy>1.13','h5py',
-                      'scipy','sklearn','louvain>0.6','python-igraph']
+                      'scipy','sklearn','louvain-0.6.1.champ','python-igraph'],
+    dependency_links=['https://github.com/wweir827/louvain-igraph/tarball/master#egg=louvain-igraph-0.6.1.champ']
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]
 
