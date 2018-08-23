@@ -1,7 +1,7 @@
 import igraph as ig
 from math import log
 import matplotlib.pyplot as plt
-from champ.parameter_estimation import iterative_resolution_parameter_estimation
+from champ.parameter_estimation import iterative_monolayer_resolution_parameter_estimation
 from numpy import mean
 
 # Synthetic test from Newman's "Equivalence between modularity optimization and maximum..."  FIG 1
@@ -23,7 +23,7 @@ for q in range(3, 16):
     true_gamma = (true_omega_in - true_omega_out) / (log(true_omega_in) - log(true_omega_out))
 
     print("#" * 10 + " {} communities, true gamma={:0.4f} ".format(q, true_gamma) + "#" * 10)
-    gamma, _ = iterative_resolution_parameter_estimation(G, gamma=1.0, tol=1e-3, debug=True)
+    gamma, _ = iterative_monolayer_resolution_parameter_estimation(G, gamma=1.0, tol=1e-3, verbose=True)
 
     xs.append(q)
     ys1.append(true_gamma)
@@ -40,7 +40,7 @@ current_gamma = 0.0
 while current_gamma < 2.0:
     print("#" * 10 + " initial gamma: {:.2f} ".format(current_gamma) + "#" * 10)
     try:
-        iterative_resolution_parameter_estimation(G, gamma=current_gamma, tol=1e-3, debug=True)
+        iterative_monolayer_resolution_parameter_estimation(G, gamma=current_gamma, tol=1e-3, verbose=True)
     except ValueError:
         print('Degenerate partition')
     current_gamma += 0.1
