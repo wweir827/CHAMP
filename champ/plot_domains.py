@@ -194,7 +194,7 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, partitions_
         f=plt.figure()
         ax=f.add_subplot(111)
 
-    ind_vals=zip(index_2_domain.keys(),[val[0][0] for val in index_2_domain.values()])
+    ind_vals=list(zip(index_2_domain.keys(),[val[0][0] for val in index_2_domain.values()]))
     ind_vals.sort(key=lambda x:x[1])
     # Take the x coordinate of first point in each domain
     gamma_transitions = [val for ind, val in ind_vals]
