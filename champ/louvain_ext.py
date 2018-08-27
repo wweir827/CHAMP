@@ -36,8 +36,8 @@ import sklearn.metrics as skm
 from time import time
 import warnings
 import logging
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 import seaborn as sbn
 
@@ -65,7 +65,7 @@ and allow for randomization.  Defines PartitionEnsemble a class for storage of \
 partitions and coefficients as well as dominant domains.
 '''
 
-class PartitionEnsemble():
+class PartitionEnsemble(object):
 
 	"""Group of partitions of a graph stored in membership vector format
 
@@ -136,7 +136,7 @@ class PartitionEnsemble():
 		self.interlayer_graph=interlayer_graph
 		self.layer_vec=layer_vec
 		self.ismultilayer = (self.layer_vec is not None)
-		self.min_com_size=min_com_size
+		self._min_com_size=min_com_size
 		self.maxpt=maxpt
 		#some private variable
 		self._partitions=np.array([])
@@ -244,6 +244,8 @@ class PartitionEnsemble():
 		'''
 		return self.partitions[item]
 
+
+
 	class _PartitionOnFile():
 
 		def __init__(self,file=None):
@@ -264,6 +266,18 @@ class PartitionEnsemble():
 
 		def __str__(self):
 			return "%d partitions saved on %s" %(len(self),self._hdf5_file)
+
+	@property
+	def min_com_size(self):
+		return self._min_com_size
+
+	@min_com_size.setter
+	def min_com_size(self,value):
+		"""when the minimum com size is updated, we want to go back through
+		and recalculate the number of communities in each partition"""
+		self._min_com_size=value
+		for i in range(len(self.partitions)):
+			self.numcoms[i]=get_number_of_communities(self.partitions[i],min_com_size=self._min_com_size)
 
 	@property
 	def partitions(self):
@@ -519,8 +533,8 @@ class PartitionEnsemble():
 					# 	"{} != {}".format(part['int_inter_edges'], self.calc_internal_edges(part['partition'],intra=False))
 
 
-				self.numcoms=np.append(self.numcoms,get_number_of_communities(part['partition'],
-															  min_com_size=self.min_com_size))
+				self.numcoms=np.append(self.numcoms, get_number_of_communities(part['partition'],
+																			   min_com_size=self._min_com_size))
 
 				assert self._check_lengths()
 				self.numparts=len(self.partitions)
@@ -548,7 +562,7 @@ class PartitionEnsemble():
 			prune_gammas=self.get_champ_gammas()
 			gam_ind = zip(np.diff(prune_gammas), range(len(prune_gammas) - 1))
 			gam_ind.sort(key=lambda x: x[0], reverse=True)
-			return [(prune_gammas[gam_ind[i][1]], gam_ind[i][0]) for i in range(n)]
+			return [(prune_gammas[gam_ind[i][0]], gam_ind[i][1]) for i in range(n)]
 		else:
 			all_areas=map(lambda x: PolyArea(x), self.ind2doms.values() ) #calculate all areas
 			top_n=np.argpartition(all_areas,-1*n)[-1*n:]
@@ -1016,7 +1030,8 @@ class PartitionEnsemble():
 						self._write_graph_to_hd5f_file(outfile,compress=compress)
 
 					elif k=='interlayer_graph':
-						self._write_graph_to_hd5f_file(outfile,compress=compress,intra=False)
+						if self.__dict__[k] is not None: #multilayer not defined
+							self._write_graph_to_hd5f_file(outfile,compress=compress,intra=False)
 
 					elif isinstance(val,dict):
 						indgrp=outfile.create_group(k)
@@ -1235,13 +1250,13 @@ class PartitionEnsemble():
 		#	 a2.scatter(allgammas,allcoms,marker="^",color="#fe9600",alpha=1,label=r'\# communities ($\ge 5$ nodes)',zorder=1)
 
 		sct2 = a2.scatter(allgams, allcoms, marker="^", color="#91AEC1",
-						  alpha=1, label=r'\# communities ($\ge %d$ nodes)'%(self.min_com_size),
+						  alpha=1, label=r'\# communities ($\ge %d$ nodes)'%(self._min_com_size),
 						  zorder=1)
 		#	 sct2.set_path_effects([path_effects.SimplePatchShadow(alpha=.5),path_effects.Normal()])
 
 		# fake for legend with larger marker size
 		mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1,
-						 label=r'\# communities ($\ge %d$)'%(self.min_com_size),
+						 label=r'\# communities ($\ge %d$)'%(self._min_com_size),
 						 zorder=1,
 						 s=20)
 
@@ -1265,8 +1280,8 @@ class PartitionEnsemble():
 		ax.set_xlim(xmin=0, xmax=max(allgams))
 		if legend:
 			l = ax.legend([mk1, mk3, mk2, mk4, mk5],
-						  ['modularity', r'\# communities ($\ge %d $ nodes)' %(self.min_com_size), "transitions,$\gamma$",
-						   r"\# communities ($\ge %d$ nodes) optimal" %(self.min_com_size), "convex hull of $Q(\gamma)$"],
+						  ['modularity', r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
+						   r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"],
 						  bbox_to_anchor=[0.5, .87], loc='center',
 						  frameon=True, fontsize=14)
 			l.get_frame().set_fill(False)
