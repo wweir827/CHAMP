@@ -560,14 +560,14 @@ class PartitionEnsemble(object):
 		'''
 		if not self.ismultilayer:
 			prune_gammas=self.get_champ_gammas()
-			gam_ind = zip(np.diff(prune_gammas), range(len(prune_gammas) - 1))
+			gam_ind = list(zip(np.diff(prune_gammas), range(len(prune_gammas) - 1)))
 			gam_ind.sort(key=lambda x: x[0], reverse=True)
 			return [(prune_gammas[gam_ind[i][0]], gam_ind[i][1]) for i in range(n)]
 		else:
 			all_areas=map(lambda x: PolyArea(x), self.ind2doms.values() ) #calculate all areas
 			top_n=np.argpartition(all_areas,-1*n)[-1*n:]
 			#argpartition isn't sorted so we take top n areas and sort inds accorindly.
-			top_n=[ind[1] for ind in sorted(zip(all_areas[top_n],top_n),lambda x: x[0],reverse=True)]
+			top_n=[ind[1] for ind in sorted(list(zip(all_areas[top_n],top_n),lambda x: x[0],reverse=True))]
 			return self.ind2doms.values()[top_n]
 
 
@@ -886,11 +886,11 @@ class PartitionEnsemble(object):
 		'''
 
 		if not self.ismultilayer:
-			inds=zip(self.ind2doms.keys(),[val[0][0] for val in self.ind2doms.values()])
+			inds=list(zip(self.ind2doms.keys(),[val[0][0] for val in self.ind2doms.values()]))
 			#asscending sort by last value of domain
 			inds.sort(key=lambda x: x[1])
 		else:
-			inds=zip(self.ind2doms.keys(),[ min_dist_origin(val) for val in self.ind2doms.values()])
+			inds=list(zip(self.ind2doms.keys(),[ min_dist_origin(val) for val in self.ind2doms.values()]))
 
 			inds.sort(key=lambda x: x[0],
 					  cmp=lambda x,y: point_comparator(x,y) )
@@ -1030,7 +1030,8 @@ class PartitionEnsemble(object):
 						self._write_graph_to_hd5f_file(outfile,compress=compress)
 
 					elif k=='interlayer_graph':
-						self._write_graph_to_hd5f_file(outfile,compress=compress,intra=False)
+						if self.__dict__[k] is not None: #multilayer not defined
+							self._write_graph_to_hd5f_file(outfile,compress=compress,intra=False)
 
 					elif isinstance(val,dict):
 						indgrp=outfile.create_group(k)
@@ -1777,7 +1778,7 @@ def _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec):
 			offset += 1
 
 	for graph in intralayer_graphs:
-		graph.vs['shared_id'] = map(lambda x: namedict[x], graph.vs['nid'])
+		graph.vs['shared_id'] = list(map(lambda x: namedict[x], graph.vs['nid']))
 		assert len(set(graph.vs['shared_id']))==len(graph.vs['shared_id']), "IDs within a slice must all be unique"
 
 
@@ -1848,7 +1849,7 @@ def adjacency_to_edges(A):
 	nnzvals = np.array(A[nnz_inds])
 	if len(nnzvals.shape)>1:
 		nnzvals=nnzvals[0] #handle scipy sparse types
-	return zip(nnz_inds[0], nnz_inds[1], nnzvals)
+	return list(zip(nnz_inds[0], nnz_inds[1], nnzvals))
 
 
 def create_multilayer_igraph_from_adjacency(A,C,layer_vec,inter_directed=False,intra_directed=False):
