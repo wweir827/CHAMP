@@ -1016,13 +1016,15 @@ class PartitionEnsemble(object):
 			if hdf5:
 				if self._hdf5_file is None:
 					filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
+					filename=os.path.join(dir,filename)
 				else:
 					filename=self._hdf5_file
 			else:
 				filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
 		if hdf5:
-			with h5py.File(os.path.join(dir,filename),'w') as outfile:
+			filename=os.path.join(dir,filename)
+			with h5py.File(filename,'w') as outfile:
 
 				for k,val in iteritems(self.__dict__):
 					#store dictionary type object as its own group
@@ -1057,7 +1059,7 @@ class PartitionEnsemble(object):
 							#Single value attributes
 							cdset = outfile.create_dataset(k,data=val)
 
-
+			#set the file name
 			self._hdf5_file=filename
 
 		else: #if not using hdf5 we just dump everything with pickle.
@@ -1783,7 +1785,7 @@ def _label_nodes_by_identity(intralayer_graphs, interlayer_edges, layer_vec):
 
 
 def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, layer_vec, inter_directed=False,
-                                           intra_directed=False):
+										   intra_directed=False):
 	"""
 	   We create an igraph representation used by the louvain package to represents multi-slice graphs.  \
 	   For this method only two graphs are created :
@@ -1994,8 +1996,8 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 																 initial_membership=finalpartition,weights=weight,layer_vec=layer_vec,
 																	 resolution_parameter=layer.resolution_parameter))
 		coupling_partition_rev=louvain.RBConfigurationVertexPartition(graph=coupling_partition.graph.permute_vertices(rperm),
-		                                                              initial_membership=finalpartition,weights=weight,
-		                                                              resolution_parameter=0)
+																	  initial_membership=finalpartition,weights=weight,
+																	  resolution_parameter=0)
 		#use only the intralayer part objs
 		A=_get_sum_internal_edges_from_partobj_list(reversed_partobj,weight=weight)
 		P=_get_sum_expected_edges_from_partobj_list(reversed_partobj,layer_vec=layer_vec,weight=weight)
@@ -2035,7 +2037,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 	intralayer_graph,interlayer_graph=create_multilayer_igraph_from_edgelist(intralayer_edges=intralayer_edges,
 																			 interlayer_edges=interlayer_edges,
 																			 layer_vec=layer_vec,inter_directed=inter_directed,
-	                                                                         intra_directed=intra_directed)
+																			 intra_directed=intra_directed)
 
 
 	logging.debug('time {:.4f}'.format(time() - t))
@@ -2087,7 +2089,7 @@ def parallel_multilayer_louvain_from_adj(intralayer_adj,interlayer_adj,layer_vec
 	return parallel_multilayer_louvain(intralayer_edges=intralayer_edges,interlayer_edges=interlayer_edges,
 									   layer_vec=layer_vec,numprocesses=numprocesses,ngamma=ngamma,nomega=nomega,
 									   gamma_range=gamma_range,omega_range=omega_range,progress=progress,maxpt=maxpt,
-	                                   intra_directed=intra_directed,inter_directed=inter_directed)
+									   intra_directed=intra_directed,inter_directed=inter_directed)
 
 def main():
 	return
