@@ -1165,7 +1165,7 @@ class PartitionEnsemble(object):
 		return axes
 
 	def plot_modularity_mapping(self,ax=None,downsample=2000,champ_only=False,legend=True,
-								no_tex=False):
+								no_tex=True):
 		'''
 
 		Plot a scatter of the original modularity vs gamma with the modularity envelope super imposed. \
@@ -1241,7 +1241,7 @@ class PartitionEnsemble(object):
 		mk5 = ax.plot(gammas, mods, ls='--', color='green', lw=3, zorder=3)
 		mk5 = mlines.Line2D([], [], color='green', ls='--', lw=3)
 
-		mk2 = ax.scatter(gammas, mods, marker="v", color='blue', s=60, zorder=4)
+		mk2 = ax.scatter(gammas, mods, marker="v", color='blue', s=200, zorder=4)
 		#	 ax.scatter(gamma_ins,orig_mods,marker='x',color='red')
 		ax.set_ylabel("modularity")
 
@@ -1542,7 +1542,8 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 		#In louvain > 0.6, change in the way the different methods are called.
 		#modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
-		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,resolution_parameter=gamma)
+		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,weights='weight',
+									resolution_parameter=gamma)
 
 		#old way of calling
 		# rp = louvain.find_partition(gr, method='RBConfiguration',weight=weight,  resolution_parameter=gamma)

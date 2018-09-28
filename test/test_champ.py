@@ -15,19 +15,35 @@ import sklearn.metrics as skm
 import champ
 import louvain
 import scipy.io as scio
+import matplotlib.pyplot as plt
 
 
 def test_parallel_run():
 	G = ig.Graph.Erdos_Renyi(n=100, p=.04, directed=False)
 
 	G.es['weight']=np.random.normal(loc=10,scale=1,size=G.ecount())
-	partition_ensemble = champ.parallel_louvain(G,
+	part_ens = champ.parallel_louvain(G,
 												start=.1,
 												fin=5.1,
 												numruns=10,
 												weight='weight',
 												progress=True)
-	print (partition_ensemble)
+
+	inds=part_ens.get_CHAMP_indices()
+
+	partition=part_ens.partitions[inds[0]]
+	gamma=part_ens.ind2doms[inds[0]][0][0]
+	A=part_ens.int_edges[inds[0]]
+	P=part_ens.exp_edges[inds[0]]
+	print("champ mod: ",A-gamma*P)
+	print(part_ens.orig_mods[0])
+
+	print()
+
+	plt.close()
+	part_ens.plot_modularity_mapping()
+	plt.show()
+	print (part_ens)
 
 
 def test_time_multilayer():
@@ -302,7 +318,7 @@ def test_on_senate_data():
 	# plt.show()
 
 def main():
-	test_on_senate_data()
+	test_parallel_run()
 	return 0
 
 if __name__=='__main__':
