@@ -1542,7 +1542,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 		#In louvain > 0.6, change in the way the different methods are called.
 		#modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
-		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,weights='weight',
+		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,weights=weight,
 									resolution_parameter=gamma)
 
 		#old way of calling
