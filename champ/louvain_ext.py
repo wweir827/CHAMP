@@ -562,7 +562,7 @@ class PartitionEnsemble(object):
 			prune_gammas=self.get_champ_gammas()
 			gam_ind = list(zip(np.diff(prune_gammas), range(len(prune_gammas) - 1)))
 			gam_ind.sort(key=lambda x: x[0], reverse=True)
-			return [(prune_gammas[gam_ind[i][0]], gam_ind[i][1]) for i in range(n)]
+			return [(prune_gammas[gam_ind[i][1]], gam_ind[i][0]) for i in range(n)]
 		else:
 			all_areas=map(lambda x: PolyArea(x), self.ind2doms.values() ) #calculate all areas
 			top_n=np.argpartition(all_areas,-1*n)[-1*n:]
