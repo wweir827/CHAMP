@@ -1568,7 +1568,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 
 
-def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress):
+def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress_update):
 	'''
 	Parallel wrapper with single argument input for calling :meth:`louvain_ext.run_louvain`
 
@@ -1576,18 +1576,18 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress):
 	:returns: PartitionEnsemble of graph stored in gfile
 	'''
 	#unpack
-	gfile,gamma,nruns,weight,node_subset,attribute,progress=gfile_gamma_nruns_weight_subset_attribute_progress
+	gfile,gamma,nruns,weight,node_subset,attribute,progress,update=gfile_gamma_nruns_weight_subset_attribute_progress_update
 	t=time()
 	outparts=run_louvain(gfile,gamma,nruns=nruns,weight=weight,node_subset=node_subset,attribute=attribute,output_dictionary=True)
 
 	if progress is not None:
-		if progress%100==0:
+		if progress%update==0:
 			print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
 
 	return outparts
 
 def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
-					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=False):
+					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=None):
 	'''
 	Generates arguments for parallel function call of louvain on graph
 
@@ -1602,7 +1602,7 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 	:param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
 	:param attribute: Which attribute to filter on if node_subset is supplied.  If None, node subset is assumed \
 	 to be node indices.
-	:param progress:  Print progress in parallel execution
+	:param progress:  Print progress in parallel execution every `n` iterations.
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
@@ -1629,9 +1629,9 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 
 	graph.write_graphmlz(graphfile)
 	for i in range(numruns):
-		prognum = None if not progress else i
+		prognum = None if progress is None else i
 		curg = start + ((fin - start) / (1.0 * numruns)) * i
-		parallel_args.append((graphfile ,curg,1, weight,None,None,prognum))
+		parallel_args.append((graphfile, curg, 1, weight, None, None, prognum, progress))
 
 
 	#use a context manager so pools properly shut down
