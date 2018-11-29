@@ -1,7 +1,7 @@
 from setuptools import setup
 
 options=dict( name='champ',
-    version='1.0.7',
+    version='2.0.1',
     packages=['champ'],
     url='http://github.com/wweir827/champ',
     license='GPLv3+',
@@ -15,8 +15,9 @@ options=dict( name='champ',
                  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                  "Topic :: Scientific/Engineering :: Information Analysis",
                  ],
-    install_requires=['ipython<5.9','pyhull','matplotlib','future','numpy>1.13','h5py',
-                      'scipy','sklearn','louvain>0.6','python-igraph']
+    install_requires=['ipython<5.9','matplotlib','future','numpy>1.13','h5py',
+                      'scipy','sklearn','louvain','python-igraph'],
+    dependency_links=['https://github.com/wweir827/louvain-igraph/tarball/master#egg=louvain-igraph-0.6.1.champ']
 )
 #    install_requires=['pyhull','igraph','louvain','matplotlib','numpy',]
 

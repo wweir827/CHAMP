@@ -3,9 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-CHAMP (Convex Hull of Admissible Modularity Partitions
+CHAMP (Convex Hull of Admissible Modularity Partitions)
 =================================================================
-A modularity based tool for screening a set of partitoins.
+A modularity based tool for screening a set of partitions.
 
 .. figure::  _static/images/graphs_all_three.png
    :align:   center
@@ -75,7 +75,7 @@ Please cite\:
 
 `bibtex <_static/champ.bib>`_
 
-For more details and results see our `preprint <https://arxiv.org/abs/1706.03675>`_
+For more details and results see our `manuscript <http://www.mdpi.com/1999-4893/10/3/93/htm>`_
 
 
 

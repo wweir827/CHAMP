@@ -25,7 +25,7 @@ suboptimal across a given range of the resolution space.  The CHAMP package also
 using the matplotlib library.  Finally, the CHAMP package also includes a wrapper function for a python implementation \
 of Louvain `louvain_igraph <https://github.com/vtraag/louvain-igraph>`_ in parallel over a range of resolutions.
 
-For more details and results see our `preprint <https://arxiv.org/abs/1706.03675>`_
+For more details and results see our `manuscript <http://www.mdpi.com/1999-4893/10/3/93/htm>`_
 
 
 ==================
