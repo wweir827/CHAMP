@@ -553,10 +553,10 @@ class PartitionEnsemble(object):
 	def get_broadedst_domains(self, n=4):
 		'''
 		Return the starting $\gamma$ for the top n domains by the length of the domain \
-		(i.e. $\gamma_{i+1}-\gamma_{i}$)
+		(i.e. $\gamma_{i+1}-\gamma_{i}$) as well as the length of the domain
 
 		:param n: number of top starting values to return
-		:return: list of n $\gamma$ values
+		:return: list of n tuples  : [ ($\gamma$ values,length domain) , ( ) , ... ]
 		'''
 		if not self.ismultilayer:
 			prune_gammas=self.get_champ_gammas()
