@@ -229,7 +229,7 @@ class PartitionEnsemble(object):
 		if self.ismultilayer: #takes into account the different layers
 			Phat=get_expected_edges_ml(partobj,self.layer_vec,weight=weight)
 		else:
-			Phat=get_expected_edges(partobj,weight=weight)
+			Phat=get_expected_edges(partobj,weight=weight,directed=self.graph.is_directed())
 		return Phat
 
 
@@ -1280,10 +1280,17 @@ class PartitionEnsemble(object):
 		ax.patch.set_visible(False)  # hide the 'canvas'
 
 		ax.set_xlim(xmin=0, xmax=max(allgams))
+		if champ_only:
+			leg_set=[mk3, mk2, mk4, mk5] #these are the only ones that are created if the legend is made
+			leg_text=[ r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
+						   r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"]
+		else:
+			leg_set=[mk1, mk3, mk2, mk4, mk5]
+			leg_text=['modularity', r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
+			 r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"]
 		if legend:
-			l = ax.legend([mk1, mk3, mk2, mk4, mk5],
-						  ['modularity', r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
-						   r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"],
+			l = ax.legend(leg_set,
+						  leg_text,
 						  bbox_to_anchor=[0.5, .87], loc='center',
 						  frameon=True, fontsize=14)
 			l.get_frame().set_fill(False)
@@ -1388,7 +1395,7 @@ def get_number_of_communities(partition,min_com_size=0):
 			tot_coms+=1
 	return tot_coms
 
-def get_expected_edges(partobj,weight='weight'):
+def get_expected_edges(partobj,weight='weight',directed=False):
 	'''
 	Get the expected internal edges under configuration models
 
@@ -1401,6 +1408,7 @@ def get_expected_edges(partobj,weight='weight'):
 	'''
 
 
+
 	if weight is None:
 		m = float(partobj.graph.ecount())
 	else:
@@ -1408,6 +1416,7 @@ def get_expected_edges(partobj,weight='weight'):
 			m=np.sum(partobj.graph.es[weight])
 		except:
 			m=partobj.graph.ecount()
+
 	# print(m)
 	if m==0:
 		return 0
@@ -1416,18 +1425,32 @@ def get_expected_edges(partobj,weight='weight'):
 	partobj.graph.vs['_id']=range(partobj.graph.vcount())
 	indices = [ partobj.graph.vs['_id'][v.index] for v in partobj.graph.vs ]
 	if weight==None:
-		strengths=dict(zip(indices,partobj.graph.degree(indices)))
+		strengths=dict(zip(indices,partobj.graph.outdegree(indices)))
+		if directed:
+			strengths_in=dict(zip(indices,partobj.graph.indegree(indices)))
+		else:
+			strengths_in=strengths
 	else:
-		strengths=dict(zip(indices,partobj.graph.strength(indices,weights=weight)))
+		strengths=dict(zip(indices,partobj.graph.strength(indices,weights=weight,mode='OUT')))
+		if directed:
+			strengths_in = dict(zip(indices, partobj.graph.strength(indices, weights=weight, mode='IN')))
+		else:
+			strengths_in=strengths
+
 	for subg in partobj.subgraphs():
 		# since node ordering on subgraph doesn't match main graph, get vert id's in original graph
 		# verts=map(lambda x: int(re.search("(?<=n)\d+", x['id']).group()),subg.vs) #you have to get full weight from original graph
 		# svec=partobj.graph.strength(verts,weights='weight') #i think is what is slow
 		svec=np.array(lmap(lambda x :strengths[subg.vs['_id'][x.index]],subg.vs))
 		# svec=subg.strength(subg.vs,weights='weight')
-		kk+=np.sum(np.outer(svec, svec))
+		svec_in=np.array(lmap(lambda x :strengths_in[subg.vs['_id'][x.index]],subg.vs))
 
-	return kk/(2.0*m)
+		kk+=np.sum(np.outer(svec, svec_in))
+
+	if directed:
+		return kk/(1.0*m)
+	else:
+		return kk/(2.0*m)
 
 def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 	"""
@@ -1448,7 +1471,7 @@ def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 		subgraph=part_obj.graph.subgraph(cind)
 		submem=np.array(part_obj.membership)[cind]
 		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
-		P_tot += get_expected_edges(cpartobj,weight=weight)
+		P_tot += get_expected_edges(cpartobj,weight=weight,directed=subgraph.is_directed())
 	return P_tot
 
 
@@ -1490,6 +1513,8 @@ def permute_memvec(permutation,membership):
 
 	return outvec
 
+
+
 def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False):
 	'''
 	Call the louvain method for a given graph file.
@@ -1513,8 +1538,6 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 	#Load the graph from the file
 	g = ig.Graph.Read_GraphMLz(gfile)
 	#have to have a node identifier to handle permutations.
-
-
 	#Found it easier to load graph from file each time than pass graph object among process
 	#This means you do have to filter out shared nodes and realign graphs.
 	# Can avoid for g1 by passing None
@@ -1534,6 +1557,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 	if weight is True:
 		weight='weight'
 
+
 	outparts=[]
 	for i in range(nruns):
 		rand_perm = list(np.random.permutation(g.vcount()))
@@ -1550,7 +1574,8 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 		#store the coefficients in return object.
 		A=get_sum_internal_edges(rp,weight)
-		P=get_expected_edges(rp,weight)
+		P=get_expected_edges(rp,weight,directed=g.is_directed())
+
 
 		outparts.append({'partition': permute_vector(rperm, rp.membership),
 						 'resolution':gamma,
