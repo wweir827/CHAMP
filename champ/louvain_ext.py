@@ -27,6 +27,7 @@ import matplotlib.colors as mc
 import matplotlib.colorbar as mcb
 from matplotlib import rc
 import igraph as ig
+import pandas as pd
 import louvain
 import numpy as np
 import h5py
@@ -550,20 +551,42 @@ class PartitionEnsemble(object):
 		allgams = sorted(set([pt[0] for pts in self.ind2doms.values() for pt in pts]))
 		return allgams
 
-	def get_broadedst_domains(self, n=4):
+	def get_broadedst_domains(self, n=None):
 		'''
 		Return the starting $\gamma$ for the top n domains by the length of the domain \
-		(i.e. $\gamma_{i+1}-\gamma_{i}$) as well as the length of the domain
+		(i.e. $\gamma_{i+1}-\gamma_{i}$) as well as the length of the domain and the index
+		in ind2doms dict
 
 		:param n: number of top starting values to return
-		:return: list of n tuples  : [ ($\gamma$ values,length domain) , ( ) , ... ]
+		:return: list of n tuples  : [ ($\gamma$ values,length domain, champ index) , ( ) , ... ]
 		'''
 		if not self.ismultilayer:
-			prune_gammas=self.get_champ_gammas()
-			gam_ind = list(zip(np.diff(prune_gammas), range(len(prune_gammas) - 1)))
-			gam_ind.sort(key=lambda x: x[0], reverse=True)
-			return [(prune_gammas[gam_ind[i][1]], gam_ind[i][0]) for i in range(n)]
+			# prune_gammas=self.get_champ_gammas()
+			#sorted by starting gamma value
+			out_df=pd.DataFrame(columns=['start_gamma','end_gamma','width','ind'])
+			for k,pts in self.ind2doms.items():
+				cind=out_df.shape[0]
+				width=pts[1][0]-pts[0][0] #subtract xvalues
+				out_df.loc[cind,['start_gamma','end_gamma','width','ind']]=pts[0][0],pts[1][0],width,k
+
+			out_df.sort_values(by='width',ascending=False,inplace=True)
+			if n is not None:
+				return out_df.iloc[:n,:]
+			return out_df
+
+
+			# prune_gammas_keys = sorted([ (pt[0],k) for k,pts in self.ind2doms.items() for pt in pts])
+			# prune_gammas = [ gamma_key[0] for gamma_key in prune_gammas_keys ] #list of starting gammas
+            #
+			# gam_ind = list(zip(np.diff(prune_gammas), range(len(prune_gammas) - 1)))
+			# gam_ind.sort(key=lambda x: x[0], reverse=True)
+            #
+			# return [( prune_gammas[gam_ind[i][1]], #gamma value
+			# 		  gam_ind[i][0],                #width of domain
+			# 		  prune_gammas_keys[gam_ind[i][1]][1]) for i in range(n)] #key
 		else:
+			if n is None:
+				n=4
 			all_areas=map(lambda x: PolyArea(x), self.ind2doms.values() ) #calculate all areas
 			top_n=np.argpartition(all_areas,-1*n)[-1*n:]
 			#argpartition isn't sorted so we take top n areas and sort inds accorindly.
