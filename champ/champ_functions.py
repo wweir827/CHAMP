@@ -11,7 +11,6 @@ from scipy.spatial import HalfspaceIntersection
 from scipy.spatial.qhull import QhullError
 from scipy.optimize import linprog
 import warnings
-from pyhull import halfspace as hs
 import igraph as ig
 import louvain
 
