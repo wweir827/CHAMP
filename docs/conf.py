@@ -20,7 +20,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../champ'))
-sys.path.insert(0, os.path.abspath('./_static'))
+sys.path.insert(0, os.path.abspath('./sub_docs'))
 
 
 
@@ -219,7 +219,7 @@ todo_include_todos = True
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 
-# html_static_path = ['docs/_static']
+# html_static_path = ['docs/sub_docs']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

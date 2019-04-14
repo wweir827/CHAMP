@@ -24,10 +24,10 @@ __________
    :maxdepth: 2
 
    self
-   ./_static/intro.rst
-   ./_static/running.rst
-   ./_static/plotting2.rst
-   ./_static/louvain_ext.rst
+   ./sub_docs/intro.rst
+   ./sub_docs/running.rst
+   ./sub_docs/plotting2.rst
+   ./sub_docs/louvain_ext.rst
 
 
 Download and Installation:
@@ -68,12 +68,12 @@ Citation
 ___________
 Please cite\:
 
-.. bibliography:: _static/champ.bib
+.. bibliography:: sub_docs/champ.bib
    :all:
    :style: plain
    :list: none
 
-`bibtex <_static/champ.bib>`_
+`bibtex <sub_docs/champ.bib>`_
 
 For more details and results see our `manuscript <http://www.mdpi.com/1999-4893/10/3/93/htm>`_
 
