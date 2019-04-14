@@ -79,6 +79,7 @@ if on_rtd:
 else:
     html_theme = 'sphinx_rtd_theme'
 
+    sys.path.insert(0,'/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages' )
 #Have to specify all modules
 #These are for local mocks.
 autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py','Cython',

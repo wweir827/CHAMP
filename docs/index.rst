@@ -21,13 +21,13 @@ Contents:
 __________
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-    self
-    _static/intro.rst
-    _static/running.rst
-    _static/plotting2.rst
-    _static/louvain_ext.rst
+   self
+   _static/intro.rst
+   _static/running.rst
+   _static/plotting2.rst
+   _static/louvain_ext.rst
 
 
 Download and Installation:
@@ -36,18 +36,18 @@ ____________________________
 The CHAMP module is hosted on `PyPi <https://pypi.python.org/pypi/champ>`_.  The easiest way to install is \
 via the pip command::
 
-    pip install champ
+   pip install champ
 
 
 For installation from source, the latest version of champ can be downloaded from GitHub\:
 
-    `<https://github.com/wweir827/CHAMP>`_
+   `<https://github.com/wweir827/CHAMP>`_
 
 For basic installation:
 
 .. code-block:: bash
 
-    python setup.py install
+   python setup.py install
 
 Dependencies
 ***************
@@ -69,9 +69,9 @@ ___________
 Please cite\:
 
 .. bibliography:: _static/champ.bib
-    :all:
-    :style: plain
-    :list: none
+   :all:
+   :style: plain
+   :list: none
 
 `bibtex <_static/champ.bib>`_
 
