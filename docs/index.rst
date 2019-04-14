@@ -24,10 +24,10 @@ __________
     :maxdepth: 2
 
     self
-    _static/intro
-    _static/running
-    _static/plotting2
-    _static/louvain_ext
+    _static/intro.rst
+    _static/running.rst
+    _static/plotting2.rst
+    _static/louvain_ext.rst
 
 
 Download and Installation:
