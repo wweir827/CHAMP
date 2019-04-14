@@ -60,7 +60,6 @@ if on_rtd:
 #        @classmethod
 #        def __getattr__(cls, name):
 #            return Mock()
-    import sys
     from unittest.mock import MagicMock
 
     class Mock(MagicMock):
@@ -70,7 +69,7 @@ if on_rtd:
     # include the names of your minimal required packages here
     MOCK_MODULES = ['numpy', 'numpy.random', 'igraph', 'louvain', 'matplotlib', 'matplotlib.pyplot',
                     'matplotlib.cm', 'matplotlib.lines', 'matplotlib.patheffects',
-                    'matplotlib.colors',
+                    'matplotlib.colors','seaborn','pandas',
                     'matplotlib.patches',
                     'matplotlib.path',
                     'sklearn.metrics',
