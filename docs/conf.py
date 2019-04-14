@@ -54,13 +54,19 @@ if on_rtd:
     # the below only works for Python3.3+
     # from unittest.mock import MagicMock
     # use this for Python<3.3
-    from mock import Mock as MagicMock
+#    from mock import Mock as MagicMock
+
+#    class Mock(MagicMock):
+#        @classmethod
+#        def __getattr__(cls, name):
+#            return Mock()
+    import sys
+    from unittest.mock import MagicMock
 
     class Mock(MagicMock):
         @classmethod
         def __getattr__(cls, name):
-            return Mock()
-
+            return MagicMock()
     # include the names of your minimal required packages here
     MOCK_MODULES = ['numpy', 'numpy.random', 'igraph', 'louvain', 'matplotlib', 'matplotlib.pyplot',
                     'matplotlib.cm', 'matplotlib.lines', 'matplotlib.patheffects',
@@ -344,7 +350,7 @@ latex_documents = [
 #
 # latex_appendices = []
 
-# It false, will not define \strong, \code, 	itleref, \crossref ... but only
+# It false, will not define \strong, \code,     itleref, \crossref ... but only
 # \sphinxstrong, ..., \sphinxtitleref, ... To help avoid clash with user added
 # packages.
 #
