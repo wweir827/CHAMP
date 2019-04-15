@@ -47,7 +47,8 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,n
             curarray=[]
             curarray.append(calculate_coefficient(partition,A_mat))
             curarray.append(calculate_coefficient(partition,P_mat))
-            curarray.append(calculate_coefficient(partition,C_mat))
+            if C_mat is not None:
+                curarray.append(calculate_coefficient(partition,C_mat))
             outarray.append(curarray)
 
     else:
@@ -57,7 +58,8 @@ def create_coefarray_from_partitions(partition_array, A_mat, P_mat, C_mat=None,n
         for partition in partition_array:
             parallel_args.append((partition, A_mat))
             parallel_args.append((partition, P_mat))
-            parallel_args.append((partition, C_mat))
+            if C_mat is not None:
+                parallel_args.append((partition, C_mat))
         #map preserves order
         with terminating(Pool(processes=nprocesses)) as pool:
             parallel_res=pool.map(_calculate_coefficient_parallel,parallel_args)
