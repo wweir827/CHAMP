@@ -157,7 +157,7 @@ class PartitionEnsemble(object):
 		Calc adjacency representation if it exists
 		:param intra: return intralayer adjacency.  If false returns interlayer adj.
 		:return: self.adjacency
-
+sub
 		'''
 		if intra:
 			if 'adjacency' not in self.__dict__ and \

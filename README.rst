@@ -7,14 +7,14 @@ CHAMP (Convex Hull of Admissible Modularity Partitions
 =================================================================
 A modularity based tool for screening a set of partitions.
 
-.. figure::  docs/_static/images/graphs_all_three.png
+.. figure::  docs/sub_docs/images/graphs_all_three.png
    :align:   center
    :figwidth: 95%
 
 The CHAMP python package provides two levels of functionality:
 
-* Identifying the subset of partitions from a group of partitions (regardless of how they were discovered) with optimal modularity. See `Running <docs/_static/running.rst>`_.
-* Parallelized implementation of modularity based community detection method, `louvain <https://github.com/vtraag/louvain-igraph>`_ with efficient filtering (*ala* CHAMP), management, and storage of the generated partitions. See `Louvain Parallel Extension <docs/_static/louvain_ext.rst>`_ .
+* Identifying the subset of partitions from a group of partitions (regardless of how they were discovered) with optimal modularity. See `Running <docs/sub_docs/running.rst>`_.
+* Parallelized implementation of modularity based community detection method, `louvain <https://github.com/vtraag/louvain-igraph>`_ with efficient filtering (*ala* CHAMP), management, and storage of the generated partitions. See `Louvain Parallel Extension <docs/sub_docs/louvain_ext.rst>`_ .
 
 For complete documentation, please visit our ReadTheDocs page: \
  `http://champ.readthedocs.io/en/latest/ <http://champ.readthedocs.io/en/latest/>`_
@@ -64,7 +64,7 @@ Please cite\:
 | 2.  William H. Weir, Ryan Gibson, and Peter J Mucha. Champ package: Convex Hull of Admissible Modularity Partitions in python and matlab. 2017. https://github.com/wweir827/CHAMP.
 |
 
-`bibtex <docs/_static/champ.bib>`_
+`bibtex <docs/sub_docs/champ.bib>`_
 
 For more details and results see our `preprint <https://arxiv.org/abs/1706.03675>`_
 

@@ -7,7 +7,7 @@ CHAMP (Convex Hull of Admissible Modularity Partitions)
 =================================================================
 A modularity based tool for screening a set of partitions.
 
-.. figure::  _static/images/graphs_all_three.png
+.. figure::  sub_docs/images/graphs_all_three.png
    :align:   center
    :figwidth: 95%
 
