@@ -42,6 +42,7 @@ logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=loggi
 
 import seaborn as sbn
 
+iswin = os.name == 'nt'
 
 try:
 	import cpickle as pickle
@@ -677,7 +678,8 @@ sub
 			# return PartitionEnsemble(self.graph,listofparts=bothpartitions)
 
 		else: #
-			if self._hdf5_file == otherEnsemble._hdf5_file:
+
+			if self._hdf5_file is not None and self._hdf5_file == otherEnsemble._hdf5_file:
 				warnings.warn("Partitions are stored on the same file.  returning self",UserWarning)
 				return self
 			if self.numparts<otherEnsemble.numparts:
@@ -692,8 +694,8 @@ sub
 					return self
 				else:
 					#just add the partitions from the other file
-					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
+					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
 					return self
 
@@ -1536,6 +1538,77 @@ def permute_memvec(permutation,membership):
 
 	return outvec
 
+def run_louvain_windows(graph,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False):
+	'''
+	Call the louvain method with igraph as input directly.  This is needed for windows system\
+	because tmp files cannot be closed and reopened
+
+	This takes as input a graph file (instead of the graph object) to avoid duplicating
+	references in the context of parallelization.  To allow for flexibility, it allows for
+	subsetting of the nodes each time.
+
+	:param graph: igraph
+	:param node_subset: Subeset of nodes to keep (either the indices or list of attributes)
+	:param gamma: resolution parameter to run louvain
+	:param nruns: number of runs to conduct
+	:param weight: optional name of weight attribute for the edges if network is weighted.
+	:param output_dictionary: Boolean - output a dictionary representation without attached graph.
+	:return: list of partition objects
+
+	'''
+
+	np.random.seed() #reset seed for each process
+
+	#Load the graph from the file
+	g = graph
+	#have to have a node identifier to handle permutations.
+	#Found it easier to load graph from file each time than pass graph object among process
+	#This means you do have to filter out shared nodes and realign graphs.
+	# Can avoid for g1 by passing None
+
+	#
+	if node_subset!=None:
+		# subset is index of vertices to keep
+		if attribute==None:
+			gdel=node_subset
+		# check to keep nodes with given attribute
+		else:
+			gdel=[ i for i,val in enumerate(g.vs[attribute]) if val not in node_subset]
+
+		#delete from graph
+		g.delete_vertices(gdel)
+
+	if weight is True:
+		weight='weight'
+
+
+	outparts=[]
+	for i in range(nruns):
+		rand_perm = list(np.random.permutation(g.vcount()))
+		rperm = rev_perm(rand_perm)
+		gr=g.permute_vertices(rand_perm) #This is just a labelling switch.  internal properties maintined.
+
+		#In louvain > 0.6, change in the way the different methods are called.
+		#modpart=louvain.RBConfigurationVertexPartition(gr,resolution_parameter=gamma)
+		rp = louvain.find_partition(gr,louvain.RBConfigurationVertexPartition,weights=weight,
+									resolution_parameter=gamma)
+
+		#store the coefficients in return object.
+		A=get_sum_internal_edges(rp,weight)
+		P=get_expected_edges(rp,weight,directed=g.is_directed())
+
+
+		outparts.append({'partition': permute_vector(rperm, rp.membership),
+						 'resolution':gamma,
+						 'orig_mod': rp.quality(),
+						 'int_edges':A,
+						 'exp_edges':P})
+
+	if not output_dictionary:
+		return PartitionEnsemble(graph=g,listofparts=outparts)
+	else:
+		return outparts
+	return part_ensemble
 
 
 def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False):
@@ -1654,6 +1727,19 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
+
+	if iswin: #on a windows system
+		warnings.warn("Parallel Louvain function is not available of windows system.  Running in serial",
+					  UserWarning)
+		for i,gam in enumerate(np.linspace(start,fin,numruns)):
+			cpart_ens=run_louvain_windows(graph=graph,nruns=1,gamma=gam,node_subset=node_subset,
+										attribute=attribute,weight=weight)
+			if i==0:
+				outpart_ens=cpart_ens
+			else:
+				outpart_ens=outpart_ens.merge_ensemble(cpart_ens,new=False) #merge current run with new
+		return outpart_ens
+
 	parallel_args=[]
 	if numprocesses is None:
 		numprocesses=cpu_count()
