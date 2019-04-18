@@ -966,9 +966,16 @@ sub
 
 		edge_atts=grph.create_group('edge_attributes')
 		for attrib in graph2save.edge_attributes():
-
-			edge_atts.create_dataset(attrib,
-									 data=np.array(graph2save.es[attrib]),compression="gzip",compression_opts=compress)
+			if is_py3 and type(graph2save.vs[attrib][0]) is str:
+				dt = h5py.special_dtype(vlen=str)
+				# for str types have to make sure they are encoded correctly in h5py
+				cdata = np.array([x.encode('utf8') for x in graph2save.es[attrib]])
+				edge_atts.create_dataset(attrib,data=cdata,
+										 dtype=dt, compression="gzip",
+										 compression_opts=compress)
+			else:
+				edge_atts.create_dataset(attrib,
+										 data=np.array(graph2save.es[attrib]),compression="gzip",compression_opts=compress)
 
 		node_atts=grph.create_group("node_attributes")
 		for attrib in graph2save.vertex_attributes():
@@ -1018,6 +1025,7 @@ sub
 				self.interlayer_graph.vs[attrib] = grph['node_attributes'][attrib][:]
 
 
+	# def _save_array_with_None(self):
 
 
 	def save(self,filename=None,dir=".",hdf5=True,compress=9):
@@ -1107,9 +1115,16 @@ sub
 						cshape=list(data.shape)
 						cshape[0]=None
 						cshape=tuple(cshape)
-
-						cdset = outfile.create_dataset(k, data=data, maxshape=cshape,
-													   compression="gzip",compression_opts=compress)
+						try:
+							cdset = outfile.create_dataset(k, data=data, maxshape=cshape,
+								compression="gzip",compression_opts=compress)
+						except TypeError:
+							#we save these as strings
+							dt=h5py.special_dtype(vlen=str)
+							data=np.array([str(x).encode('utf8') for x in data])
+							cdset = outfile.create_dataset(k, data=data, maxshape=cshape,
+								compression="gzip", compression_opts=compress,
+								dtype=dt)
 
 					elif not val is None:
 							#Single value attributes
@@ -1192,7 +1207,18 @@ sub
 								self.ind2doms[int(ind)]=infile[key][ind][:]
 						else:
 							try:
-								self.__dict__[key]=infile[key][:]
+								carray=infile[key][:]
+								if re.search("object",str(infile[key][:].dtype)):
+									new_array=[]
+									for x in carray:
+										try:
+											new_array.append(eval(infile[key][:][0]))
+										except ValueError:
+											new_array.append(x)
+									carray=np.array(new_array)
+									self.__dict__[key]=carray
+								else:
+									self.__dict__[key]=infile[key][:]
 							except ValueError:
 								self.__dict__[key]=infile[key].value
 
