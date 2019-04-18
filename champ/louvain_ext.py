@@ -5,6 +5,7 @@ from __future__ import division # use // to specify int div.
 from future.utils import iteritems,iterkeys
 from future.utils import lmap
 
+
 import gzip
 import sys, os
 import re
@@ -43,6 +44,8 @@ logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=loggi
 import seaborn as sbn
 
 iswin = os.name == 'nt'
+is_py3 = sys.version_info >= (3, 0)
+
 
 try:
 	import cpickle as pickle
@@ -969,8 +972,17 @@ sub
 
 		node_atts=grph.create_group("node_attributes")
 		for attrib in graph2save.vertex_attributes():
-			node_atts.create_dataset(attrib,
-									 data=np.array(graph2save.vs[attrib]),compression="gzip",compression_opts=compress)
+			if is_py3 and type(graph2save.vs[attrib][0]) is str:
+				dt=h5py.special_dtype(vlen=str)
+				#for str types have to make sure they are encoded correctly in h5py
+				cdata=np.array( [x.encode('utf8') for x in graph2save.vs[attrib]])
+				node_atts.create_dataset(attrib,
+							data=cdata,dtype=dt,compression="gzip",
+							compression_opts=compress)
+			else:
+				node_atts.create_dataset(attrib,
+										 data=np.array(graph2save.vs[attrib]), compression="gzip",
+										 compression_opts=compress)
 		return file
 
 	def _read_graph_from_hd5f_file(self,file,intra=True):
@@ -1068,6 +1080,25 @@ sub
 					elif isinstance(val,str):
 						outfile.create_dataset(k,data=val)
 
+					elif isinstance(val,pd.DataFrame):
+						grp=outfile.create_group(k)
+						#object stored as pd DataFrame
+						cvalues=val.values #as matrix
+						rows=val.index
+						columns=val.columns
+						rshape = list(rows.shape)
+						rshape[0] = None
+						rshape = tuple(rshape)
+						cshape = list(rows.shape)
+						cshape[0] = None
+						cshape = tuple(cshape)
+
+						grp.create_dataset('values',cvalues)
+						grp.create_dataset('index',data=rows,maxshape=rshape,
+										   compression="gzip",compression_opts=compress)
+						grp.create_dataset('index', data=columns, maxshape=cshape,
+										   compression="gzip", compression_opts=compress)
+
 					elif hasattr(val,"__len__"):
 						data=np.array(val)
 
@@ -1123,6 +1154,15 @@ sub
 		outgraph.write_graphmlz(os.path.join(dir,filename))
 		return filename
 
+	def _load_datafame_from_hdf5_file(self,file,key):
+		#added this incase i watned to make one of the attributes a dataframe
+		values=file[key]['values'][:]
+		index=file[key]['index'][:]
+		columns=file[key]['columns'][:]
+
+		outdf=pd.DataFrame(values,index=index,columns=columns)
+		return outdf
+
 
 	def open(self,filename):
 		'''
@@ -1143,7 +1183,8 @@ sub
 					self._read_graph_from_hd5f_file(infile,intra=False)
 
 				for key in infile.keys():
-					if key!='graph' and key!='_partitions' and key!='interlayer_graph':
+					if key!='graph' and key!='_partitions' \
+							and key!='interlayer_graph':
 						#get domain indices recreate ind2dom dict
 						if key=='ind2doms':
 							self.ind2doms={}
