@@ -1,8 +1,31 @@
 from setuptools import setup
+import os,re
+
+
+#read inversion info from single file
+PKG = "champ"
+VERSIONFILE = os.path.join(PKG, "_version.py")
+verstr = "unknown"
+try:
+    verstrline = open(VERSIONFILE, "rt").read()
+    print(verstrline)
+except EnvironmentError:
+    pass # Okay, there is no version file.
+else:
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        verstr = mo.group(1)
+    else:
+        print ("unable to find version in %s" % (VERSIONFILE,))
+        raise RuntimeError("if %s.py exists, it is required to be well-formed" % (VERSIONFILE,))
+
+
+
 
 options=dict( name='champ',
-    version='2.0.2',
-    packages=['champ'],
+    version=verstr,
+    packages=[PKG],
     url='http://github.com/wweir827/champ',
     license='GPLv3+',
     author='William H. Weir',

@@ -2,7 +2,7 @@
 CHAMP (Convex Hull of Admissible Modularity Partitions) implementation
 '''
 from __future__ import absolute_import
-
+import os
 from .plot_domains import plot_2d_domains
 from .plot_domains import plot_single_layer_modularity_domains
 from .plot_domains import plot_line_halfspaces
@@ -23,6 +23,9 @@ from .louvain_ext import PartitionEnsemble
 from .louvain_ext import parallel_louvain
 from .louvain_ext import run_louvain
 from .louvain_ext import adjacency_to_edges
+
+__version__ = "unknown" #default
+from ._version import __version__
 
 
 
