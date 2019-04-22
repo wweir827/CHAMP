@@ -44,7 +44,6 @@ logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=loggi
 import seaborn as sbn
 
 iswin = os.name == 'nt'
-iswin= True
 is_py3 = sys.version_info >= (3, 0)
 
 
