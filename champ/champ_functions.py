@@ -118,7 +118,7 @@ def sort_points(points):
 
     return points
 
-def get_interior_point(hs_list):
+def get_interior_point(hs_list,single_layer=True):
     '''
     Find interior point to calculate intersections
     :param hs_list: list of halfspaces
@@ -127,8 +127,11 @@ def get_interior_point(hs_list):
     '''
 
     normals, offsets = np.split(hs_list, [-1], axis=1)
-    # in our case, the last four halfspaces may be boundary halfspaces
-    interior_hs, boundaries = np.split(hs_list, [-4], axis=0)
+    # in our case, the last 2 or 4 halfspaces are boundary halfspaces
+    if single_layer:
+        interior_hs, boundaries = np.split(hs_list, [-2], axis=0)
+    else:
+        interior_hs, boundaries = np.split(hs_list, [-4], axis=0)
 
     # randomly sample up to 50 of the halfspaces
     sample_len = min(50, len(interior_hs))
@@ -297,10 +300,10 @@ def get_intersection(coef_array, max_pt=None):
             # in this case, we will calculate max boundary planes later, so we'll impose x, y <= 10.0
             # for the interior point calculation here.
             interior_pt = get_interior_point(np.vstack((halfspaces,) +
-                                                       (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))))
+                                                       (np.array([0, 1.0, 0, -10.0]), np.array([1.0, 0, 0, -10.0]))),single_layer=singlelayer)
         else:
             # similarly, in the 2D case, we impose x <= 10.0 for the interior point calculation
-            interior_pt = get_interior_point(np.vstack((halfspaces,) + (np.array([1.0, 0, -10.0]),)))
+            interior_pt = get_interior_point(np.vstack((halfspaces,) + (np.array([1.0, 0, -10.0]),)),single_layer=singlelayer)
     else:
         interior_pt = get_interior_point(halfspaces)
 
