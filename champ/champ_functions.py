@@ -142,20 +142,26 @@ def get_interior_point(hs_list,num_bound):
     A = np.hstack((sampled_hs[:, :-1], norm_vector))
     b = -sampled_hs[:, -1:]
 
-    res = linprog(c, A_ub=A, b_ub=b, bounds=None)
+    manual=False
+    try:
+        res = linprog(c, A_ub=A, b_ub=b, bounds=None)
 
-    if res.status == 0:
-        intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
+            # For some reason linprog raise error if fails on windows?
 
-        # ensure that the computed point is actually interior to all halfspaces
-        if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
-            return intpt
-    else:
-        warnings.warn({1: "Interior point calculation: scipy.optimize.linprog exceeded iteration limit",
-                       2: "Interior point calculation: scipy.optimize.linprog problem is infeasible. "
-                          "Fallback will fail.",
-                       3: "Interior point calculation: scipy.optimize.linprog problem is unbounded"}[res.status],
-                      RuntimeWarning)
+        if res.status == 0:
+            intpt = res.x[:-1]  # res.x contains [interior_point, distance to enclosing polyhedron]
+
+            # ensure that the computed point is actually interior to all halfspaces
+            if (np.dot(normals, intpt) + np.transpose(offsets) < 0).all() and res.success:
+                return intpt
+        else:
+            warnings.warn({1: "Interior point calculation: scipy.optimize.linprog exceeded iteration limit",
+                           2: "Interior point calculation: scipy.optimize.linprog problem is infeasible. "
+                              "Fallback will fail.",
+                           3: "Interior point calculation: scipy.optimize.linprog problem is unbounded"}[res.status],
+                          RuntimeWarning)
+    except ValueError:
+        pass
 
     warnings.warn("Interior point calculation: falling back to 'small step' approach.", RuntimeWarning)
 
