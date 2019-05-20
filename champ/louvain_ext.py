@@ -15,7 +15,6 @@ from multiprocessing import Pool,cpu_count
 from time import time
 import itertools
 from .champ_functions import get_intersection
-from .champ_functions import create_coefarray_from_partitions
 from .champ_functions import PolyArea
 from .champ_functions import min_dist_origin
 from .champ_functions import point_comparator
@@ -1560,7 +1559,6 @@ def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 	P_tot=0
 	layers=np.unique(layer_vec)
 
-
 	for layer in layers:
 		cind=np.where(layer_vec==layer)[0]
 		subgraph=part_obj.graph.subgraph(cind)
@@ -1890,6 +1888,35 @@ def _create_interslice(interlayer_edges, layer_vec, directed=False):
 	slice_couplings.es['weight']=weights
 	return slice_couplings
 
+
+def _create_multilayer_igraphs_from_super_adj_igraph(intralayer_igraph,layer_vec):
+	"""
+	For falling back on the normal louvain method.  We use the single layer intralayer_igraph to\
+	 create igraph representations for each of the layers.
+	:param intralayer_igraph: igraph.Graph super_adjacency representation
+	:param layer_vec: indicator of which layer each node is in.
+	:return:
+	"""
+
+	adj=np.array(intralayer_igraph.get_adjacency().data)
+	layer_vals = np.unique(layer_vec)
+
+	layers=[]
+	# We calculate the induced subgraph for each layer by identifying all of the edges
+	# in that layer and creating a new igraph object for each (without deleting vertices)
+	for layer in layer_vals:
+		#
+		cinds=np.where(layer_vec==layer)[0]
+		cedges=set()
+		for v in cinds:
+			cedges.update(intralayer_igraph.incident(v))
+
+		cedges=list(cedges)
+		cgraph=intralayer_igraph.subgraph_edges(edges=cedges,delete_vertices=False)
+		layers.append(cgraph)
+	return layers
+
+
 def _create_all_layers_single_igraph(intralayer_edges, layer_vec, directed=False):
 	"""
 	"""
@@ -2004,7 +2031,7 @@ def create_multilayer_igraph_from_edgelist(intralayer_edges, interlayer_edges, l
 	   For this method only two graphs are created :
 	   intralayer_graph : all edges withis this graph are treated equally though the null model is adjusted \
 	   based on each slice's degree distribution
-	   interlayer_graph:  sinlge graph that contains only interlayer connections between all nodes
+	   interlayer_graph:  single graph that contains only interlayer connections between all nodes
 
 	:param intralayer_edges: edges representing intralayer connections.  Note each node should be assigned a unique\
 	index.
@@ -2134,10 +2161,12 @@ def _get_sum_internal_edges_from_partobj_list(part_obj_list,weight='weight'):
 	return A
 
 
-def _get_sum_expected_edges_from_partobj_list(part_obj_list,layer_vec,weight='weight'):
+def _get_sum_expected_edges_from_partobj_list(part_obj_list,weight='weight'):
 	P=0
 	for part_obj in part_obj_list:
-		P+=get_expected_edges_ml(part_obj,layer_vec=layer_vec,weight=weight)
+		#This is the case where we have to split the intralayer adjacency into multiple
+		#partition objects.
+		P += get_expected_edges(part_obj,weight=weight)
 	return P
 
 
@@ -2156,7 +2185,7 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 	t=time()
 	mu=np.sum(intralayer_graph.es[weight])+interlayer_graph.ecount()
 
-	layers=[intralayer_graph] #for now only have one layer representing all intralayer connections
+	use_RBCweighted = hasattr(louvain, 'RBConfigurationVertexPartitionWeightedLayers')
 
 	outparts=[]
 	for run in range(nruns):
@@ -2165,10 +2194,15 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		rperm = rev_perm(rand_perm)
 		interslice_layer_rand = interlayer_graph.permute_vertices(rand_perm)
 		rlayer_vec=permute_vector(rand_perm,layer_vec)
-		#create permutation vectors for each of these igraphs
-		rlayers=[]
-		for layer in layers:
-			rlayers.append(layer.permute_vertices(rand_perm))
+
+		rintralayer_graph=intralayer_graph.permute_vertices(rand_perm)
+		#
+		if use_RBCweighted:
+			rlayers = [intralayer_graph]  #  one layer representing all intralayer connections here
+		else:
+			rlayers = _create_multilayer_igraphs_from_super_adj_igraph(rintralayer_graph, layer_vec=rlayer_vec)
+
+
 		logging.debug('time: {:.4f}'.format(time()-t))
 
 		t=time()
@@ -2178,15 +2212,20 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 
 		logging.debug('creating partition objects')
 		t=time()
+
 		for i,layer in enumerate(rlayers): #these are the shuffled igraph slice objects
 			try:
 				res=resolution[i]
 			except:
 				res=resolution
 
-			cpart=louvain.RBConfigurationVertexPartitionWeightedLayers(layer,layer_vec=rlayer_vec,
-														 weights=weight,
-														 resolution_parameter=resolution)
+			if use_RBCweighted:
+
+				cpart=louvain.RBConfigurationVertexPartitionWeightedLayers(layer,layer_vec=rlayer_vec,weights=weight,resolution_parameter=res)
+			else:
+				#This creates individual VertexPartition for each layer.  Much slower to optimize.
+				cpart=louvain.RBConfigurationVertexPartition(layer,weights=weight,resolution_parameter=res)
+
 			layer_partition_objs.append(cpart)
 
 		coupling_partition=louvain.RBConfigurationVertexPartition(interslice_layer_rand,
@@ -2198,22 +2237,28 @@ def run_louvain_multilayer(intralayer_graph,interlayer_graph, layer_vec, weight=
 		logging.debug('time: {:.4f}'.format(time()-t))
 		logging.debug('running optimiser')
 		t=time()
-		improvement=optimiser.optimise_partition_multiplex(all_layer_partobjs,layer_weights=[1,omega])
+
+
+		layer_weights=[1]*len(rlayers)+[omega]
+		improvement=optimiser.optimise_partition_multiplex(all_layer_partobjs,layer_weights=layer_weights)
 
 		#the membership for each of the partitions is tied together.
 		finalpartition=permute_vector(rperm, all_layer_partobjs[0].membership)
 		reversed_partobj=[]
-		# #go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
+		#go back and reverse the graphs associated with each of the partobj.  this allows for properly calculating exp edges with partobj
+		#This is not ideal.  Could we just reverse the permutation?
 		for layer in layer_partition_objs:
-			reversed_partobj.append(louvain.RBConfigurationVertexPartitionWeightedLayers(graph=layer.graph.permute_vertices(rperm),
-																 initial_membership=finalpartition,weights=weight,layer_vec=layer_vec,
-																	 resolution_parameter=layer.resolution_parameter))
-		coupling_partition_rev=louvain.RBConfigurationVertexPartition(graph=coupling_partition.graph.permute_vertices(rperm),
-																	  initial_membership=finalpartition,weights=weight,
-																	  resolution_parameter=0)
+			if use_RBCweighted:
+				reversed_partobj.append(louvain.RBConfigurationVertexPartitionWeightedLayers(graph=layer.graph.permute_vertices(rperm),initial_membership=finalpartition,weights=weight,layer_vec=layer_vec,resolution_parameter=layer.resolution_parameter))
+			else:
+				reversed_partobj.append(louvain.RBConfigurationVertexPartition(graph=layer.graph.permute_vertices(rperm),initial_membership=finalpartition,weights=weight,resolution_parameter=layer.resolution_parameter))
+		coupling_partition_rev=louvain.RBConfigurationVertexPartition(graph=coupling_partition.graph.permute_vertices(rperm),initial_membership=finalpartition,weights=weight,resolution_parameter=0)
 		#use only the intralayer part objs
 		A=_get_sum_internal_edges_from_partobj_list(reversed_partobj,weight=weight)
-		P=_get_sum_expected_edges_from_partobj_list(reversed_partobj,layer_vec=layer_vec,weight=weight)
+		if use_RBCweighted: #should only one partobj here representing all layers
+			P= get_expected_edges_ml(reversed_partobj[0], layer_vec=layer_vec, weight=weight)
+		else:
+			P=_get_sum_expected_edges_from_partobj_list(reversed_partobj,weight=weight)
 		C=get_sum_internal_edges(coupling_partition_rev,weight=weight)
 		outparts.append({'partition': np.array(finalpartition),
 						 'resolution': resolution,
@@ -2240,17 +2285,42 @@ def _parallel_run_louvain_multimodularity(files_layervec_gamma_omega):
 	logging.debug('time: {:.4f}'.format(time()-t))
 	return partition
 
+
 def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 								gamma_range,ngamma,omega_range,nomega,maxpt=None,numprocesses=2,progress=True,
 								intra_directed=False,inter_directed=False):
 
-	""""""
+	"""
+
+	:param intralayer_edges:
+	:param interlayer_edges:
+	:param layer_vec:
+	:param gamma_range:
+	:param ngamma:
+	:param omega_range:
+	:param nomega:
+	:param maxpt:
+	:param numprocesses:
+	:param progress:
+	:param intra_directed:
+	:param inter_directed:
+	:return:
+
+	"""
+
+
+
 	logging.debug('creating graphs from edges')
 	t=time()
-	intralayer_graph,interlayer_graph=create_multilayer_igraph_from_edgelist(intralayer_edges=intralayer_edges,
-																			 interlayer_edges=interlayer_edges,
-																			 layer_vec=layer_vec,inter_directed=inter_directed,
-																			 intra_directed=intra_directed)
+	intralayer_graph,interlayer_graph=create_multilayer_igraph_from_edgelist(
+        intralayer_edges=intralayer_edges,
+	    interlayer_edges=interlayer_edges,
+		layer_vec=layer_vec,inter_directed=inter_directed,
+		intra_directed=intra_directed)
+
+	if not hasattr(louvain, 'RBConfigurationVertexPartitionWeightedLayers'):
+		warnings.warn(
+			"RBConfigurationVertexPartitionWeightedLayers not present in louvain package.  Falling back on creating igraph for each layer.  Note for networks with many layers this can result in considerable slowdown.")
 
 
 	logging.debug('time {:.4f}'.format(time() - t))
@@ -2280,7 +2350,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 			for i, res in enumerate(pool.imap(_parallel_run_louvain_multimodularity, args)):
 				parts_list_of_list.append(res)
 
-	# parts_list_of_list=map(_parallel_run_louvain_multimodularity,args) #testing without parallel.
+	# parts_list_of_list=list(map(_parallel_run_louvain_multimodularity,args)) #testing without parallel.
 
 
 
