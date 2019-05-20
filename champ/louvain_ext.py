@@ -1440,7 +1440,6 @@ sub
 		for ind in self.ind2doms:
 			nmis.append(skm.adjusted_mutual_info_score(self.partitions[ind],
 													   true_part))
-		print(nmis)
 		colors=list(map(lambda x : cmap(cnorm(x)),nmis))
 		a= self.plot_2d_modularity_domains(ax=ax,col=colors)
 		if not colorbar_ax is None:

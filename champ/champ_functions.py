@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from future.utils import iteritems,iterkeys
-from future.utils import lmap
 
 from multiprocessing import Pool
 from collections import defaultdict, Hashable
@@ -11,8 +10,7 @@ from scipy.spatial import HalfspaceIntersection
 from scipy.spatial.qhull import QhullError
 from scipy.optimize import linprog
 import warnings
-import igraph as ig
-import louvain
+
 
 @contextmanager
 def terminating(obj):
@@ -129,11 +127,18 @@ def get_interior_point(hs_list,num_bound):
     normals, offsets = np.split(hs_list, [-1], axis=1)
     # in our case, the last num_bound halfspaces are boundary halfspaces
 
-    interior_hs, boundaries = np.split(hs_list, [-num_bound], axis=0)
+    if num_bound>0:
+        interior_hs, boundaries = np.split(hs_list, [-num_bound], axis=0)
+    else:
+        interior_hs=hs_list
+        boundaries=None
 
     # randomly sample up to 50 of the halfspaces
     sample_len = min(50, len(interior_hs))
-    sampled_hs = np.vstack((interior_hs[choice(interior_hs.shape[0], sample_len, replace=False)], boundaries))
+    if num_bound>0:
+        sampled_hs = np.vstack((interior_hs[choice(interior_hs.shape[0], sample_len, replace=False)], boundaries))
+    else:
+        sampled_hs=interior_hs[choice(interior_hs.shape[0], sample_len, replace=False)]
 
     # compute the Chebyshev center of the sampled halfspaces' intersection
     norm_vector = np.reshape(np.linalg.norm(sampled_hs[:, :-1], axis=1), (sampled_hs.shape[0], 1))
@@ -361,7 +366,7 @@ def get_intersection(coef_array, max_pt=None):
 
     if not singlelayer:
         # Find boundary intersection of half spaces
-        interior_pt = get_interior_point(halfspaces)
+        interior_pt = get_interior_point(halfspaces,num_bound=0)
         hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
 
     # revert numpy floating point warnings
