@@ -49,6 +49,20 @@ For basic installation:
 
    python setup.py install
 
+
+We have also created a conda-forge recipe for creating a conda environment.  If you wish to install through conda, first add conda-forge channel:
+
+.. code-block:: bash
+
+   conda config --add channels conda-forge
+
+Then you can create a environment using prepackaged versions from conda forge:
+
+.. code-block:: bash
+
+   conda install champ
+
+
 Dependencies
 ***************
 

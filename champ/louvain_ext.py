@@ -350,7 +350,7 @@ sub
 
 		with h5py.File(self._hdf5_file,'a') as myfile:
 			with h5py.File(otherfile,'r') as file_2_add:
-				attributes = ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges']
+				attributes = ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges','numcoms']
 				if self.ismultilayer:
 					attributes += ['couplings', 'int_inter_edges']
 				for attribute in attributes:
@@ -380,7 +380,7 @@ sub
 		with h5py.File(self._hdf5_file,'a') as openfile:
 			#Resize all of the arrays in the file
 			orig_shape=openfile['_partitions'].shape
-			attributes=['_partitions','resolutions','orig_mods',"int_edges",'exp_edges']
+			attributes=['_partitions','resolutions','orig_mods',"int_edges",'exp_edges','numcoms']
 			if self.ismultilayer :
 				attributes+=['couplings','int_inter_edges']
 			for attribute in attributes:
@@ -539,7 +539,7 @@ sub
 
 
 				self.numcoms=np.append(self.numcoms, get_number_of_communities(part['partition'],
-																			   min_com_size=self._min_com_size))
+								min_com_size=self._min_com_size))
 
 				assert self._check_lengths()
 				self.numparts=len(self.partitions)
@@ -659,7 +659,7 @@ sub
 
 		if new:
 			newEnsemble=copy.deepcopy(self)
-			attributes=['_partitions','resolutions','orig_mods',"int_edges",'exp_edges']
+			attributes=['_partitions','resolutions','orig_mods',"int_edges",'exp_edges','numcoms']
 			if self.ismultilayer :
 				attributes+=['couplings','int_inter_edges']
 			for attribute in attributes:
@@ -769,14 +769,18 @@ sub
 	def sim_mat(self):
 		if self._sim_mat is None:
 			sim_mat = np.zeros((len(self.ind2doms), len(self.ind2doms)))
-			for i in range(len(self.ind2doms)):
-				for j in range(i,len(self.ind2doms)):
-					partition1 = self.partitions[i]
-					partition2 = self.partitions[j]
+			#extract the index of the partitions in order of start of domain in gamma space
+			keys=[x[0] for x in sorted(self.ind2doms.items(),key=lambda x: x[1][0][0])]
+			for i in range(len(keys)):
+				for j in range(i,len(keys)):
+					ind1=keys[i]
+					ind2=keys[j]
+					partition1 = self.partitions[ind1]
+					partition2 = self.partitions[ind2]
 
 					sim_mat[i][j] = skm.adjusted_mutual_info_score(partition1,
 															   partition2)
-					sim_mat[j][i] = sim_mat[j][i]
+					sim_mat[j][i] = sim_mat[i][j]
 			self._sim_mat=sim_mat
 		return self._sim_mat
 
@@ -1756,7 +1760,7 @@ def run_louvain(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,ou
 
 
 
-def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress_update):
+def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute):
 	'''
 	Parallel wrapper with single argument input for calling :meth:`louvain_ext.run_louvain`
 
@@ -1764,13 +1768,13 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute_progress_upd
 	:returns: PartitionEnsemble of graph stored in gfile
 	'''
 	#unpack
-	gfile,gamma,nruns,weight,node_subset,attribute,progress,update=gfile_gamma_nruns_weight_subset_attribute_progress_update
+	gfile,gamma,nruns,weight,node_subset,attribute=gfile_gamma_nruns_weight_subset_attribute
 	t=time()
 	outparts=run_louvain(gfile,gamma,nruns=nruns,weight=weight,node_subset=node_subset,attribute=attribute,output_dictionary=True)
 
-	if progress is not None:
-		if progress%update==0:
-			print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
+	# if progress is not None:
+	# 	if progress%update==0:
+	# 		print("Run %d at gamma = %.3f.  Return time: %.4f" %(progress,gamma,time()-t))
 
 	return outparts
 
@@ -1830,15 +1834,23 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 
 	graph.write_graphmlz(graphfile)
 	for i in range(numruns):
-		prognum = None if progress is None else i
 		curg = start + ((fin - start) / (1.0 * numruns)) * i
-		parallel_args.append((graphfile, curg, 1, weight, None, None, prognum, progress))
+		parallel_args.append((graphfile, curg, 1, weight, None, None))
 
-
+	parts_list_of_list=[]
 	#use a context manager so pools properly shut down
-
 	with terminating(Pool(processes=numprocesses)) as pool:
-		parts_list_of_list=pool.map(_run_louvain_parallel, parallel_args )
+
+		if progress:
+			tot = len(parallel_args)
+			with tqdm.tqdm(total=tot) as pbar:
+				# parts_list_of_list=pool.imap(_parallel_run_louvain_multimodularity,args)
+				for i, res in tqdm.tqdm(enumerate(pool.imap(_run_louvain_parallel, parallel_args)), miniters=tot):
+					# if i % 100==0:
+					pbar.update()
+					parts_list_of_list.append(res)
+		else:
+			parts_list_of_list=pool.map(_run_louvain_parallel, parallel_args )
 
 
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
