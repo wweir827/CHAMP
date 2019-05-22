@@ -641,12 +641,12 @@ sub
 			if self.ismultilayer :
 				attributes+=['couplings','int_inter_edges']
 			for attribute in attributes:
-				newEnsemble.__dict__[attribute]=np.append(newEnsemble.__dict__[attribute],otherEnsemble.__dict__[attribute])
+				newEnsemble.__dict__[attribute]=np.concatenate([newEnsemble.__dict__[attribute],otherEnsemble.__dict__[attribute]])
 
 			#we have to offset the index of all of the new partitions coming in in the champ ind2doms
 			newEnsemble.ind2doms={}
 			newEnsemble.ind2doms.update(self.ind2doms)
-			newEnsemble.ind2doms.update(self._offset_keys_new_dict(newEnsemble.ind2doms))
+			newEnsemble.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
 			# newEnsemble.apply_CHAMP(subset=newEnsemble.ind2doms.keys(),maxpt=newEnsemble.maxpt)
 			newEnsemble.apply_CHAMP(subset=list(newEnsemble.ind2doms))
 
