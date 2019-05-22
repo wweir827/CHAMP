@@ -62,6 +62,15 @@ Then you can create a environment using prepackaged versions from conda forge:
 
    conda install champ
 
+.. image:: https://anaconda.org/conda-forge/champ/badges/installer/conda.svg
+   :target: https://conda.anaconda.org/conda-forge
+
+.. image:: https://anaconda.org/conda-forge/champ/badges/latest_release_date.svg
+   :target: https://anaconda.org/conda-forge/champ
+
+.. image:: https://anaconda.org/conda-forge/champ/badges/downloads.svg
+   :target: https://anaconda.org/conda-forge/champ
+
 
 Dependencies
 ***************
