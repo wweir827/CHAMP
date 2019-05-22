@@ -24,7 +24,6 @@ import logging
 #logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
 logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
-import seaborn as sbn
 
 iswin = os.name == 'nt'
 is_py3 = sys.version_info >= (3, 0)

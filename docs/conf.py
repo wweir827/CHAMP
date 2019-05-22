@@ -68,7 +68,8 @@ if on_rtd:
         def __getattr__(cls, name):
             return MagicMock()
     # include the names of your minimal required packages here
-    MOCK_MODULES = ['numpy', 'numpy.random', 'igraph', 'louvain', 'matplotlib', 'matplotlib.pyplot',
+    MOCK_MODULES = ['numpy', 'numpy.random', 'igraph', 'louvain','leidenalg',
+                    'matplotlib', 'matplotlib.pyplot',
                     'matplotlib.cm', 'matplotlib.lines', 'matplotlib.patheffects',
                     'matplotlib.colors','seaborn','pandas',
                     'matplotlib.patches',
@@ -83,7 +84,7 @@ else:
     sys.path.insert(0,'/opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages' )
 #Have to specify all modules
 #These are for local mocks.
-autodoc_mock_imports=['numpy','igraph','louvain', 'matplotlib','h5py','Cython',
+autodoc_mock_imports=['numpy','igraph','louvain','leidenalg', 'matplotlib','h5py','Cython',
                       'matplotlib.cm','matplotlib.colors','matplotlib.patches',
                       'matplotlib.path','matplotlib.lines','matplotlib.pyplot','matplotlib.patheffects',
                       'sklearn.metrics','numpy.random','sklearn','ipython','scipy']
