@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from future.utils import iteritems,iterkeys
+from future.utils import lmap
 
 from multiprocessing import Pool
 from collections import defaultdict, Hashable
@@ -477,3 +478,121 @@ def min_dist_origin(pts,origin=None):
 
     min_ind=np.argmin([ np.dot(pt-origin,pt-origin)  for pt in pts ])
     return pts[min_ind]
+
+
+def get_sum_internal_edges(partobj,weight=None):
+	'''
+	   Get the count(strength) of edges that are internal to community:
+
+	   :math:`\\hat{A}=\\sum_{ij}{A_{ij}\\delta(c_i,c_j)}`
+
+	   :param partobj:
+	   :type partobj: igraph.VertexClustering
+	   :param weight: True uses 'weight' attribute of edges
+	   :return: float
+	   '''
+	sumA=0
+	for subg in partobj.subgraphs():
+		if weight is not None:
+			sumA+= np.sum(subg.es[weight])
+		else:
+			sumA+= subg.ecount()
+	return (2.0-partobj.graph.is_directed())*sumA
+
+def get_number_of_communities(partition,min_com_size=0):
+	'''
+
+	:param partition: list with community assignments (labels must be of hashable type \
+	e.g. int,string, etc...).
+	:type partition: list
+	:param min_com_size: Minimum size to include community in the total number of communities (default is 0)
+	:type min_com_size: int
+	:return: number of communities
+	:rtype: int
+	'''
+	count_dict={}
+	for label in partition:
+		count_dict[label]=count_dict.get(label,0)+1
+
+	tot_coms=0
+	for k,val in iteritems(count_dict):
+		if val>=min_com_size:
+			tot_coms+=1
+	return tot_coms
+
+def get_expected_edges(partobj,weight='weight',directed=False):
+	'''
+	Get the expected internal edges under configuration models
+
+	:math:`\\hat{P}=\\sum_{ij}{\\frac{k_ik_j}{2m}\\delta(c_i,c_j)}`
+
+	:param partobj:
+	:type partobj: igraph.VertexClustering
+	:param weight: True uses 'weight' attribute of edges
+	:return: float
+	'''
+
+
+
+	if weight is None:
+		m = float(partobj.graph.ecount())
+	else:
+		try:
+			m=np.sum(partobj.graph.es[weight])
+		except:
+			m=partobj.graph.ecount()
+
+	# print(m)
+	if m==0:
+		return 0
+	kk=0
+	#Hashing this upfront is alot faster (factor of 10).
+	partobj.graph.vs['_id']=range(partobj.graph.vcount())
+	indices = [ partobj.graph.vs['_id'][v.index] for v in partobj.graph.vs ]
+	if weight==None:
+		strengths=dict(zip(indices,partobj.graph.outdegree(indices)))
+		if directed:
+			strengths_in=dict(zip(indices,partobj.graph.indegree(indices)))
+		else:
+			strengths_in=strengths
+	else:
+		strengths=dict(zip(indices,partobj.graph.strength(indices,weights=weight,mode='OUT')))
+		if directed:
+			strengths_in = dict(zip(indices, partobj.graph.strength(indices, weights=weight, mode='IN')))
+		else:
+			strengths_in=strengths
+
+	for subg in partobj.subgraphs():
+		# since node ordering on subgraph doesn't match main graph, get vert id's in original graph
+		# verts=map(lambda x: int(re.search("(?<=n)\d+", x['id']).group()),subg.vs) #you have to get full weight from original graph
+		# svec=partobj.graph.strength(verts,weights='weight') #i think is what is slow
+		svec=np.array(lmap(lambda x :strengths[subg.vs['_id'][x.index]],subg.vs))
+		# svec=subg.strength(subg.vs,weights='weight')
+		svec_in=np.array(lmap(lambda x :strengths_in[subg.vs['_id'][x.index]],subg.vs))
+		kk+=np.sum(np.outer(svec, svec_in))
+
+	if directed:
+		return kk/(1.0*m)
+	else:
+		return kk/(2.0*m)
+
+def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
+	"""
+	Multilayer calculation of expected edges.  Breaks up partition object \
+	by layer and calculated expected edges for each layer-subgraph seperately\
+	thus getting the relative weights correct
+	:param part_obj: ig.VertexPartition with the appropriate graph and membership vector.
+	:param layer_vec: array with length equaling number of nodes specifying which layer each node is in.
+	:param weight: weight attribute on network
+	:return:
+	"""
+	P_tot=0
+	layers=np.unique(layer_vec)
+
+	for layer in layers:
+		cind=np.where(layer_vec==layer)[0]
+		subgraph=part_obj.graph.subgraph(cind)
+		submem=np.array(part_obj.membership)[cind]
+		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
+		P_tot += get_expected_edges(cpartobj,weight=weight,directed=subgraph.is_directed())
+	return P_tot

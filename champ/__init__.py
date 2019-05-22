@@ -19,10 +19,11 @@ from .louvain_ext import create_multilayer_igraph_from_edgelist
 from .louvain_ext import create_multilayer_igraph_from_adjacency
 from .louvain_ext import parallel_multilayer_louvain
 from .louvain_ext import parallel_multilayer_louvain_from_adj
-from .louvain_ext import PartitionEnsemble
 from .louvain_ext import parallel_louvain
 from .louvain_ext import run_louvain
 from .louvain_ext import adjacency_to_edges
+
+from .PartitionEnsemble import PartitionEnsemble
 
 __version__ = "unknown" #default
 from ._version import __version__
