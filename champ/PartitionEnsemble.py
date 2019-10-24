@@ -120,7 +120,10 @@ class PartitionEnsemble(object):
 		self.layer_vec=layer_vec
 		self.ismultilayer = (self.layer_vec is not None)
 		self._min_com_size=min_com_size
-		self.maxpt=maxpt
+		if maxpt is None:
+			self.maxpt=self._get_max_gamma()
+		else:
+			self.maxpt=maxpt
 		#some private variable
 		self._partitions=np.array([])
 		self._uniq_coeff_indices=None
@@ -286,6 +289,21 @@ sub
 		'''Set new value for hdf5_file and automatically save to this file.'''
 		self._hdf5_file=value
 		self.save()
+
+	def _get_max_gamma(self):
+		"""Calculate the smallest value of gamma for which Aij - gamma*P_ij <=0 \
+		Aij/P_ij < = gamma
+		"""
+		if self.graph is None:
+			return None
+		A_ij=np.array(self.graph.get_adjacency().data)
+		weight='weight' if self.graph.is_weighted() else None
+		k_i=self.graph.strength(weights=weight)
+		mu = np.sum(k_i) if self.graph.is_directed() else np.sum(k_i)/2.0
+		P_ij=np.outer(k_i,k_i)/(2.0*mu)
+
+		return np.max(np.divide(A_ij,P_ij))
+
 
 
 	def _check_lengths(self):
@@ -559,12 +577,12 @@ sub
 
 			# prune_gammas_keys = sorted([ (pt[0],k) for k,pts in self.ind2doms.items() for pt in pts])
 			# prune_gammas = [ gamma_key[0] for gamma_key in prune_gammas_keys ] #list of starting gammas
-            #
+			#
 			# gam_ind = list(zip(np.diff(prune_gammas), range(len(prune_gammas) - 1)))
 			# gam_ind.sort(key=lambda x: x[0], reverse=True)
-            #
+			#
 			# return [( prune_gammas[gam_ind[i][1]], #gamma value
-			# 		  gam_ind[i][0],                #width of domain
+			# 		  gam_ind[i][0],				#width of domain
 			# 		  prune_gammas_keys[gam_ind[i][1]][1]) for i in range(n)] #key
 		else:
 			if n is None:
@@ -873,14 +891,18 @@ sub
 		set
 		:param subset: subset of partitions to apply CHAMP to.  This is useful in merging \
 		two sets because we only need to apply champ to the combination of the two
-		:type maxpt: int
+		:type maxpt: int cut off for identifying maximum.  If none use the PartitionsEmsembles
 
 		'''
+		if maxpt is None:
+			maxpt=self.maxpt
 
 		if subset is None:
-			#found that adding in many numerically equivalent partitions to qhull causes probelms.
+			#found that adding in many numerically equivalent partitions to qhull causes problems?
 			uniq_inds=self.get_unique_coeff_indices()
-			self.ind2doms=get_intersection(self.get_coefficient_array(subset=uniq_inds),max_pt=maxpt)
+			cind2doms=get_intersection(self.get_coefficient_array(subset=uniq_inds),max_pt=maxpt)
+			self.ind2doms={ uniq_inds[k]:val for k,val in cind2doms.items() }
+
 		else:
 			cind2doms=get_intersection(self.get_coefficient_array(subset=subset),max_pt=maxpt)
 			#map it back to the subset values
@@ -1163,6 +1185,8 @@ sub
 		outdf=pd.DataFrame(values,index=index,columns=columns)
 		return outdf
 
+	def load(self,filename):
+		return self.open(filename)
 
 	def open(self,filename):
 		'''
@@ -1210,6 +1234,8 @@ sub
 			#store this for accessing partitions
 
 			self._hdf5_file=filename
+			if self.maxpt is None:
+				self.maxpt=self._get_max_gamma() #calculate max boundary
 			return self
 
 		except IOError:

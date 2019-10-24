@@ -121,8 +121,7 @@ def get_interior_point(hs_list,num_bound):
     '''
     Find interior point to calculate intersections
     :param hs_list: list of halfspaces
-    :return: an approximation to the point most interior to the halfspace intersection polyhedron (Chebyshev center) if
-    this computation succeeds. Otherwise, a point a small step towards the interior from the first plane in hs_list.
+    :return: an approximation to the point most interior to the halfspace intersection polyhedron (Chebyshev center) if this computation succeeds. Otherwise, a point a small step towards the interior from the first plane in hs_list.
     '''
 
     normals, offsets = np.split(hs_list, [-1], axis=1)
@@ -337,7 +336,9 @@ def get_intersection(coef_array, max_pt=None):
         joggled = True
         halfspaces[num_input_halfspaces][-1] = -1e-5
         halfspaces[num_input_halfspaces + 1][-1] = -1e-5
-        hs_inter = HalfspaceIntersection(halfspaces, interior_pt, qhull_options="QJ")
+        hs_inter = HalfspaceIntersection(halfspaces, interior_pt,
+                                         qhull_options="QJ")
+
 
     non_inf_vert = np.array([v for v in hs_inter.intersections if np.isfinite(v).all()])
     mx = np.max(non_inf_vert, axis=0)
