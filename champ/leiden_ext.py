@@ -94,6 +94,11 @@ def run_leiden(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,nit
 		A=get_sum_internal_edges(rp,weight)
 		P=get_expected_edges(rp,weight,directed=g.is_directed())
 
+		#normalize this appropriately if graph is directed
+		orig_mod=rp.quality()
+		tot=np.sum(gr.strength(weights=weight))
+		tot = 2*tot if g.is_directed() else tot
+		orig_mod/= tot
 
 		outparts.append({'partition': permute_vector(rperm, rp.membership),
 						 'resolution':gamma,
@@ -124,7 +129,9 @@ def _run_leiden_parallel(gfile_gamma_nruns_weight_subset_attribute_niters):
 	return outparts
 
 def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
-					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=None):
+					 nrepeats=1,uselogspace=False,
+					 numprocesses=None, attribute=None,weight=None,
+					 node_subset=None,progress=None):
 	'''
 	Generates arguments for parallel function call of leiden on graph
 
@@ -138,17 +145,27 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 	:param weight: If True will use 'weight' attribute of edges in runnning Louvain and calculating modularity.
 	:param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
 	:param attribute: Which attribute to filter on if node_subset is supplied.  If None, node subset is assumed \
+	:param niterations: int - number of times to iterate leiden for single run.  Input of each iteration\
+	is the output of previous iteration.
 	 to be node indices.
+	:param nrepeats : int - number of partitions to discover at each value of gamma (default=1)
 	:param progress:  Print progress in parallel execution every `n` iterations.
+	:param uselogspace: bool- should runs be linearly spaced (default) or if uselogspace=True, spaced evenly in log10space
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
 
+	if uselogspace:
+		if start==0: #can't technically be zero for creating log space
+			start+=np.power(10.0,-8) #use small value
+		gammas=np.logspace(np.log10(start),np.log10(fin),numruns,base=10)
+	else:
+		gammas=np.linspace(start,fin,numruns)
 	if iswin: #on a windows system
 		warnings.warn("Parallel Louvain function is not available of windows system.  Running in serial",
 					  UserWarning)
-		for i,gam in enumerate(np.linspace(start,fin,numruns)):
-			cpart_ens=run_leiden_windows(graph=graph,nruns=1,gamma=gam,node_subset=node_subset,
+		for i,gam in enumerate(gammas):
+			cpart_ens=run_leiden_windows(graph=graph,nruns=nrepeats,gamma=gam,node_subset=node_subset,
 										attribute=attribute,weight=weight,niterations=niterations)
 			if i==0:
 				outpart_ens=cpart_ens
@@ -178,9 +195,10 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 		graph.delete_vertices(gdel)
 
 	graph.write_graphmlz(graphfile)
-	for i in range(numruns):
-		curg = start + ((fin - start) / (1.0 * numruns)) * i
-		parallel_args.append((graphfile, curg, 1, weight, None, None,niterations))
+
+	for i,curg in enumerate(gammas):
+		# curg = start + ((fin - start) / (1.0 * numruns)) * i
+		parallel_args.append((graphfile, curg, nrepeats, weight, None, None,niterations))
 
 	parts_list_of_list=[]
 	# use a context manager so pools properly shut down

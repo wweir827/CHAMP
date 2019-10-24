@@ -111,7 +111,7 @@ def plot_2d_domains(ind_2_domains, ax=None, col=None, close=False, widths=None, 
         ax.add_patch(polypatch)
         xcrds=[x[0] for x in  pts ]
         ycrds =[x[1] for x in pts ]
-        ax.scatter(xcrds, ycrds, marker='x', c=c)
+        ax.scatter(xcrds, ycrds, marker='x', c=np.array([c]))
         # for i,x in enumerate(xcrds):
         #     jitter=np.random.uniform(-1,1)/10
         #     ax.text(x+jitter,ycrds[i]+jitter,i)
@@ -222,7 +222,7 @@ def plot_similarity_heatmap_single_layer(partitions, index_2_domain, partitions_
                 partition2=partitions_other[ind_vals2[j][0]]
 
                 AMI_mat[i][j] = adjusted_mutual_info_score(partition1,
-                                                            partition2)
+                                                            partition2,average_method='max')
                 # AMI_mat[j][i] = AMI_mat[i][j] #symmetric
     else:
         AMI_mat = sim_mat

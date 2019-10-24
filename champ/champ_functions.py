@@ -328,7 +328,8 @@ def get_intersection(coef_array, max_pt=None):
     joggled = False
     try:
         hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
-    except QhullError:
+    except QhullError as e:
+        print(e)
         warnings.warn("Qhull input might be sub-dimensional, attempting to fix...", RuntimeWarning)
 
         # move the offset of the the first two boundary halfspaces (x >= 0 and y >= 0) so that

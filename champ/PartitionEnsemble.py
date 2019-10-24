@@ -757,7 +757,7 @@ sub
 					partition2 = self.partitions[ind2]
 
 					sim_mat[i][j] = skm.adjusted_mutual_info_score(partition1,
-															   partition2)
+															   partition2,average_method='max')
 					sim_mat[j][i] = sim_mat[i][j]
 			self._sim_mat=sim_mat
 		return self._sim_mat
@@ -850,7 +850,8 @@ sub
 		'''
 	   This returns the indices for the partitions who are unique.  This could be larger than the
 	   indices for the unique coeficient since multiple partitions can give rise to the same coefficient. \
-	   In practice this has been very rare.  This function can take sometime for larger network with many \
+	   We call these twin partitions.  In practice this has been very rare  This function can take sometime\
+	   for larger network with many \
 	   partitions since it reindex the partitions labels to ensure they aren't permutations of each other.
 
 	   :param reindex: if True, will reindex partitions that it is comparing to ensure they are unique under \
@@ -877,7 +878,9 @@ sub
 		'''
 
 		if subset is None:
-			self.ind2doms=get_intersection(self.get_coefficient_array(),max_pt=maxpt)
+			#found that adding in many numerically equivalent partitions to qhull causes probelms.
+			uniq_inds=self.get_unique_coeff_indices()
+			self.ind2doms=get_intersection(self.get_coefficient_array(subset=uniq_inds),max_pt=maxpt)
 		else:
 			cind2doms=get_intersection(self.get_coefficient_array(subset=subset),max_pt=maxpt)
 			#map it back to the subset values
@@ -1380,7 +1383,8 @@ sub
 		return ax
 
 	def plot_2d_modularity_domains(self,ax=None,col=None):
-		"""Handle to call plot_domains.plot_2d_domains
+		"""Handle to call plot_domains.plot_2d_domains.  If called on
+		sinlge layer, will just plot 1D lines.
 
 		:param ax: matplotlib.Axes on which to plot the figure.
 		:param col:
@@ -1417,7 +1421,7 @@ sub
 
 		for ind in self.ind2doms:
 			nmis.append(skm.adjusted_mutual_info_score(self.partitions[ind],
-													   true_part))
+													   true_part),average_method='max')
 		colors=list(map(lambda x : cmap(cnorm(x)),nmis))
 		a= self.plot_2d_modularity_domains(ax=ax,col=colors)
 		if not colorbar_ax is None:

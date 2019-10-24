@@ -262,7 +262,7 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute):
 
 	return outparts
 
-def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
+def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselogspace=False,
 					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=None):
 	'''
 	Generates arguments for parallel function call of louvain on graph
@@ -277,17 +277,25 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 	:param weight: If True will use 'weight' attribute of edges in runnning Louvain and calculating modularity.
 	:param node_subset:  Optionally list of indices or attributes of nodes to keep while partitioning
 	:param attribute: Which attribute to filter on if node_subset is supplied.  If None, node subset is assumed \
+	:param nrepeats : int - number of partitions to discover at each value of gamma (default=1)
+	:param uselogspace: bool- should runs be linearly spaced (default) or if uselogspace=True, spaced evenly in log10space
 	 to be node indices.
 	:param progress:  Print progress in parallel execution every `n` iterations.
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
+	if uselogspace:
+		if start==0: #can't technically be zero for creating log space
+			start+=np.power(10.0,-8) #use small value
+		gammas=np.logspace(np.log10(start),np.log10(fin),numruns,base=10)
+	else:
+		gammas=np.linspace(start,fin,numruns)
 
 	if iswin: #on a windows system
 		warnings.warn("Parallel Louvain function is not available of windows system.  Running in serial",
 					  UserWarning)
-		for i,gam in enumerate(np.linspace(start,fin,numruns)):
-			cpart_ens=run_louvain_windows(graph=graph,nruns=1,gamma=gam,node_subset=node_subset,
+		for i,gam in enumerate(gammas):
+			cpart_ens=run_louvain_windows(graph=graph,nruns=nrepeats,gamma=gam,node_subset=node_subset,
 										attribute=attribute,weight=weight)
 			if i==0:
 				outpart_ens=cpart_ens
@@ -317,9 +325,9 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,
 		graph.delete_vertices(gdel)
 
 	graph.write_graphmlz(graphfile)
-	for i in range(numruns):
-		curg = start + ((fin - start) / (1.0 * numruns)) * i
-		parallel_args.append((graphfile, curg, 1, weight, None, None))
+	for i,curg in enumerate(gammas):
+		# curg = start + ((fin - start) / (1.0 * numruns)) * i
+		parallel_args.append((graphfile, curg, nrepeats, weight, None, None))
 
 	parts_list_of_list=[]
 	# use a context manager so pools properly shut down
