@@ -344,27 +344,34 @@ sub
 		if self._hdf5_file is None or otherfile is None:
 			raise IOError("PartitionEnsemble does not have hdf5 file currently defined")
 
+		print('appending partitions from {:} to file: {:}'.format(otherfile,self._hdf5_file))
 		with h5py.File(self._hdf5_file,'a') as myfile:
 			with h5py.File(otherfile,'r') as file_2_add:
 				attributes = ['_partitions', 'resolutions', 'orig_mods', "int_edges", 'exp_edges','numcoms']
 				if self.ismultilayer:
 					attributes += ['couplings', 'int_inter_edges']
+
+				# print(attributes)
 				for attribute in attributes:
+
 					cshape=myfile[attribute].shape
 					oshape=file_2_add[attribute].shape
+					# print('combining', attribute, cshape, oshape)
 
 					if len(cshape) == 1:
 						assert len(oshape) == 1 , "attempting to combine objects of different dimensions"
 						newshape=(cshape[0]+oshape[0],)
+						myfile[attribute].resize(newshape)
 						myfile[attribute][cshape[0]:cshape[0] + newshape[0]] = file_2_add[attribute]
 					else:
 						assert cshape[1]==oshape[1],"attempting to combine objects of different dimensions"
+						# print('combining',attribute,cshape,oshape)
 						newshape=(cshape[0]+oshape[0],cshape[1])
 						myfile[attribute].resize(newshape)
-						print (newshape,myfile[attribute].shape)
-						print(oshape,file_2_add[attribute].shape)
+						# print (newshape,myfile[attribute].shape)
+						# print(oshape,file_2_add[attribute].shape)
 						myfile[attribute][cshape[0]:cshape[0] + newshape[0], :] = file_2_add[attribute]
-
+			# myfile['numparts']=myfile['numparts']+otherfile['numparts']
 	def _append_partitions_hdf5_file(self,partitions):
 		'''
 
@@ -551,13 +558,14 @@ sub
 		allgams = sorted(set([pt[0] for pts in self.ind2doms.values() for pt in pts]))
 		return allgams
 
-	def get_broadedst_domains(self, n=None):
+	def get_broadedst_domains(self, n=None,logscale=False):
 		'''
 		Return the starting $\gamma$ for the top n domains by the length of the domain \
 		(i.e. $\gamma_{i+1}-\gamma_{i}$) as well as the length of the domain and the index
 		in ind2doms dict
 
 		:param n: number of top starting values to return
+		:param logscale: if true, compare width of domains in the log scale np.log10(x1)-np.log10(x2)
 		:return: list of n tuples  : [ ($\gamma$ values,length domain, champ index) , ( ) , ... ]
 		'''
 		if not self.ismultilayer:
@@ -566,7 +574,10 @@ sub
 			out_df=pd.DataFrame(columns=['start_gamma','end_gamma','width','ind'])
 			for k,pts in self.ind2doms.items():
 				cind=out_df.shape[0]
-				width=pts[1][0]-pts[0][0] #subtract xvalues
+				if logscale:
+					width=np.log10(pts[1][0])-np.log10(pts[0][0])
+				else:
+					width=pts[1][0]-pts[0][0] #subtract xvalues
 				out_df.loc[cind,['start_gamma','end_gamma','width','ind']]=pts[0][0],pts[1][0],width,k
 
 			out_df.sort_values(by='width',ascending=False,inplace=True)
@@ -682,14 +693,34 @@ sub
 				warnings.warn("Partitions are stored on the same file.  returning self",UserWarning)
 				return self
 			if self.numparts<otherEnsemble.numparts:
-				#reverse order of merging
+				#reverse order of merging in case where larger
 				return otherEnsemble.merge_ensemble(self,new=False)
 			else:
+				#we combine the hdf5 files together
 				if not self._hdf5_file is None and not otherEnsemble.hdf5_file is None:
 					#merge the second hdf5_file onto the other and then reopen it to
 					#reload everything.
+
+					#we only call champ on the combined subset of parititons from old set
+					inds2call_champ=list(self.ind2doms.keys())+\
+								   [k + self.numparts for k in otherEnsemble.ind2doms.keys()]
+					newmaxpt=max(self.maxpt,otherEnsemble.maxpt)
+
 					self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
 					self.open(self._hdf5_file)
+
+					self.maxpt=newmaxpt
+					self.apply_CHAMP(subset=inds2call_champ,maxpt=self.maxpt)
+
+					# have to update champ set on file
+
+					with h5py.File(self._hdf5_file, 'a') as outfile:
+							del outfile['ind2doms'] #have to delete to write over
+							indgrp=outfile.create_group('ind2doms')
+							for ind,dom in iteritems(self.ind2doms):
+								indgrp.create_dataset(str(ind),data=dom,
+										compression="gzip",compression_opts=9)
+
 					return self
 				else:
 					#just add the partitions from the other file
@@ -1064,6 +1095,8 @@ sub
 
 
 
+
+
 		if filename is None: #the default is to write over when saving.
 			if hdf5:
 				if self._hdf5_file is None:
@@ -1075,7 +1108,17 @@ sub
 				filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
 
 		if hdf5:
-			filename=os.path.join(dir,filename)
+			#in the case that object we are working with is already on file
+			if os.path.exists(self._hdf5_file):
+				if self._hdf5_file==filename:
+					warnings.warn("PartitionEnsemble object is already stored in file: {:}.")
+				else:
+					warnings.warn("PartitionEnsemble object is already stored in file: {:}. Moving to new file: {:}".format(self._hdf5_file,filename))
+					os.rename(self._hdf5_file,filename)
+					self._hdf5_file=filename
+					return self._hdf5_file
+				return self._hdf5_file
+			# filename=os.path.join(dir,filename)
 			with h5py.File(filename,'w') as outfile:
 
 				for k,val in iteritems(self.__dict__):
@@ -1353,17 +1396,17 @@ sub
 		a2 = ax.twinx()
 		a2.grid('off')
 		#	 a2.scatter(allgammas,allcoms,marker="^",color="#fe9600",alpha=1,label=r'\# communities ($\ge 5$ nodes)',zorder=1)
-
-		sct2 = a2.scatter(allgams, allcoms, marker="^", color="#91AEC1",
-						  alpha=1, label=r'\# communities ($\ge %d$ nodes)'%(self._min_com_size),
-						  zorder=1)
-		#	 sct2.set_path_effects([path_effects.SimplePatchShadow(alpha=.5),path_effects.Normal()])
-
-		# fake for legend with larger marker size
-		mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1,
-						 label=r'\# communities ($\ge %d$)'%(self._min_com_size),
-						 zorder=1,
-						 s=20)
+		if not champ_only:
+			sct2 = a2.scatter(allgams, allcoms, marker="^", color="#91AEC1",
+							  alpha=1, label=r'\# communities ($\ge %d$ nodes)'%(self._min_com_size),
+							  zorder=1)
+			#	 sct2.set_path_effects([path_effects.SimplePatchShadow(alpha=.5),path_effects.Normal()])
+	
+			# fake for legend with larger marker size
+			mk3 = a2.scatter([], [], marker="^", color="#91AEC1", alpha=1,
+							 label=r'\# communities ($\ge %d$)'%(self._min_com_size),
+							 zorder=1,
+							 s=20)
 
 
 

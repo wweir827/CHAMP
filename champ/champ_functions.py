@@ -163,7 +163,8 @@ def get_interior_point(hs_list,num_bound):
             warnings.warn({1: "Interior point calculation: scipy.optimize.linprog exceeded iteration limit",
                            2: "Interior point calculation: scipy.optimize.linprog problem is infeasible. "
                               "Fallback will fail.",
-                           3: "Interior point calculation: scipy.optimize.linprog problem is unbounded"}[res.status],
+                           3: "Interior point calculation: scipy.optimize.linprog problem is unbounded",
+                           4: "Numerical Difficulties encountered"}.get(res.status,"unknown error with scipy.optimize"),
                           RuntimeWarning)
     except ValueError:
         pass
