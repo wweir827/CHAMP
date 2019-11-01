@@ -114,7 +114,7 @@ class PartitionEnsemble(object):
 		self.couplings=np.array([])
 		self.numcoms=np.array([])
 		self.orig_mods = np.array([])
-		self.numparts=0
+		self._num_parts=0
 		self.graph=graph
 		self.interlayer_graph=interlayer_graph
 		self.layer_vec=layer_vec
@@ -245,10 +245,14 @@ sub
 					#h5py has some controls on what can be used as a slice object.
 					return  openfile['_partitions'].__getitem__(list(item))
 
-
 		def __len__(self):
 			with h5py.File(self._hdf5_file, 'r') as openfile:
 				return  openfile['_partitions'].shape[0]
+
+		@property
+		def shape(self):
+			with h5py.File(self._hdf5_file, 'r') as openfile:
+				return openfile['_partitions'].shape
 
 		def __str__(self):
 			return "%d partitions saved on %s" %(len(self),self._hdf5_file)
@@ -455,7 +459,7 @@ sub
 						self.couplings = np.append(self.couplings, None)
 						openfile['couplings'][cind] = None
 
-			self.numparts=openfile['_partitions'].shape[0]
+			self.num_parts=openfile['_partitions'].shape[0]
 		assert self._check_lengths()
 
 
@@ -545,7 +549,7 @@ sub
 								min_com_size=self._min_com_size))
 
 				assert self._check_lengths()
-				self.numparts=len(self.partitions)
+
 			#update the pruned set
 		self.apply_CHAMP(maxpt=self.maxpt)
 		self.sim_mat #set the sim_mat
@@ -640,7 +644,7 @@ sub
 		return outdicts
 
 	def _offset_keys_new_dict(self,indict):
-		offset=self.numparts
+		offset=self.num_parts
 		newdict={k+offset:val for k,val in indict.items()}
 		return newdict
 	def merge_ensemble(self,otherEnsemble,new=True):
@@ -692,7 +696,7 @@ sub
 			if self._hdf5_file is not None and self._hdf5_file == otherEnsemble._hdf5_file:
 				warnings.warn("Partitions are stored on the same file.  returning self",UserWarning)
 				return self
-			if self.numparts<otherEnsemble.numparts:
+			if self.num_parts<otherEnsemble.numparts:
 				#reverse order of merging in case where larger
 				return otherEnsemble.merge_ensemble(self,new=False)
 			else:
@@ -703,7 +707,7 @@ sub
 
 					#we only call champ on the combined subset of parititons from old set
 					inds2call_champ=list(self.ind2doms.keys())+\
-								   [k + self.numparts for k in otherEnsemble.ind2doms.keys()]
+								   [k + self.num_parts for k in otherEnsemble.ind2doms.keys()]
 					newmaxpt=max(self.maxpt,otherEnsemble.maxpt)
 
 					self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
@@ -711,15 +715,21 @@ sub
 
 					self.maxpt=newmaxpt
 					self.apply_CHAMP(subset=inds2call_champ,maxpt=self.maxpt)
-
-					# have to update champ set on file
-
+					self._sim_mat = None
+					self.sim_mat
+					# have to update champ set on file and sim_mat
 					with h5py.File(self._hdf5_file, 'a') as outfile:
-							del outfile['ind2doms'] #have to delete to write over
-							indgrp=outfile.create_group('ind2doms')
-							for ind,dom in iteritems(self.ind2doms):
-								indgrp.create_dataset(str(ind),data=dom,
-										compression="gzip",compression_opts=9)
+						del outfile['ind2doms'] #have to delete to write over
+						indgrp=outfile.create_group('ind2doms')
+						for ind,dom in iteritems(self.ind2doms):
+							indgrp.create_dataset(str(ind),data=dom,
+									compression="gzip",compression_opts=9)
+
+						del outfile['_sim_mat']
+						cshape=self.sim_mat.shape
+						cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
+													   compression="gzip", compression_opts=9)
+
 
 					return self
 				else:
@@ -727,6 +737,8 @@ sub
 					self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
 					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
+					self._sim_mat=None
+					self.sim_mat
 					return self
 
 	def get_coefficient_array(self,subset=None):
@@ -737,7 +749,12 @@ sub
 
 		'''
 		if subset is None:
-			subset=range(self.numparts)
+			subset=range(self.num_parts)
+
+		if len(subset)==0:
+			warnings.warn("Zero sized subset requested.  Returning empty array.  self.num_parts={:}".format(self.num_parts))
+
+			return np.array([])
 
 		if not self.ismultilayer:
 			for i,ind in enumerate(subset):
@@ -792,6 +809,7 @@ sub
 			self._twin_partitions,self._uniq_partition_indices=self._get_unique_twins_and_partition_indices()
 		return self._twin_partitions
 
+
 	@property
 	def sim_mat(self):
 		if self._sim_mat is None:
@@ -821,6 +839,12 @@ sub
 				self._mu+=self.interlayer_graph.ecount()
 
 		return self._mu
+
+	@property
+	def num_parts(self):
+		"""total number of partitions"""
+		return self.partitions.shape[0]
+
 
 	def get_unique_coeff_indices(self):
 		''' Get the indices for the partitions with unique coefficient \
@@ -1073,7 +1097,7 @@ sub
 		is stored using pickle.
 
 		:param filename: name of file to write to.  Default is created from name of ParititonEnsemble\: \
-			"%s_PartEnsemble_%d" %(self.name,self.numparts)
+			"%s_PartEnsemble_%d" %(self.name,self.num_parts)
 		:param hdf5: save the PartitionEnsemble object as a hdf5 file.  This is \
 		very useful for larger partition sets, especially when you only need to work \
 		with the optimal subset.  If object has hdf5_file attribute saved \
@@ -1094,29 +1118,25 @@ sub
 		# 		hdf5 is True
 
 
-
-
-
 		if filename is None: #the default is to write over when saving.
 			if hdf5:
 				if self._hdf5_file is None:
-					filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.numparts)
+					filename="%s_PartEnsemble_%d.hdf5" %(self.name,self.num_parts)
 					filename=os.path.join(dir,filename)
 				else:
 					filename=self._hdf5_file
 			else:
-				filename="%s_PartEnsemble_%d.gz" %(self.name,self.numparts)
+				filename="%s_PartEnsemble_%d.gz" %(self.name,self.num_parts)
 
 		if hdf5:
 			#in the case that object we are working with is already on file
-			if os.path.exists(self._hdf5_file):
+			if self._hdf5_file is not None and os.path.exists(self._hdf5_file):
 				if self._hdf5_file==filename:
 					warnings.warn("PartitionEnsemble object is already stored in file: {:}.")
 				else:
 					warnings.warn("PartitionEnsemble object is already stored in file: {:}. Moving to new file: {:}".format(self._hdf5_file,filename))
 					os.rename(self._hdf5_file,filename)
 					self._hdf5_file=filename
-					return self._hdf5_file
 				return self._hdf5_file
 			# filename=os.path.join(dir,filename)
 			with h5py.File(filename,'w') as outfile:
@@ -1427,7 +1447,7 @@ sub
 
 		ax.set_xlim(xmin=0, xmax=max(allgams))
 		if champ_only:
-			leg_set=[mk3, mk2, mk4, mk5] #these are the only ones that are created if the legend is made
+			leg_set=[mk2, mk4, mk5] #these are the only ones that are created if the legend is made
 			leg_text=[ r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
 						   r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"]
 		else:
