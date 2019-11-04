@@ -263,7 +263,8 @@ def _run_louvain_parallel(gfile_gamma_nruns_weight_subset_attribute):
 	return outparts
 
 def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselogspace=False,
-					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=None):
+					 numprocesses=None, attribute=None,weight=None,node_subset=None,progress=None,
+                     calc_sim_mat=True):
 	'''
 	Generates arguments for parallel function call of louvain on graph
 
@@ -281,6 +282,7 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselo
 	:param uselogspace: bool- should runs be linearly spaced (default) or if uselogspace=True, spaced evenly in log10space
 	 to be node indices.
 	:param progress:  Print progress in parallel execution every `n` iterations.
+	:param calc_sim_mat: Should the pairwise comparison of all the champ sets be calculated.  Default is true.  This can take some time for larger champ sets (O(n^2)).  It is used in visualizing.
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
@@ -349,7 +351,8 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselo
 
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
 	tempf.close()
-	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
+	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt,
+                                  calc_sim_mat=calc_sim_mat)
 	return outensemble
 
 

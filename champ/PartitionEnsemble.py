@@ -79,8 +79,8 @@ class PartitionEnsemble(object):
 	if Louvain was used (otherwise None).
 	:type orig_mods: list
 
-	:cvar numparts: number of partitions
-	:type numparts: int
+	:cvar num_parts: number of partitions
+	:type num_parts: int
 	:cvar ind2doms: Maps index of dominant partitions to boundary points of their dominant \
 	domains
 	:type ind2doms: dict
@@ -103,8 +103,18 @@ class PartitionEnsemble(object):
 
 
 	def __init__(self,graph=None,interlayer_graph=None,layer_vec=None,
-	listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5):
+	listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5,calc_sim_mat=True):
+		"""
 
+		:param graph: ig.Graph object that the partition ensemble represents.
+		:param interlayer_graph:
+		:param layer_vec:
+		:param listofparts:
+		:param name:
+		:param maxpt:
+		:param min_com_size:
+		:param calc_sim_mat: Should the pairwise comparison of all the champ sets be calculated.  Default is true.  This can take some time for larger champ sets (O(n^2)).  It is used in visualizing.
+		"""
 		assert   interlayer_graph is None or layer_vec is not None, "Layer_vec must be supplied for multilayer graph"
 		self._hdf5_file=None
 		self.int_edges = np.array([])
@@ -129,6 +139,7 @@ class PartitionEnsemble(object):
 		self._uniq_coeff_indices=None
 		self._uniq_partition_indices=None
 		self._twin_partitions=None
+		self.calc_sim_mat=calc_sim_mat
 		self._sim_mat=None
 		self._mu = None
 
@@ -375,7 +386,6 @@ sub
 						# print (newshape,myfile[attribute].shape)
 						# print(oshape,file_2_add[attribute].shape)
 						myfile[attribute][cshape[0]:cshape[0] + newshape[0], :] = file_2_add[attribute]
-			# myfile['numparts']=myfile['numparts']+otherfile['numparts']
 	def _append_partitions_hdf5_file(self,partitions):
 		'''
 
@@ -552,7 +562,8 @@ sub
 
 			#update the pruned set
 		self.apply_CHAMP(maxpt=self.maxpt)
-		self.sim_mat #set the sim_mat
+		if self.calc_sim_mat: #otherwise this doesn't get calculated by default
+			self.sim_mat #set the sim_mat
 
 	def get_champ_gammas(self):
 		'''
@@ -696,7 +707,7 @@ sub
 			if self._hdf5_file is not None and self._hdf5_file == otherEnsemble._hdf5_file:
 				warnings.warn("Partitions are stored on the same file.  returning self",UserWarning)
 				return self
-			if self.num_parts<otherEnsemble.numparts:
+			if self.num_parts<otherEnsemble.num_parts:
 				#reverse order of merging in case where larger
 				return otherEnsemble.merge_ensemble(self,new=False)
 			else:
@@ -716,7 +727,8 @@ sub
 					self.maxpt=newmaxpt
 					self.apply_CHAMP(subset=inds2call_champ,maxpt=self.maxpt)
 					self._sim_mat = None
-					self.sim_mat
+					if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
+						self.sim_mat
 					# have to update champ set on file and sim_mat
 					with h5py.File(self._hdf5_file, 'a') as outfile:
 						del outfile['ind2doms'] #have to delete to write over
@@ -724,13 +736,11 @@ sub
 						for ind,dom in iteritems(self.ind2doms):
 							indgrp.create_dataset(str(ind),data=dom,
 									compression="gzip",compression_opts=9)
-
-						del outfile['_sim_mat']
-						cshape=self.sim_mat.shape
-						cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
-													   compression="gzip", compression_opts=9)
-
-
+						if "_sim_mat" in outfile:
+							del outfile['_sim_mat']
+							cshape=self.sim_mat.shape
+							cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
+														   compression="gzip", compression_opts=9)
 					return self
 				else:
 					#just add the partitions from the other file
@@ -738,7 +748,8 @@ sub
 					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
 					self._sim_mat=None
-					self.sim_mat
+					if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
+						self.sim_mat
 					return self
 
 	def get_coefficient_array(self,subset=None):
@@ -1127,6 +1138,8 @@ sub
 					filename=self._hdf5_file
 			else:
 				filename="%s_PartEnsemble_%d.gz" %(self.name,self.num_parts)
+		else:
+			filename=os.path.join(dir,filename)
 
 		if hdf5:
 			#in the case that object we are working with is already on file

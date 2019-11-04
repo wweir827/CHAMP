@@ -131,7 +131,7 @@ def _run_leiden_parallel(gfile_gamma_nruns_weight_subset_attribute_niters):
 def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 					 nrepeats=1,uselogspace=False,
 					 numprocesses=None, attribute=None,weight=None,
-					 node_subset=None,progress=None):
+					 node_subset=None,progress=None,calc_sim_mat=True):
 	'''
 	Generates arguments for parallel function call of leiden on graph
 
@@ -151,6 +151,7 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 	:param nrepeats : int - number of partitions to discover at each value of gamma (default=1)
 	:param progress:  Print progress in parallel execution every `n` iterations.
 	:param uselogspace: bool- should runs be linearly spaced (default) or if uselogspace=True, spaced evenly in log10space
+	:param calc_sim_mat: Should the pairwise comparison of all the champ sets be calculated.  Default is true.  This can take some time for larger champ sets (O(n^2)).  It is used in visualizing.
 	:return: PartitionEnsemble of all partitions identified.
 
 	'''
@@ -220,7 +221,8 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
 	tempf.close()
-	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt)
+	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt,
+								  calc_sim_mat=calc_sim_mat)
 	return outensemble
 
 
