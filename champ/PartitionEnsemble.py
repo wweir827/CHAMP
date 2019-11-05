@@ -33,8 +33,9 @@ import copy
 import sklearn.metrics as skm
 import warnings
 import logging
-#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+from time import time
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 import seaborn as sbn
 
@@ -496,6 +497,8 @@ sub
 
 
 		else:
+			t=time()
+			# logging.debug('adding in partition to PartEns')
 			for part in partitions:
 
 				#This must be present
@@ -560,10 +563,17 @@ sub
 
 				assert self._check_lengths()
 
-			#update the pruned set
+
+		logging.debug("time adding in partitions: {:.3f}".format(time()-t))
+		t=time()
 		self.apply_CHAMP(maxpt=self.maxpt)
+
+
+		logging.debug("time applying CHAMP:{:.3f}".format(time()-t))
 		if self.calc_sim_mat: #otherwise this doesn't get calculated by default
+			t=time()
 			self.sim_mat #set the sim_mat
+			logging.debug("time calculating sim_mat:{:.3f}".format(time() - t))
 
 	def get_champ_gammas(self):
 		'''
@@ -1115,7 +1125,7 @@ sub
 		this becomes the default
 		:type hdf5: bool
 		:param compress: Level of compression for partitions in hdf5 file.  With less compression, files take \
-		longer to write but take up more space.  9 is default.
+		less to write  and read but take up more space.  9 is default.
 		:type compress: int [0,9]
 		:param dir: directory to save graph in.  relative or absolute path.  default is working dir.
 		:type dir: str

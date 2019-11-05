@@ -21,8 +21,8 @@ import tqdm
 from time import time
 import warnings
 import logging
-#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 from .louvain_ext import permute_memvec,permute_vector,rev_perm
 from .louvain_ext import terminating
@@ -31,7 +31,7 @@ iswin = os.name == 'nt'
 is_py3 = sys.version_info >= (3, 0)
 
 def run_leiden(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,niterations=5,
-			   output_dictionary=False):
+			   output_dictionary=False,calc_sim_mat=True):
 	'''
 	Call the leiden method for a given graph file.
 
@@ -107,7 +107,7 @@ def run_leiden(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,nit
 						 'exp_edges':P})
 
 	if not output_dictionary:
-		return PartitionEnsemble(graph=g,listofparts=outparts)
+		return PartitionEnsemble(graph=g,listofparts=outparts,calc_sim_mat=calc_sim_mat)
 	else:
 		return outparts
 	return part_ensemble
@@ -203,6 +203,7 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 
 	parts_list_of_list=[]
 	# use a context manager so pools properly shut down
+	t=time()
 	with terminating(Pool(processes=numprocesses)) as pool:
 
 		if progress:
@@ -215,18 +216,20 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 					parts_list_of_list.append(res)
 		else:
 			parts_list_of_list=pool.map(_run_leiden_parallel, parallel_args )
-
+	logging.debug("Total parallael Pool time: {:}".format(time()-t))
 	#for debugging
 	# parts_list_of_list=list(map(_run_leiden_parallel,parallel_args))
-
+	t=time()
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
+	logging.debug('unpacking dict into single list: {:.3f}'.format(time()-t))
 	tempf.close()
 	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt,
 								  calc_sim_mat=calc_sim_mat)
 	return outensemble
 
 
-def run_leiden_windows(graph,gamma,nruns,weight=None,node_subset=None,attribute=None,output_dictionary=False,niterations=5):
+def run_leiden_windows(graph,gamma,nruns,weight=None,node_subset=None,attribute=None,
+					   output_dictionary=False,niterations=5,calc_sim_mat=True):
 	'''
 	Windows version takes the input graph directly (not file).
 
@@ -289,7 +292,7 @@ def run_leiden_windows(graph,gamma,nruns,weight=None,node_subset=None,attribute=
 						 'exp_edges':P})
 
 	if not output_dictionary:
-		return PartitionEnsemble(graph=g,listofparts=outparts)
+		return PartitionEnsemble(graph=g,listofparts=outparts,calc_sim_mat=calc_sim_mat)
 	else:
 		return outparts
 	return part_ensemble

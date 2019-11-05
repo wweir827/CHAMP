@@ -599,3 +599,4 @@ def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
 		P_tot += get_expected_edges(cpartobj,weight=weight,directed=subgraph.is_directed())
 	return P_tot
+
