@@ -1581,3 +1581,89 @@ sub
 									norm=cnorm,
 									orientation='vertical')
 		return a
+
+
+	def _split_doms_df(self,doms_df,allgammas):
+		doms_df.index=np.arange(doms_df.shape[0]) #reindex to right order
+		def add_new_value(df,value):
+
+			df.sort_values(by='start_gamma',inplace=True)
+			if np.any(df['start_gamma']==value) or np.any(df['end_gamma']==value):
+				return df #value is already in the df.
+			inds=np.where(df['start_gamma']<value)[0]
+			cind=df.shape[0] #make sure that it is index properly before adding such that this is a new one
+
+			if len(inds)==0: #nothing is less than, add to beginning of df
+				df.loc[cind, 'start_gamma'] = value
+				df.loc[cind, 'end_gamma'] = df.iloc[0,:]['start_gamma']
+				df.loc[cind, 'ind'] = df.iloc[0,:]['ind']
+			else:
+				curind,curstart,curend=df.iloc[inds[-1],:][['ind','start_gamma','end_gamma']] #last value that is smaller
+
+				df.loc[cind, 'end_gamma'] = curend
+				df.loc[cind, 'start_gamma'] = value
+				df.loc[cind, 'ind'] = curind
+
+				df.iloc[inds[-1],:]['end_gamma'] = value # change the old end value
+			df.index=np.arange(df.shape[0])
+
+			return df
+		for gamma in allgammas:
+			doms_df = add_new_value(doms_df,gamma)
+		doms_df.sort_values(by='start_gamma',inplace=True)
+		return doms_df
+
+	def get_ami_over_gamma_curve(self,otherEnsemble):
+		"""
+		This only works for the 1D case , i.e. single layer network for now
+		:param ind2doms1: champ set 1 as defined by {ind: (gamma1,mod1, gamma2,mod2) , ind2 : () , ... }
+		:param otherEnsemble: champ.PartitionEnsemble object
+		:return:  gammas = [gamma1,gamma2, ... ] , amis = [ami1, ami2 , ...]
+		"""
+
+		ind2doms1=self.ind2doms
+		ind2doms2=otherEnsemble.ind2doms
+
+		dom_df=self.get_broadest_domains(n=len(ind2doms1))
+		dom_df.sort_values(by='start_gamma',inplace=True)
+
+		dom_df2 = otherEnsemble.get_broadest_domains(n=len(ind2doms2))
+		dom_df2.sort_values(by='start_gamma',inplace=True)
+
+		gammas1=np.array([d[0] for ind,doms in ind2doms1.items() for d in doms])
+		gammas2=np.array([d[0] for ind,doms in ind2doms2.items() for d in doms])
+
+		dom_df2=self._split_doms_df(dom_df2,gammas1)
+		dom_df=self._split_doms_df(dom_df,gammas2)
+		dom_df.loc[:,'self']=1
+		dom_df2.loc[:,'self']=0
+		assert dom_df.shape[0] == dom_df2.shape[0],"Uneqaul combined domains lengths : {:d}!={:d}".format(dom_df.shape[0],dom_df2.shape[0])
+		tot_dom_df=dom_df.merge(dom_df2,on=('start_gamma','end_gamma'),suffixes=("_1",'_2'))
+
+		tot_dom_df.drop(['width_1','width_2'],axis=1,inplace=True)
+
+		for ind in tot_dom_df.index:
+			p1=self.partitions[tot_dom_df.loc[ind,'ind_1']]
+			p2=self.partitions[tot_dom_df.loc[ind,'ind_2']]
+			cami=skm.adjusted_mutual_info_score(p1,p2,average_method='max')
+			tot_dom_df.loc[ind,'AMI']=cami
+		return tot_dom_df
+
+
+	def compare_champ_sets_along_gamma_domain(self, otherEnsemble):
+		"""
+		return the integral of the AMI between two champ sets for each partition \
+		integrated over gamma
+		:return:
+		"""
+
+		tot_ami_df=self.get_ami_over_gamma_curve(otherEnsemble=otherEnsemble)
+		tot_ami=0
+		tot_int=0
+		for ind in tot_ami_df.index:
+			sgam,egam,c_ami=tot_ami_df.loc[ind,['start_gamma','end_gamma','AMI']]
+			tot_int += (egam-sgam)
+			tot_ami+= (egam-sgam)*c_ami #calculate integral of step function
+
+		#divide by total interval
+		return tot_ami/tot_int
