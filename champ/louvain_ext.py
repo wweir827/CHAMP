@@ -352,7 +352,7 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselo
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
 	tempf.close()
 	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt,
-                                  calc_sim_mat=calc_sim_mat)
+                                  calc_sim_mat=calc_sim_mat,all_coefs_present=True)
 	return outensemble
 
 
@@ -856,7 +856,7 @@ def parallel_multilayer_louvain(intralayer_edges,interlayer_edges,layer_vec,
 
 	all_part_dicts=[pt for partrun in parts_list_of_list for pt in partrun]
 	outensemble=PartitionEnsemble(graph=intralayer_graph,interlayer_graph=interlayer_graph,
-								  layer_vec=layer_vec,
+								  layer_vec=layer_vec,all_coefs_present=True,
 								  listofparts=all_part_dicts,maxpt=maxpt)
 
 	return outensemble

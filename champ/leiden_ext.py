@@ -31,7 +31,8 @@ iswin = os.name == 'nt'
 is_py3 = sys.version_info >= (3, 0)
 
 def run_leiden(gfile,gamma,nruns,weight=None,node_subset=None,attribute=None,niterations=5,
-			   output_dictionary=False,calc_sim_mat=True):
+			   calc_sim_mat=True,
+			   output_dictionary=False):
 	'''
 	Call the leiden method for a given graph file.
 
@@ -224,7 +225,7 @@ def parallel_leiden(graph,start=0,fin=1,numruns=200,maxpt=None,niterations=5,
 	logging.debug('unpacking dict into single list: {:.3f}'.format(time()-t))
 	tempf.close()
 	outensemble=PartitionEnsemble(graph,listofparts=all_part_dicts,maxpt=maxpt,
-								  calc_sim_mat=calc_sim_mat)
+								  calc_sim_mat=calc_sim_mat,all_coefs_present=True)
 	return outensemble
 
 

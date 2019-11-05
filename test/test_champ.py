@@ -22,12 +22,12 @@ def test_parallel_run():
 	G = ig.Graph.Erdos_Renyi(n=100, p=.04, directed=False)
 
 	G.es['weight']=np.random.normal(loc=10,scale=1,size=G.ecount())
-	part_ens = champ.parallel_louvain(G,
+	part_ens = champ.parallel_leiden(G,
 												start=.1,
 												fin=5.1,
 												numruns=10,
 												weight='weight',
-												progress=True)
+												progress=True,calc_sim_mat=False)
 
 	inds=part_ens.get_CHAMP_indices()
 

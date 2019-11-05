@@ -104,7 +104,8 @@ class PartitionEnsemble(object):
 
 
 	def __init__(self,graph=None,interlayer_graph=None,layer_vec=None,
-	listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5,calc_sim_mat=True):
+	listofparts=None,name='unnamed_graph',maxpt=None,min_com_size=5,
+					  calc_sim_mat=True,all_coefs_present=False):
 		"""
 
 		:param graph: ig.Graph object that the partition ensemble represents.
@@ -115,8 +116,9 @@ class PartitionEnsemble(object):
 		:param maxpt:
 		:param min_com_size:
 		:param calc_sim_mat: Should the pairwise comparison of all the champ sets be calculated.  Default is true.  This can take some time for larger champ sets (O(n^2)).  It is used in visualizing.
+		:param all_coefs_present: If all coefficients are present in list of dictionaries
 		"""
-		assert   interlayer_graph is None or layer_vec is not None, "Layer_vec must be supplied for multilayer graph"
+		assert	interlayer_graph is None or layer_vec is not None, "Layer_vec must be supplied for multilayer graph"
 		self._hdf5_file=None
 		self.int_edges = np.array([])
 		self.exp_edges = np.array([])
@@ -143,9 +145,12 @@ class PartitionEnsemble(object):
 		self.calc_sim_mat=calc_sim_mat
 		self._sim_mat=None
 		self._mu = None
-
+		self._all_coefs_present=all_coefs_present
 		if listofparts!=None:
-			self.add_partitions(listofparts,maxpt=self.maxpt)
+				if all_coefs_present: #this is meant for creating partition when we know we have all the coefficients present ( i.e. after running parallel louvain).
+					 self._add_partitions_fast(listofparts, maxpt=self.maxpt)
+				else:
+					 self.add_partitions(listofparts,maxpt=self.maxpt)
 		self.name=name
 
 
@@ -387,6 +392,7 @@ sub
 						# print (newshape,myfile[attribute].shape)
 						# print(oshape,file_2_add[attribute].shape)
 						myfile[attribute][cshape[0]:cshape[0] + newshape[0], :] = file_2_add[attribute]
+						
 	def _append_partitions_hdf5_file(self,partitions):
 		'''
 
@@ -472,6 +478,40 @@ sub
 
 			self.num_parts=openfile['_partitions'].shape[0]
 		assert self._check_lengths()
+
+	def _add_partitions_fast(self,listofparts,maxpt=None):
+		"""assumes all coefficients are calculated in each part dict \
+		  and that this is the initialization of a PartitionEnsemble 
+		  object with partitions being passed in"""
+		t=time()
+		if self.ismultilayer:
+			partitions,int_edges,exp_edges,int_inter_edges,resolutions,couplings,orig_mods=zip(*[ (part['partition'],part['int_edges'],part['exp_edges'],part['int_inter_edges'],part['resolution'],part['coupling'],part['orig_mod']) for part in listofparts])
+			self._partitions=np.array(partitions)
+			self.int_edges=np.array(int_edges)
+			self.exp_edges=np.array(exp_edges)
+			self.resolutions=np.array(resolutions)
+			self.int_inter_edges=np.array(int_inter_edges)
+			self.couplings=np.array(couplings)
+		else:
+			partitions,int_edges,exp_edges,resolutions,orig_mods=zip(*[ (part['partition'],part['int_edges'],part['exp_edges'],part['resolution'],part['orig_mod']) for part in listofparts])
+			self._partitions=np.array(partitions)
+			self.int_edges=np.array(int_edges)
+			self.exp_edges=np.array(exp_edges)
+			self.resolutions=np.array(resolutions)
+
+		self.numcoms=np.apply_along_axis(lambda x: get_number_of_communities(x,min_com_size=self._min_com_size),arr=self._partitions,axis=1)
+		logging.debug("time adding partitions: {:.3f}".format(time()-t))
+
+		assert self._check_lengths(),"error in checking lengths"
+
+		t = time()
+		self.apply_CHAMP(maxpt=self.maxpt)
+		
+		logging.debug("time applying CHAMP:{:.3f}".format(time() - t))
+		if self.calc_sim_mat:  # otherwise this doesn't get calculated by default
+			t = time()
+			self.sim_mat  # set the sim_mat
+			logging.debug("time calculating sim_mat:{:.3f}".format(time() - t))
 
 
 	def add_partitions(self,partitions,maxpt=None):
@@ -652,10 +692,10 @@ sub
 
 		for i in ind:
 			cdict={"partition":self.partitions[i],
-				   "int_edges":self.int_edges[i],
-				   "exp_edges":self.exp_edges[i],
-				   "resolution":self.resolutions[i],
-				   "orig_mod":self.orig_mods[i]}
+					"int_edges":self.int_edges[i],
+					"exp_edges":self.exp_edges[i],
+					"resolution":self.resolutions[i],
+					"orig_mod":self.orig_mods[i]}
 			if self.ismultilayer:
 				cdict['coupling']=self.couplings[i]
 				cdict['int_inter_edges']=self.int_inter_edges[i]
@@ -728,7 +768,7 @@ sub
 
 					#we only call champ on the combined subset of parititons from old set
 					inds2call_champ=list(self.ind2doms.keys())+\
-								   [k + self.num_parts for k in otherEnsemble.ind2doms.keys()]
+									[k + self.num_parts for k in otherEnsemble.ind2doms.keys()]
 					newmaxpt=max(self.maxpt,otherEnsemble.maxpt)
 
 					self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
@@ -750,7 +790,7 @@ sub
 							del outfile['_sim_mat']
 							cshape=self.sim_mat.shape
 							cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
-														   compression="gzip", compression_opts=9)
+															compression="gzip", compression_opts=9)
 					return self
 				else:
 					#just add the partitions from the other file
@@ -845,7 +885,7 @@ sub
 					partition2 = self.partitions[ind2]
 
 					sim_mat[i][j] = skm.adjusted_mutual_info_score(partition1,
-															   partition2,average_method='max')
+																partition2,average_method='max')
 					sim_mat[j][i] = sim_mat[i][j]
 			self._sim_mat=sim_mat
 		return self._sim_mat
@@ -942,17 +982,17 @@ sub
 
 	def get_unique_partition_indices(self,reindex=True):
 		'''
-	   This returns the indices for the partitions who are unique.  This could be larger than the
-	   indices for the unique coeficient since multiple partitions can give rise to the same coefficient. \
-	   We call these twin partitions.  In practice this has been very rare  This function can take sometime\
-	   for larger network with many \
-	   partitions since it reindex the partitions labels to ensure they aren't permutations of each other.
+		This returns the indices for the partitions who are unique.  This could be larger than the
+		indices for the unique coeficient since multiple partitions can give rise to the same coefficient. \
+		We call these twin partitions.  In practice this has been very rare  This function can take sometime\
+		for larger network with many \
+		partitions since it reindex the partitions labels to ensure they aren't permutations of each other.
 
-	   :param reindex: if True, will reindex partitions that it is comparing to ensure they are unique under \
-	   permutation.
-	   :return: list of twin partition (can be empty), list of indicies of unique partitions.
-	   :rtype: list,np.array
-	   '''
+		:param reindex: if True, will reindex partitions that it is comparing to ensure they are unique under \
+		permutation.
+		:return: list of twin partition (can be empty), list of indicies of unique partitions.
+		:rtype: list,np.array
+		'''
 		_,uniq_inds=self._get_unique_twins_and_partition_indices(reindex=reindex)
 		return uniq_inds
 
@@ -1125,7 +1165,7 @@ sub
 		this becomes the default
 		:type hdf5: bool
 		:param compress: Level of compression for partitions in hdf5 file.  With less compression, files take \
-		less to write  and read but take up more space.  9 is default.
+		longer to write but take up more space.  9 is default.
 		:type compress: int [0,9]
 		:param dir: directory to save graph in.  relative or absolute path.  default is working dir.
 		:type dir: str
@@ -1196,9 +1236,9 @@ sub
 
 						grp.create_dataset('values',cvalues)
 						grp.create_dataset('index',data=rows,maxshape=rshape,
-										   compression="gzip",compression_opts=compress)
+											compression="gzip",compression_opts=compress)
 						grp.create_dataset('index', data=columns, maxshape=cshape,
-										   compression="gzip", compression_opts=compress)
+											compression="gzip", compression_opts=compress)
 
 					elif hasattr(val,"__len__"):
 						data=np.array(val)
@@ -1472,7 +1512,7 @@ sub
 		if champ_only:
 			leg_set=[mk2, mk4, mk5] #these are the only ones that are created if the legend is made
 			leg_text=[ r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
-						   r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"]
+							r"\# communities ($\ge %d$ nodes) optimal" % (self._min_com_size), "convex hull of $Q(\gamma)$"]
 		else:
 			leg_set=[mk1, mk3, mk2, mk4, mk5]
 			leg_text=['modularity', r'\# communities ($\ge %d $ nodes)' % (self._min_com_size), "transitions,$\gamma$",
@@ -1533,11 +1573,11 @@ sub
 
 		for ind in self.ind2doms:
 			nmis.append(skm.adjusted_mutual_info_score(self.partitions[ind],
-													   true_part),average_method='max')
+														true_part),average_method='max')
 		colors=list(map(lambda x : cmap(cnorm(x)),nmis))
 		a= self.plot_2d_modularity_domains(ax=ax,col=colors)
 		if not colorbar_ax is None:
 			cb1 = mcb.ColorbarBase(colorbar_ax, cmap=cmap,
-								   norm=cnorm,
-								   orientation='vertical')
+									norm=cnorm,
+									orientation='vertical')
 		return a
