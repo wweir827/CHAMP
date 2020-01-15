@@ -34,8 +34,8 @@ import sklearn.metrics as skm
 import warnings
 import logging
 from time import time
-logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
-#logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.INFO)
+# logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format=':%(asctime)s:%(levelname)s:%(message)s', level=logging.ERROR)
 
 import seaborn as sbn
 
@@ -499,6 +499,9 @@ sub
 			self.exp_edges=np.array(exp_edges)
 			self.resolutions=np.array(resolutions)
 
+
+		self.orig_mods = np.array(orig_mods)
+
 		self.numcoms=np.apply_along_axis(lambda x: get_number_of_communities(x,min_com_size=self._min_com_size),arr=self._partitions,axis=1)
 		logging.debug("time adding partitions: {:.3f}".format(time()-t))
 
@@ -623,7 +626,7 @@ sub
 		allgams = sorted(set([pt[0] for pts in self.ind2doms.values() for pt in pts]))
 		return allgams
 
-	def get_broadedst_domains(self, n=None,logscale=False):
+	def get_broadest_domains(self, n=None, logscale=False):
 		'''
 		Return the starting $\gamma$ for the top n domains by the length of the domain \
 		(i.e. $\gamma_{i+1}-\gamma_{i}$) as well as the length of the domain and the index
@@ -1059,7 +1062,7 @@ sub
 
 		'''
 		inds=self.get_CHAMP_indices()
-		return [self.partitions[i] for i in inds]
+		return { i:self.partitions[i] for i in inds}
 
 	def _write_graph_to_hd5f_file(self,file,compress=4,intra=True):
 		'''
@@ -1442,8 +1445,10 @@ sub
 
 		allgams = [self.resolutions[ind] for ind in rand_ind]
 		allcoms = [self.numcoms[ind] for ind in rand_ind]
+		if len(self.orig_mods)==0 or self.orig_mods[0] is None:
+			champ_only=True
 
-		if not champ_only and not self.orig_mods[0] is None :
+		if not champ_only  :
 
 
 			allmods=[self.orig_mods[ind] for ind in rand_ind]

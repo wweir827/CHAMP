@@ -334,7 +334,6 @@ def parallel_louvain(graph,start=0,fin=1,numruns=200,maxpt=None,nrepeats=1,uselo
 	parts_list_of_list=[]
 	# use a context manager so pools properly shut down
 	with terminating(Pool(processes=numprocesses)) as pool:
-
 		if progress:
 			tot = len(parallel_args)
 			with tqdm.tqdm(total=tot) as pbar:
