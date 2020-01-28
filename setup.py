@@ -38,7 +38,7 @@ options=dict( name='champ',
                  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
                  "Topic :: Scientific/Engineering :: Information Analysis",
                  ],
-    install_requires=['ipython<5.9','matplotlib','future','numpy>1.13','h5py',
+    install_requires=['matplotlib','future','numpy>1.13','h5py',
                       'scipy>=0.19','scikit-learn','louvain','leidenalg','python-igraph','seaborn','tqdm'],
     dependency_links=['https://github.com/wweir827/louvain-igraph/tarball/master#egg=louvain-igraph-0.6.1.champ']
 )
