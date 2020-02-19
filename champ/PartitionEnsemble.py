@@ -1092,7 +1092,7 @@ sub
 
 		edge_atts=grph.create_group('edge_attributes')
 		for attrib in graph2save.edge_attributes():
-			if is_py3 and type(graph2save.vs[attrib][0]) is str:
+			if is_py3 and type(graph2save.es[attrib][0]) is str:
 				dt = h5py.special_dtype(vlen=str)
 				# for str types have to make sure they are encoded correctly in h5py
 				cdata = np.array([x.encode('utf8') for x in graph2save.es[attrib]])
