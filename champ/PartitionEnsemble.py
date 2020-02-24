@@ -7,6 +7,7 @@ from future.utils import iteritems
 import gzip
 import sys, os
 import re
+import shutil
 from .champ_functions import get_intersection
 from .champ_functions import PolyArea
 from .champ_functions import min_dist_origin
@@ -152,7 +153,7 @@ class PartitionEnsemble(object):
 				else:
 					 self.add_partitions(listofparts,maxpt=self.maxpt)
 		self.name=name
-
+		self._isonfile=False #is this stored on file?
 
 	def get_adjacency(self,intra=True):
 		'''
@@ -292,7 +293,7 @@ sub
 		has an associated hdf5 file (PartitionEnsemble.hdf5_file), then partitions will be \
 		read and added to on the file, and not as an object in memory.'''
 
-		if not self._hdf5_file is None:
+		if self._isonfile:
 
 			return PartitionEnsemble._PartitionOnFile(file=self._hdf5_file)
 
@@ -711,6 +712,19 @@ sub
 		offset=self.num_parts
 		newdict={k+offset:val for k,val in indict.items()}
 		return newdict
+
+	def copy_ensemble(self):
+		"""Create complete copy of the PartitionEnsemble.  New one is given file with same name\
+		but with _copy appended to end (if original has hdf5 file).
+		"""
+		newEnsemble = copy.deepcopy(self)
+		# change without saving
+		if self._hdf5_file is not None:
+			newEnsemble._hdf5_file = re.sub("\.hdf5", "_copy\.hdf5", self._hdf5_file)
+		if self._isonfile:  # copy over data from on file.
+			newEnsemble.save(rename_existing=False)
+		return newEnsemble
+
 	def merge_ensemble(self,otherEnsemble,new=True):
 		'''
 		Combine to PartitionEnsembles.  Checks for concordance in the number of vertices. \
@@ -733,7 +747,8 @@ sub
 				raise ValueError("PartitionEnsemble interlayer_graph vertex counts do not match")
 
 		if new:
-			newEnsemble=copy.deepcopy(self)
+			newEnsemble=self.copy_ensemble()
+
 			attributes=['_partitions','resolutions','orig_mods',"int_edges",'exp_edges','numcoms']
 			if self.ismultilayer :
 				attributes+=['couplings','int_inter_edges']
@@ -796,7 +811,7 @@ sub
 															compression="gzip", compression_opts=9)
 					return self
 				else:
-					#just add the partitions from the other file
+					#just add the partitions from the other object
 					self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
 					self.add_partitions(otherEnsemble.get_partition_dictionary())
 					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
@@ -1154,7 +1169,7 @@ sub
 	# def _save_array_with_None(self):
 
 
-	def save(self,filename=None,dir=".",hdf5=True,compress=9):
+	def save(self,filename=None,dir=".",hdf5=True,compress=9,rename_existing=True):
 		'''
 		Use pickle or h5py to store representation of PartitionEnsemble in compressed file.  When called \
 		if object has an assocated hdf5_file, this is the default file written to.  Otherwise objected \
@@ -1172,6 +1187,7 @@ sub
 		:type compress: int [0,9]
 		:param dir: directory to save graph in.  relative or absolute path.  default is working dir.
 		:type dir: str
+		:param rename_existing: in the case that a hdf5_file already exist, do we simpy rename or copy to new file
 		'''
 
 		#changd this to make saving as hdf5 the default
@@ -1196,12 +1212,16 @@ sub
 
 		if hdf5:
 			#in the case that object we are working with is already on file
-			if self._hdf5_file is not None and os.path.exists(self._hdf5_file):
+			if self._isonfile:
+				#in this case do nothing
 				if self._hdf5_file==filename:
 					warnings.warn("PartitionEnsemble object is already stored in file: {:}.")
 				else:
 					warnings.warn("PartitionEnsemble object is already stored in file: {:}. Moving to new file: {:}".format(self._hdf5_file,filename))
-					os.rename(self._hdf5_file,filename)
+					if rename_existing:
+						os.rename(self._hdf5_file,filename)
+					else:
+						shutil.copy(self._hdf5_file,filename)
 					self._hdf5_file=filename
 				return self._hdf5_file
 			# filename=os.path.join(dir,filename)
@@ -1365,6 +1385,7 @@ sub
 			self._hdf5_file=filename
 			if self.maxpt is None:
 				self.maxpt=self._get_max_gamma() #calculate max boundary
+			self._isonfile=True
 			return self
 
 		except IOError:
