@@ -121,6 +121,7 @@ class PartitionEnsemble(object):
 		"""
 		assert	interlayer_graph is None or layer_vec is not None, "Layer_vec must be supplied for multilayer graph"
 		self._hdf5_file=None
+		self._isonfile=False
 		self.int_edges = np.array([])
 		self.exp_edges = np.array([])
 		self.int_inter_edges=np.array([])
@@ -153,7 +154,6 @@ class PartitionEnsemble(object):
 				else:
 					 self.add_partitions(listofparts,maxpt=self.maxpt)
 		self.name=name
-		self._isonfile=False #is this stored on file?
 
 	def get_adjacency(self,intra=True):
 		'''
@@ -713,16 +713,22 @@ sub
 		newdict={k+offset:val for k,val in indict.items()}
 		return newdict
 
-	def copy_ensemble(self):
+	def copy_ensemble(self,file2save=None):
 		"""Create complete copy of the PartitionEnsemble.  New one is given file with same name\
 		but with _copy appended to end (if original has hdf5 file).
 		"""
 		newEnsemble = copy.deepcopy(self)
 		# change without saving
 		if self._hdf5_file is not None:
-			newEnsemble._hdf5_file = re.sub("\.hdf5", "_copy\.hdf5", self._hdf5_file)
+			if file2save is None:
+				newEnsemble._hdf5_file = re.sub("\.hdf5", "_copy\.hdf5", self._hdf5_file)
+			else:
+				newEnsemble._hdf5_file = file2save
 		if self._isonfile:  # copy over data from on file.
-			newEnsemble.save(rename_existing=False)
+			#note that we save self here and not the new object
+			shutil.copy(self._hdf5_file, newEnsemble._hdf5_file)
+			# self.save(rename_existing=False)
+		
 		return newEnsemble
 
 	def merge_ensemble(self,otherEnsemble,new=True):
@@ -775,50 +781,50 @@ sub
 			if self._hdf5_file is not None and self._hdf5_file == otherEnsemble._hdf5_file:
 				warnings.warn("Partitions are stored on the same file.  returning self",UserWarning)
 				return self
-			if self.num_parts<otherEnsemble.num_parts:
-				#reverse order of merging in case where larger
-				return otherEnsemble.merge_ensemble(self,new=False)
+			# if self.num_parts<otherEnsemble.num_parts:
+			# 	#reverse order of merging in case where larger
+			# 	return otherEnsemble.merge_ensemble(self,new=False)
+			# else:
+			#we combine the hdf5 files together
+			if not self._hdf5_file is None and not otherEnsemble.hdf5_file is None:
+				#merge the second hdf5_file onto the other and then reopen it to
+				#reload everything.
+
+				#we only call champ on the combined subset of parititons from old set
+				inds2call_champ=list(self.ind2doms.keys())+\
+								[k + self.num_parts for k in otherEnsemble.ind2doms.keys()]
+				newmaxpt=max(self.maxpt,otherEnsemble.maxpt)
+
+				self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
+				self.open(self._hdf5_file)
+
+				self.maxpt=newmaxpt
+				self.apply_CHAMP(subset=inds2call_champ,maxpt=self.maxpt)
+				self._sim_mat = None
+				if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
+					self.sim_mat
+				# have to update champ set on file and sim_mat
+				with h5py.File(self._hdf5_file, 'a') as outfile:
+					del outfile['ind2doms'] #have to delete to write over
+					indgrp=outfile.create_group('ind2doms')
+					for ind,dom in iteritems(self.ind2doms):
+						indgrp.create_dataset(str(ind),data=dom,
+								compression="gzip",compression_opts=9)
+					if "_sim_mat" in outfile:
+						del outfile['_sim_mat']
+						cshape=self.sim_mat.shape
+						cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
+														compression="gzip", compression_opts=9)
+				return self
 			else:
-				#we combine the hdf5 files together
-				if not self._hdf5_file is None and not otherEnsemble.hdf5_file is None:
-					#merge the second hdf5_file onto the other and then reopen it to
-					#reload everything.
-
-					#we only call champ on the combined subset of parititons from old set
-					inds2call_champ=list(self.ind2doms.keys())+\
-									[k + self.num_parts for k in otherEnsemble.ind2doms.keys()]
-					newmaxpt=max(self.maxpt,otherEnsemble.maxpt)
-
-					self._combine_partitions_hdf5_files(otherEnsemble.hdf5_file)
-					self.open(self._hdf5_file)
-
-					self.maxpt=newmaxpt
-					self.apply_CHAMP(subset=inds2call_champ,maxpt=self.maxpt)
-					self._sim_mat = None
-					if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
-						self.sim_mat
-					# have to update champ set on file and sim_mat
-					with h5py.File(self._hdf5_file, 'a') as outfile:
-						del outfile['ind2doms'] #have to delete to write over
-						indgrp=outfile.create_group('ind2doms')
-						for ind,dom in iteritems(self.ind2doms):
-							indgrp.create_dataset(str(ind),data=dom,
-									compression="gzip",compression_opts=9)
-						if "_sim_mat" in outfile:
-							del outfile['_sim_mat']
-							cshape=self.sim_mat.shape
-							cdset = outfile.create_dataset('_sim_mat', data=self.sim_mat, maxshape=cshape,
-															compression="gzip", compression_opts=9)
-					return self
-				else:
-					#just add the partitions from the other object
-					self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
-					self.add_partitions(otherEnsemble.get_partition_dictionary())
-					self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
-					self._sim_mat=None
-					if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
-						self.sim_mat
-					return self
+				#just add the partitions from the other object
+				self.ind2doms.update(self._offset_keys_new_dict(otherEnsemble.ind2doms))
+				self.add_partitions(otherEnsemble.get_partition_dictionary())
+				self.apply_CHAMP(subset=list(self.ind2doms),maxpt=self.maxpt)
+				self._sim_mat=None
+				if self.calc_sim_mat or otherEnsemble.calc_sim_mat:
+					self.sim_mat
+				return self
 
 	def get_coefficient_array(self,subset=None):
 		'''
@@ -1215,7 +1221,7 @@ sub
 			if self._isonfile:
 				#in this case do nothing
 				if self._hdf5_file==filename:
-					warnings.warn("PartitionEnsemble object is already stored in file: {:}.")
+					warnings.warn("PartitionEnsemble object is already stored in file: {:}.".format(filename))
 				else:
 					warnings.warn("PartitionEnsemble object is already stored in file: {:}. Moving to new file: {:}".format(self._hdf5_file,filename))
 					if rename_existing:
