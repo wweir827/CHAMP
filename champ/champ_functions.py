@@ -370,7 +370,7 @@ def get_intersection(coef_array, max_pt=None):
 
     if not singlelayer:
         # Find boundary intersection of half spaces
-        interior_pt = get_interior_point(halfspaces,num_bound=0)
+        interior_pt = get_interior_point(halfspaces,num_bound=num_boundary)
         hs_inter = HalfspaceIntersection(halfspaces, interior_pt)
 
     # revert numpy floating point warnings
