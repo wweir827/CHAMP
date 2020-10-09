@@ -10,6 +10,7 @@ from numpy.random import choice, uniform
 from scipy.spatial import HalfspaceIntersection
 from scipy.spatial.qhull import QhullError
 from scipy.optimize import linprog
+import igraph as ig
 import warnings
 
 
@@ -591,11 +592,11 @@ def get_expected_edges_ml(part_obj,layer_vec,weight='weight'):
 	"""
 	P_tot=0
 	layers=np.unique(layer_vec)
-
 	for layer in layers:
 		cind=np.where(layer_vec==layer)[0]
 		subgraph=part_obj.graph.subgraph(cind)
 		submem=np.array(part_obj.membership)[cind]
+
 		cpartobj=ig.VertexClustering(graph=subgraph,membership=submem)
 		P_tot += get_expected_edges(cpartobj,weight=weight,directed=subgraph.is_directed())
 	return P_tot
